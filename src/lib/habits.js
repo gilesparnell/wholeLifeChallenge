@@ -9,10 +9,11 @@ export const HABITS = [
 
 export const emptyDay = () => ({
   nutrition: 5,
-  exercise: { completed: false, type: '' },
-  mobilize: { completed: false, type: '' },
+  exercise: { completed: false, type: '', duration_minutes: null },
+  mobilize: { completed: false, type: '', duration_minutes: null },
   sleep: { completed: false, hours: null },
   hydrate: { completed: false, current_ml: 0, target_ml: 2000 },
   wellbeing: { completed: false, activity_text: '' },
   reflect: { completed: false, reflection_text: '' },
+  selfReport: null,
 })

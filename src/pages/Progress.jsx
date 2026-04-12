@@ -1,7 +1,9 @@
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts'
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, LineChart, Line } from 'recharts'
 import { HABITS } from '../lib/habits'
 import { scoreDay } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, CHALLENGE_DAYS } from '../lib/dates'
+import { getWeeklyExerciseMinutes, getActivityTypeBreakdown, getDailyDurationTrend } from '../lib/exerciseStats'
+import { getRecoveryTrend } from '../lib/recovery'
 import { useData } from '../contexts/DataContext'
 import { colors, fonts } from '../styles/theme'
 
@@ -49,6 +51,16 @@ export default function Progress() {
     })
     return entry
   }).filter(Boolean)
+
+  // Exercise duration stats
+  const weeklyExercise = getWeeklyExerciseMinutes(data, allDates, dayIndex)
+  const activityBreakdown = getActivityTypeBreakdown(data, allDates, dayIndex)
+  const durationTrend = getDailyDurationTrend(data, allDates, dayIndex)
+  const hasExerciseDuration = durationTrend.some((d) => d.exercise > 0 || d.mobilize > 0)
+
+  // Recovery/strain trend
+  const recoveryTrend = getRecoveryTrend(data, allDates, dayIndex)
+  const hasRecoveryData = recoveryTrend.some((d) => d.recovery != null)
 
   if (loading) {
     return <div style={{ textAlign: 'center', padding: 40, color: colors.textDim }}>Loading...</div>
@@ -127,6 +139,96 @@ export default function Progress() {
       </div>
 
       </div>
+
+      {/* Exercise Duration Charts — only shown when duration data exists */}
+      {hasExerciseDuration && (
+        <div className="wlc-charts-grid" style={{ marginTop: 16 }}>
+          {/* Weekly Exercise Minutes */}
+          <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
+            <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingLeft: 8 }}>Weekly Active Minutes</p>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={weeklyExercise}>
+                <XAxis dataKey="week" tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
+                <Tooltip
+                  contentStyle={{ background: colors.surfaceHover, border: `1px solid ${colors.borderSubtle}`, borderRadius: 8, color: colors.text, fontSize: 12 }}
+                  formatter={(v, name) => [`${v} min`, name === 'exercise' ? 'Exercise' : 'Mobilize']}
+                />
+                <Bar dataKey="exercise" stackId="a" fill={colors.accent} name="exercise" />
+                <Bar dataKey="mobilize" stackId="a" fill={colors.orange} name="mobilize" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Daily Duration Trend */}
+          <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
+            <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingLeft: 8 }}>Duration Trend</p>
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={durationTrend}>
+                <XAxis dataKey="day" tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
+                <Tooltip
+                  contentStyle={{ background: colors.surfaceHover, border: `1px solid ${colors.borderSubtle}`, borderRadius: 8, color: colors.text, fontSize: 12 }}
+                  formatter={(v, name) => [`${v} min`, name === 'exercise' ? 'Exercise' : 'Mobilize']}
+                  labelFormatter={(l) => `Day ${l}`}
+                />
+                <Line type="monotone" dataKey="exercise" stroke={colors.accent} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="mobilize" stroke={colors.orange} strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Activity Type Breakdown */}
+      {activityBreakdown.length > 0 && (
+        <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
+          <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>Activity Breakdown</p>
+          {activityBreakdown.map(({ type, minutes }) => {
+            const maxMin = activityBreakdown[0].minutes
+            const pct = Math.round((minutes / maxMin) * 100)
+            return (
+              <div key={type} style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                  <span style={{ color: colors.textMuted }}>{type}</span>
+                  <span style={{ color: colors.text, fontWeight: 600 }}>{minutes} min</span>
+                </div>
+                <div style={{ height: 6, background: colors.surfaceHover, borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, background: colors.accent, borderRadius: 3, transition: 'width 0.5s ease' }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Recovery & Strain Chart — only shown when self-report data exists */}
+      {hasRecoveryData && (
+        <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
+          <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingLeft: 8 }}>Recovery & Strain</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={recoveryTrend}>
+              <XAxis dataKey="day" tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="recovery" domain={[0, 100]} tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
+              <YAxis yAxisId="strain" orientation="right" domain={[0, 21]} tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
+              <Tooltip
+                contentStyle={{ background: colors.surfaceHover, border: `1px solid ${colors.borderSubtle}`, borderRadius: 8, color: colors.text, fontSize: 12 }}
+                formatter={(v, name) => {
+                  if (v == null) return ['—', name]
+                  return [name === 'recovery' ? `${v}/100` : `${v}/21`, name === 'recovery' ? 'Recovery' : 'Strain']
+                }}
+                labelFormatter={(l) => `Day ${l}`}
+              />
+              <Line yAxisId="recovery" type="monotone" dataKey="recovery" stroke={colors.green} strokeWidth={2} dot={false} connectNulls />
+              <Line yAxisId="strain" type="monotone" dataKey="strain" stroke={colors.accent} strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 4, paddingBottom: 4 }}>
+            <span style={{ fontSize: 11, color: colors.green }}>{'\u25CF'} Recovery (0-100)</span>
+            <span style={{ fontSize: 11, color: colors.accent }}>{'\u25CF'} Strain (0-21)</span>
+          </div>
+        </div>
+      )}
 
       {/* Habit Heatmap */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>

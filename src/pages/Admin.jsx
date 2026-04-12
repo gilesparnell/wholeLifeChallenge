@@ -177,6 +177,16 @@ export default function Admin() {
               {ml} ml
             </button>
           ))}
+          <input
+            type="number"
+            min="500"
+            max="10000"
+            step="100"
+            placeholder="Custom"
+            value={![1500, 2000, 2500, 3000, 3500].includes(config.hydrationTargetMl) ? config.hydrationTargetMl : ''}
+            onChange={(e) => setHydrationTarget(e.target.value)}
+            style={{ ...inputStyle, width: 90 }}
+          />
         </div>
         <p style={{ fontSize: 12, color: colors.textGhost, marginTop: 8 }}>
           Current: {config.hydrationTargetMl} ml
@@ -197,6 +207,19 @@ export default function Admin() {
               {ml} ml
             </button>
           ))}
+          <input
+            type="number"
+            min="50"
+            max="1000"
+            step="50"
+            placeholder="Custom"
+            value={![100, 150, 200, 250, 300, 500].includes(config.hydrationIncrementMl) ? config.hydrationIncrementMl : ''}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10)
+              if (!isNaN(v) && v > 0) saveAll({ ...config, hydrationIncrementMl: v })
+            }}
+            style={{ ...inputStyle, width: 90 }}
+          />
         </div>
         <p style={{ fontSize: 12, color: colors.textGhost, marginTop: 8 }}>
           Current: +{config.hydrationIncrementMl} ml per tap
@@ -218,7 +241,7 @@ export default function Admin() {
           </div>
           <div>
             <div style={{ fontSize: 12, color: colors.textMuted, marginBottom: 4 }}>Duration (days)</div>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               {[42, 60, 75, 90].map((d) => (
                 <button
                   key={d}
@@ -233,6 +256,18 @@ export default function Admin() {
                   {d}
                 </button>
               ))}
+              <input
+                type="number"
+                min="7"
+                max="365"
+                placeholder="Custom"
+                value={![42, 60, 75, 90].includes(config.challengeDays || 75) ? config.challengeDays : ''}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10)
+                  if (!isNaN(v) && v > 0) saveAll({ ...config, challengeDays: v })
+                }}
+                style={{ ...inputStyle, width: 90 }}
+              />
             </div>
           </div>
         </div>

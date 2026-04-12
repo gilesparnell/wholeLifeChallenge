@@ -3,6 +3,9 @@ import { HABITS, emptyDay } from '../lib/habits'
 import { scoreDay, calculateStreak, calculateHabitStreak } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
 import { getConfig } from '../lib/adminConfig'
+import { computeBonuses } from '../lib/bonuses'
+import { calculateRecoveryScore, calculateStrainScore } from '../lib/recovery'
+import { getContextAwarePrompt } from '../lib/promptBank'
 import { useData } from '../contexts/DataContext'
 import { colors, fonts } from '../styles/theme'
 import ExerciseCard from '../components/habits/ExerciseCard'
@@ -57,6 +60,14 @@ export default function CheckIn() {
   const maxPossible = Math.max(1, Math.min(dayIndex + 1, CHALLENGE_DAYS)) * 35
   const pct = Math.round((totalScore / maxPossible) * 100)
   const streak = calculateStreak(data, allDates, dayIndex)
+  const bonuses = computeBonuses(data, allDates, dayIndex)
+
+  const BONUS_CONFIG = [
+    { key: 'indulgence', label: 'Indulgence', icon: '\u{1F37D}\uFE0F', color: colors.green },
+    { key: 'restDay', label: 'Rest Day', icon: '\u{1F6CC}', color: colors.blue },
+    { key: 'nightOwl', label: 'Night Owl', icon: '\u{1F989}', color: colors.purple },
+    { key: 'freeDay', label: 'Free Day', icon: '\u{1F31F}', color: colors.orange },
+  ]
 
   if (loading) {
     return (
@@ -96,7 +107,7 @@ export default function CheckIn() {
           <HydrateCard
             key={habit.id}
             habit={habit}
-            value={{ ...value, target_ml: value?.target_ml || config.hydrationTargetMl }}
+            value={{ ...value, target_ml: config.hydrationTargetMl }}
             incrementMl={config.hydrationIncrementMl}
             canEdit={canEdit}
             onChange={(v) => updateHabit(habit.id, v)}
@@ -266,6 +277,72 @@ export default function CheckIn() {
         {HABITS.map((h) => renderHabitCard(h))}
       </div>
 
+      {/* Self-Report (Recovery Metrics) */}
+      {canEdit && (
+        <div style={{
+          background: colors.surface, borderRadius: 14, padding: 16, marginTop: 16,
+          border: `1px solid ${colors.border}`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2 }}>
+              How Do You Feel?
+            </p>
+            {currentDay.selfReport && (() => {
+              const recovery = calculateRecoveryScore(currentDay.selfReport)
+              const strain = calculateStrainScore(currentDay.exercise, currentDay.mobilize)
+              return recovery != null ? (
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: recovery >= 60 ? colors.green : recovery >= 30 ? colors.orange : colors.accent }}>
+                    Recovery {recovery}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: colors.blue }}>
+                    Strain {strain}
+                  </span>
+                </div>
+              ) : null
+            })()}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {[
+              { key: 'sleepQuality', label: 'Sleep Quality', icon: '\u{1F634}' },
+              { key: 'energyLevel', label: 'Energy', icon: '\u26A1' },
+              { key: 'soreness', label: 'Soreness', icon: '\u{1F4AA}' },
+              { key: 'stressLevel', label: 'Stress', icon: '\u{1F9E0}' },
+              { key: 'mood', label: 'Mood', icon: '\u{1F60A}' },
+            ].map(({ key, label, icon }) => {
+              const sr = currentDay.selfReport || {}
+              const val = sr[key] ?? 0
+              return (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 14 }}>{icon}</span>
+                  <span style={{ fontSize: 12, color: colors.textDim, minWidth: 55 }}>{label}</span>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {[1, 2, 3, 4, 5].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => {
+                          const updated = { ...(currentDay.selfReport || {}), [key]: v, sleepHours: currentDay.sleep?.hours || 0 }
+                          save(selectedDate, { ...currentDay, selfReport: updated })
+                        }}
+                        style={{
+                          width: 26, height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
+                          fontSize: 11, fontWeight: 700, fontFamily: fonts.body,
+                          background: val === v ? colors.accent : colors.surfaceHover,
+                          color: val === v ? '#fff' : colors.textFaint,
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Activity Modal for wellbeing/reflect */}
       <ActivityModal
         isOpen={modalOpen !== null}
@@ -274,7 +351,58 @@ export default function CheckIn() {
         title={modalHabit?.label || ''}
         placeholder={modalOpen === 'reflect' ? 'How did today go?' : 'What did you do for well-being?'}
         initialText={getModalInitialText()}
+        prompt={modalOpen === 'reflect' ? getContextAwarePrompt(
+          getDayIndex(selectedDate),
+          currentDay,
+          { streak, recoveryScore: calculateRecoveryScore(currentDay.selfReport) }
+        ) : null}
       />
+
+      {/* Bonus Progress */}
+      <div style={{ marginTop: 24 }}>
+        <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 10, textAlign: 'center' }}>Bonus Tracker</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {BONUS_CONFIG.map(({ key, label, icon, color }) => {
+            const bonus = bonuses[key]
+            const pct = Math.round((bonus.streak / bonus.threshold) * 100)
+            const remaining = bonus.threshold - bonus.streak
+            return (
+              <div key={key} style={{
+                background: colors.surface, borderRadius: 10, padding: '10px 12px',
+                border: `1px solid ${bonus.earned > 0 ? color + '44' : colors.border}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <span style={{ fontSize: 14 }}>{icon}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: bonus.earned > 0 ? color : colors.textDim }}>{label}</span>
+                  {bonus.earned > 0 && (
+                    <span style={{
+                      marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#fff',
+                      background: color, borderRadius: 6, padding: '1px 6px',
+                    }}>
+                      {bonus.earned}
+                    </span>
+                  )}
+                </div>
+                <div style={{ height: 4, background: colors.surfaceHover, borderRadius: 2, overflow: 'hidden', marginBottom: 4 }}>
+                  <div style={{
+                    height: '100%', width: `${Math.min(100, pct)}%`, borderRadius: 2,
+                    background: bonus.earned > 0 ? color : `${color}88`,
+                    transition: 'width 0.3s ease',
+                  }} />
+                </div>
+                <div style={{ fontSize: 11, color: colors.textFaint }}>
+                  {bonus.earned > 0
+                    ? `${bonus.streak}/${bonus.threshold} to next`
+                    : remaining > 0
+                      ? `${remaining} day${remaining === 1 ? '' : 's'} to go`
+                      : 'Available!'
+                  }
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
 
       {/* Reset */}
       <div style={{ textAlign: 'center', marginTop: 32 }}>

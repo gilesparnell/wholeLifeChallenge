@@ -1,0 +1,229 @@
+import { describe, it, expect } from 'vitest'
+import { computeBonuses } from './bonuses'
+
+// Helper to generate a perfect day
+const perfectDay = (overrides = {}) => ({
+  nutrition: 5,
+  exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+  mobilize: { completed: true, type: 'Yoga', duration_minutes: 15 },
+  sleep: { completed: true, hours: 8 },
+  hydrate: { completed: true, current_ml: 2000, target_ml: 2000 },
+  wellbeing: { completed: true, activity_text: 'Meditation' },
+  reflect: { completed: true, reflection_text: 'Good day' },
+  ...overrides,
+})
+
+const makeDates = (n) => {
+  const dates = []
+  for (let i = 0; i < n; i++) {
+    const d = new Date('2026-04-12')
+    d.setDate(d.getDate() + i)
+    dates.push(d.toISOString().slice(0, 10))
+  }
+  return dates
+}
+
+const fillData = (dates, dayFn) => {
+  const data = {}
+  dates.forEach((d, i) => { data[d] = dayFn(i) })
+  return data
+}
+
+describe('computeBonuses', () => {
+  describe('structure', () => {
+    it('returns all four bonus types', () => {
+      const result = computeBonuses({}, [], 0)
+      expect(result).toHaveProperty('indulgence')
+      expect(result).toHaveProperty('restDay')
+      expect(result).toHaveProperty('nightOwl')
+      expect(result).toHaveProperty('freeDay')
+    })
+
+    it('each bonus has earned, streak, and threshold fields', () => {
+      const result = computeBonuses({}, [], 0)
+      for (const key of ['indulgence', 'restDay', 'nightOwl', 'freeDay']) {
+        expect(result[key]).toHaveProperty('earned')
+        expect(result[key]).toHaveProperty('streak')
+        expect(result[key]).toHaveProperty('threshold')
+      }
+    })
+  })
+
+  describe('indulgence bonus', () => {
+    // Earned when scoring 18+/20 nutrition points over 4 consecutive days
+    it('is not earned with fewer than 4 days', () => {
+      const dates = makeDates(3)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 2)
+      expect(result.indulgence.earned).toBe(0)
+    })
+
+    it('is earned once after 4 consecutive days with 18+/20 nutrition', () => {
+      const dates = makeDates(4)
+      const data = fillData(dates, () => perfectDay({ nutrition: 5 }))
+      const result = computeBonuses(data, dates, 3)
+      expect(result.indulgence.earned).toBe(1)
+    })
+
+    it('is earned when nutrition totals 18+ over 4 days (e.g. 5+4+5+4=18)', () => {
+      const dates = makeDates(4)
+      const data = fillData(dates, (i) => perfectDay({ nutrition: i % 2 === 0 ? 5 : 4 }))
+      const result = computeBonuses(data, dates, 3)
+      expect(result.indulgence.earned).toBe(1)
+    })
+
+    it('is NOT earned when nutrition totals less than 18 over 4 days', () => {
+      const dates = makeDates(4)
+      const data = fillData(dates, (i) => perfectDay({ nutrition: i === 0 ? 3 : 5 }))
+      // 3+5+5+5 = 18, should earn
+      const result = computeBonuses(data, dates, 3)
+      expect(result.indulgence.earned).toBe(1)
+    })
+
+    it('tracks current streak toward next indulgence', () => {
+      const dates = makeDates(2)
+      const data = fillData(dates, () => perfectDay({ nutrition: 5 }))
+      const result = computeBonuses(data, dates, 1)
+      expect(result.indulgence.streak).toBe(2)
+      expect(result.indulgence.threshold).toBe(4)
+    })
+
+    it('can earn multiple indulgences over the challenge', () => {
+      const dates = makeDates(8)
+      const data = fillData(dates, () => perfectDay({ nutrition: 5 }))
+      const result = computeBonuses(data, dates, 7)
+      expect(result.indulgence.earned).toBe(2)
+    })
+  })
+
+  describe('rest day bonus', () => {
+    // Earned after 10 consecutive days of completed exercise
+    it('is not earned with fewer than 10 exercise days', () => {
+      const dates = makeDates(9)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 8)
+      expect(result.restDay.earned).toBe(0)
+    })
+
+    it('is earned after 10 consecutive exercise days', () => {
+      const dates = makeDates(10)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 9)
+      expect(result.restDay.earned).toBe(1)
+    })
+
+    it('resets streak when exercise is missed', () => {
+      const dates = makeDates(12)
+      const data = fillData(dates, (i) =>
+        i === 5 ? perfectDay({ exercise: { completed: false, type: '', duration_minutes: null } }) : perfectDay()
+      )
+      const result = computeBonuses(data, dates, 11)
+      // Days 0-4 (5 streak), day 5 missed, days 6-11 (6 streak)
+      expect(result.restDay.earned).toBe(0)
+      expect(result.restDay.streak).toBe(6)
+    })
+
+    it('tracks streak toward threshold of 10', () => {
+      const dates = makeDates(7)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 6)
+      expect(result.restDay.streak).toBe(7)
+      expect(result.restDay.threshold).toBe(10)
+    })
+  })
+
+  describe('night owl bonus', () => {
+    // Earned after 6 consecutive days of completed sleep
+    it('is not earned with fewer than 6 sleep days', () => {
+      const dates = makeDates(5)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 4)
+      expect(result.nightOwl.earned).toBe(0)
+    })
+
+    it('is earned after 6 consecutive sleep days', () => {
+      const dates = makeDates(6)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 5)
+      expect(result.nightOwl.earned).toBe(1)
+    })
+
+    it('resets streak when sleep is missed', () => {
+      const dates = makeDates(8)
+      const data = fillData(dates, (i) =>
+        i === 3 ? perfectDay({ sleep: { completed: false, hours: null } }) : perfectDay()
+      )
+      const result = computeBonuses(data, dates, 7)
+      // Days 0-2 (3), day 3 missed, days 4-7 (4)
+      expect(result.nightOwl.earned).toBe(0)
+      expect(result.nightOwl.streak).toBe(4)
+    })
+
+    it('tracks threshold of 6', () => {
+      const result = computeBonuses({}, [], 0)
+      expect(result.nightOwl.threshold).toBe(6)
+    })
+  })
+
+  describe('free day bonus', () => {
+    // Earned after 21 consecutive days with 730+/735 total points
+    // That's essentially 21 perfect or near-perfect days
+    it('is not earned with fewer than 21 days', () => {
+      const dates = makeDates(20)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 19)
+      expect(result.freeDay.earned).toBe(0)
+    })
+
+    it('is earned after 21 consecutive near-perfect days', () => {
+      const dates = makeDates(21)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 20)
+      expect(result.freeDay.earned).toBe(1)
+    })
+
+    it('tracks streak toward 21 days', () => {
+      const dates = makeDates(10)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 9)
+      expect(result.freeDay.streak).toBe(10)
+      expect(result.freeDay.threshold).toBe(21)
+    })
+
+    it('resets streak when daily score drops below threshold', () => {
+      const dates = makeDates(22)
+      const data = fillData(dates, (i) =>
+        i === 10 ? perfectDay({ nutrition: 0, exercise: { completed: false, type: '', duration_minutes: null } }) : perfectDay()
+      )
+      const result = computeBonuses(data, dates, 21)
+      // Days 0-9 (10), day 10 breaks, days 11-21 (11)
+      expect(result.freeDay.earned).toBe(0)
+      expect(result.freeDay.streak).toBe(11)
+    })
+  })
+
+  describe('edge cases', () => {
+    it('handles empty data gracefully', () => {
+      const result = computeBonuses({}, [], -1)
+      expect(result.indulgence.earned).toBe(0)
+      expect(result.restDay.earned).toBe(0)
+      expect(result.nightOwl.earned).toBe(0)
+      expect(result.freeDay.earned).toBe(0)
+    })
+
+    it('handles legacy boolean habit format', () => {
+      const dates = makeDates(10)
+      const data = fillData(dates, () => ({
+        nutrition: 5,
+        exercise: true,
+        mobilize: true,
+        sleep: true,
+        hydrate: true,
+        wellbeing: true,
+        reflect: true,
+      }))
+      const result = computeBonuses(data, dates, 9)
+      expect(result.restDay.earned).toBe(1) // 10 consecutive exercise days
+    })
+  })
+})

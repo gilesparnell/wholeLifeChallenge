@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { colors, fonts } from '../../styles/theme'
 
-export default function ActivityModal({ isOpen, onClose, onSave, title, placeholder, initialText }) {
+export default function ActivityModal({ isOpen, onClose, onSave, title, placeholder, initialText, prompt }) {
   const [text, setText] = useState(initialText || '')
+  const [showPrompt, setShowPrompt] = useState(false)
 
   useEffect(() => {
     setText(initialText || '')
+    setShowPrompt(false)
   }, [initialText, isOpen])
 
   if (!isOpen) return null
@@ -34,9 +36,27 @@ export default function ActivityModal({ isOpen, onClose, onSave, title, placehol
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ fontFamily: fonts.display, fontSize: 20, fontWeight: 400, color: colors.text }}>
-            {title}
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ fontFamily: fonts.display, fontSize: 20, fontWeight: 400, color: colors.text }}>
+              {title}
+            </h3>
+            {prompt && (
+              <button
+                onClick={() => setShowPrompt(!showPrompt)}
+                data-testid="prompt-info-btn"
+                style={{
+                  background: showPrompt ? colors.accent : colors.surfaceHover,
+                  border: 'none', borderRadius: '50%', width: 24, height: 24,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                  color: showPrompt ? '#fff' : colors.textDim,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                i
+              </button>
+            )}
+          </div>
           <button
             onClick={onClose}
             style={{
@@ -47,6 +67,28 @@ export default function ActivityModal({ isOpen, onClose, onSave, title, placehol
             {'\u2715'}
           </button>
         </div>
+
+        {/* Reflexion prompt card */}
+        {prompt && showPrompt && (
+          <div
+            data-testid="prompt-card"
+            style={{
+              background: colors.bg, borderRadius: 12, padding: '14px 16px',
+              marginBottom: 14, border: `1px solid ${colors.borderSubtle}`,
+            }}
+          >
+            <p style={{
+              fontSize: 14, color: colors.text, lineHeight: 1.5, fontStyle: 'italic',
+              marginBottom: 8,
+            }}>
+              &ldquo;{prompt.text}&rdquo;
+            </p>
+            <p style={{ fontSize: 11, color: colors.textFaint }}>
+              Inspired by {prompt.source}
+            </p>
+          </div>
+        )}
+
         <textarea
           data-testid="activity-modal-textarea"
           placeholder={placeholder}

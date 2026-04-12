@@ -3,6 +3,7 @@ title: "feat: WLC v3 — UX Polish, Enhanced Dashboard, Bonus Tracking & AI Refl
 type: feat
 status: active
 date: 2026-04-12
+last_updated: 2026-04-12
 ---
 
 # WLC v3 — UX Polish, Enhanced Dashboard, Bonus Tracking & AI Reflections
@@ -11,21 +12,80 @@ date: 2026-04-12
 
 Eleven improvements spanning bug fixes, UX polish, enhanced metrics, WLC bonus tracking, and AI-powered reflexion prompts. Organised into four phases by dependency and risk.
 
+## Current Status (updated 2026-04-12)
+
+**Phase 1: COMPLETE** — All 5 UX/bug fix items shipped in commit `90b9bab` on master branch.
+**Phase 2: COMPLETE** — Exercise duration, dashboard metrics, WLC bonuses. 177 tests passing (18 files).
+**Phase 3: COMPLETE** — Recovery/strain metrics, prompt bank, context-aware reflections. 207 tests passing (20 files).
+
+### What was shipped (commit 90b9bab, 2026-04-12)
+
+- CSS custom properties theme system (`src/index.css`) with light (`#f5f3ef`) and dark (`#0D0D0F`) palettes
+- `ThemeContext` with toggle, localStorage persistence, system preference detection, FOUC prevention
+- Sun/moon toggle in Layout header
+- All font sizes bumped to 12px minimum on mobile
+- Responsive breakpoints: 480px (mobile) → 720px (tablet) → 960px (desktop)
+- 2-column CSS grids for habits (`.wlc-habits-grid`) and charts (`.wlc-charts-grid`) on desktop
+- Hydration target reads from admin config (`config.hydrationTargetMl`), increment configurable (100-500ml)
+- Challenge start date and duration configurable from Admin page (42/60/75/90 day presets)
+- AuthGate splash reads `getChallengeDays()` and `getChallengeStartFormatted()` dynamically
+- Per-habit streak counters on CheckIn page
+- Cumulative score chart with perfect-pace reference line on Progress page
+- Per-habit weekly bar chart breakdown on Progress page
+- 127 tests passing across 15 test files
+
+### What was shipped (Phase 2, 2026-04-12, uncommitted on master)
+
+- `ExerciseCard.jsx`: duration buttons (10/15/20/30/45/60/90 min), preserves duration on type change, shows "Running · 45 min" on card
+- `emptyDay()` updated: exercise and mobilise now include `duration_minutes: null`
+- `src/lib/exerciseStats.js`: weekly exercise minutes, activity type breakdown, daily duration trend
+- `Progress.jsx`: Weekly Active Minutes bar chart, Duration Trend line chart, Activity Breakdown bars (all conditionally shown when duration data exists)
+- `src/lib/bonuses.js`: `computeBonuses()` — Indulgence (4-day nutrition), Rest Day (10 exercise), Night Owl (6 sleep), Free Day (21 near-perfect)
+- `CheckIn.jsx`: 2x2 bonus progress grid with progress bars, earned badges, "X days to go" indicators
+- 177 tests passing across 18 test files (50 new tests)
+
+### What has NOT been browser-verified
+
+Phase 1+2 code needs manual verification in a browser:
+1. Light theme contrast — does the warm palette read well in daylight?
+2. Hydration target flow — change in Admin → does CheckIn HydrateCard update?
+3. Challenge duration — change in Admin → does AuthGate splash update?
+4. Google OAuth sign-in — does it redirect and return a session?
+5. Supabase data persistence — does data round-trip for signed-in users?
+6. Exercise duration — does selecting type + duration save and display correctly?
+7. Duration charts — do Weekly Active Minutes and Duration Trend render with sample data?
+8. Bonus progress cards — do they show correct streaks and earn bonuses?
+
+### Key files for context
+
+| Area | File(s) |
+|------|---------|
+| Theme system | `src/index.css`, `src/contexts/ThemeContext.jsx`, `src/styles/theme.js` |
+| Auth | `src/contexts/AuthContext.jsx`, `src/components/AuthGate.jsx` |
+| Data layer | `src/contexts/DataContext.jsx`, `src/lib/supabaseStore.js`, `src/lib/dataStore.js` |
+| Admin config | `src/lib/adminConfig.js`, `src/pages/Admin.jsx` |
+| Habits | `src/components/habits/ExerciseCard.jsx`, `SleepCard.jsx`, `HydrateCard.jsx` |
+| Modals | `src/components/modals/ActivityModal.jsx` |
+| Scoring | `src/lib/scoring.js`, `src/lib/dates.js` |
+| Exercise stats | `src/lib/exerciseStats.js` |
+| Bonuses | `src/lib/bonuses.js` |
+| Pages | `src/pages/CheckIn.jsx`, `Progress.jsx`, `Journal.jsx`, `Info.jsx`, `Leaderboard.jsx` |
+
 ## Items Summary
 
-| # | Category | Item | Priority |
-|---|----------|------|----------|
-| 1 | Bug/UX | Light/dark theme — hard to read in daylight | P1 |
-| 6 | Bug/UX | Font sizes too small on mobile | P1 |
-| 7 | Bug/UX | Desktop view doesn't use screen real estate | P1 |
-| 8 | Bug | Hydration target appears static, should come from admin | P1 |
-| 9 | Bug | Splash screen still says "42 days" — make configurable in admin | P1 |
-| 2 | Feature | Exercise duration tracking (how long per activity) | P2 |
-| 3 | Feature | Exercise duration in dashboard metrics | P2 |
-| 5 | Feature | WLC bonus system with visual progress indicators | P2 |
-| 4 | Feature | Recovery/strain/sleep dashboard metrics + AI predictions | P3 |
-| 10 | Feature | AI reflexion prompts with daily wisdom from leading thinkers | P3 |
-| 11 | Feature | Context-aware reflexion suggestions based on completed activities | P3 |
+| # | Category | Item | Priority | Status |
+|---|----------|------|----------|--------|
+| 1 | Bug/UX | Light/dark theme — hard to read in daylight | P1 | **DONE** |
+| 6 | Bug/UX | Font sizes too small on mobile | P1 | **DONE** |
+| 7 | Bug/UX | Desktop view doesn't use screen real estate | P1 | **DONE** |
+| 8 | Bug | Hydration target appears static, should come from admin | P1 | **DONE** |
+| 9 | Bug | Splash screen still says "42 days" — make configurable in admin | P1 | **DONE** |
+| 2 | Feature | Exercise duration tracking (how long per activity) | P2 | **DONE** |
+| 3 | Feature | Exercise duration in dashboard metrics | P2 | **DONE** |
+| 5 | Feature | WLC bonus system with visual progress indicators | P2 | **DONE** |
+| 4 | Feature | Recovery/strain/sleep dashboard metrics + AI predictions | P3 | **DONE** |
+| 10 | Feature | AI reflexion prompts with daily wisdom from leading thinkers | P3 | **DONE** |
+| 11 | Feature | Context-aware reflexion suggestions based on completed activities | P3 | **DONE** |
 
 ---
 
@@ -356,51 +416,53 @@ Where `intensityMultiplier` maps exercise type to effort (HIIT=1.0, Running=0.8,
 
 ## Phase Summary
 
-| Phase | Items | Risk | Dependencies |
-|-------|-------|------|--------------|
-| **P1: UX Polish** | 1, 6, 7, 8, 9 | Low | None — all internal changes |
-| **P2: Exercise + Bonuses** | 2, 3, 5 | Medium | Data shape change for exercise duration |
-| **P3: Dashboard + AI** | 4, 10, 11 | Higher | Gemini API key, recovery data collection, prompt bank creation |
+| Phase | Items | Risk | Dependencies | Status |
+|-------|-------|------|--------------|--------|
+| **P1: UX Polish** | 1, 6, 7, 8, 9 | Low | None — all internal changes | **COMPLETE** (commit `90b9bab`) |
+| **P2: Exercise + Bonuses** | 2, 3, 5 | Medium | Data shape change for exercise duration | **COMPLETE** (uncommitted on master) |
+| **P3: Dashboard + AI** | 4, 10, 11 | Higher | Gemini API key, recovery data collection, prompt bank creation | **COMPLETE** (uncommitted on master) |
 
 ## Acceptance Criteria
 
-### Phase 1
-- [ ] Light and dark themes with toggle in header; respects system preference
-- [ ] No text below 12px on mobile
-- [ ] Desktop (>=768px) uses wider layout with multi-column where appropriate
-- [ ] Hydration target and increment configurable from admin
-- [ ] Challenge duration and start date configurable from admin
-- [ ] AuthGate splash screen reads from admin config (not hardcoded)
-- [ ] Both themes pass WCAG AA contrast ratios
+### Phase 1 — COMPLETE (shipped 2026-04-12, pending browser verification)
+- [x] Light and dark themes with toggle in header; respects system preference
+- [x] No text below 12px on mobile
+- [x] Desktop (>=768px) uses wider layout with multi-column where appropriate
+- [x] Hydration target and increment configurable from admin
+- [x] Challenge duration and start date configurable from admin
+- [x] AuthGate splash screen reads from admin config (not hardcoded)
+- [ ] Both themes pass WCAG AA contrast ratios *(not verified — needs browser check)*
 
-### Phase 2
-- [ ] Exercise card captures duration in minutes
-- [ ] Mobilise card captures duration in minutes
-- [ ] Duration appears in Progress page charts (weekly totals, activity breakdown)
-- [ ] All 4 WLC bonus types calculated correctly from data
-- [ ] Bonus progress indicators visible on CheckIn page
-- [ ] Auto-application of indulgence, rest day, and night owl bonuses
-- [ ] Free day manual activation works
-- [ ] Bonus calculations have comprehensive unit tests
+### Phase 2 — COMPLETE (2026-04-12, pending browser verification)
+- [x] Exercise card captures duration in minutes (10/15/20/30/45/60/90 quick-select)
+- [x] Mobilise card captures duration in minutes (same ExerciseCard component)
+- [x] Duration appears in Progress page charts (Weekly Active Minutes, Duration Trend, Activity Breakdown)
+- [x] All 4 WLC bonus types calculated correctly from data (22 unit tests)
+- [x] Bonus progress indicators visible on CheckIn page (2x2 grid with progress bars)
+- [ ] Auto-application of indulgence, rest day, and night owl bonuses *(deferred — bonuses are tracked and displayed but not auto-applied to scores)*
+- [ ] Free day manual activation works *(deferred — tracked but no activation UI yet)*
+- [x] Bonus calculations have comprehensive unit tests (22 tests in bonuses.test.js)
 
-### Phase 3
-- [ ] 5 self-report metrics collectible after daily check-in
-- [ ] Recovery score (0-100) calculated and displayed
-- [ ] Strain score derived from exercise type + duration
-- [ ] Recovery trend chart on Progress page
-- [ ] AI-generated reflexion prompts appear in Reflect modal
-- [ ] Prompts change daily and don't repeat within a week
-- [ ] Prompts reference user's completed/missed activities when AI is available
-- [ ] Offline prompt bank works without API key (graceful fallback)
-- [ ] Info icon in Reflect modal opens prompt suggestion
+### Phase 3 — COMPLETE (2026-04-12, pending browser verification)
+- [x] 5 self-report metrics collectible after daily check-in (sleepQuality, energyLevel, soreness, stressLevel, mood — 1-5 scale each)
+- [x] Recovery score (0-100) calculated and displayed (inline on CheckIn page)
+- [x] Strain score (0-21) derived from exercise type + duration with intensity multipliers
+- [x] Recovery & Strain trend chart on Progress page (dual-axis line chart, conditional)
+- [ ] ~~AI-generated reflexion prompts~~ — deferred live API calls. Using offline prompt bank instead (60+ prompts, no API cost)
+- [x] Prompts change daily and don't repeat within 60+ days (deterministic rotation via dayIndex)
+- [x] Prompts reference user's completed/missed activities via context-aware tag matching
+- [x] Offline prompt bank works without API key (60 prompts from 8+ thinkers)
+- [x] Info icon (i) in Reflect modal opens prompt suggestion card with quote + attribution
 
 ## Technical Considerations
 
-- **Theme migration is the riskiest change** — every component references `colors`. Migrating to CSS variables requires touching all files. Consider a staged approach: update `theme.js` to return `var()` strings, then components need zero changes.
-- **Supabase schema** — exercise/mobilise JSONB columns handle new `duration_minutes` field without migration. Self-report data needs a new field or separate table.
-- **Admin config sync** — currently localStorage-only. Should sync to Supabase `admin_config` table so challenge parameters are consistent across all users.
+- ~~**Theme migration is the riskiest change**~~ — **RESOLVED.** `theme.js` now returns `var(--color-*)` strings. All components reference CSS variables via the existing `colors` import with zero changes needed. Both light and dark palettes defined in `src/index.css`.
+- ~~**Supabase schema**~~ — **RESOLVED for exercise.** `duration_minutes` added to `emptyDay()` data shape. JSONB columns accept it without migration. Self-report data (Phase 3) still needs a new field or separate table.
+- **Admin config sync** — currently localStorage-only. Should sync to Supabase `admin_config` table so challenge parameters are consistent across all users. (Phase 1 items work locally but multi-user config sync is still needed.)
 - **Gemini API key** — needs to be added as a Vercel env var (`VITE_GEMINI_API_KEY`). Free tier is sufficient for small user base.
 - **Apple Health integration** — not feasible from a PWA. Would require a native iOS companion app or third-party bridge (Terra API ~$0.50/user/month). Recommend deferring — self-reported data covers the use case.
+- ~~**ExerciseCard reuse**~~ — **RESOLVED.** Duration tracking implemented in `ExerciseCard.jsx` — applies to both Exercise and Mobilise automatically.
+- **Bonus auto-application** — Bonuses are computed and displayed but not yet auto-applied to scores. The plan specifies auto-applying indulgence/rest day/night owl bonuses when a user misses a habit. This requires modifying `scoreDay()` or the save flow to check available bonuses and apply them. Deferred to a follow-up.
 
 ## Sources & References
 

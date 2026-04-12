@@ -1,5 +1,22 @@
 import { describe, it, expect } from 'vitest'
 import { scoreDay, calculateStreak, calculateHabitStreak } from './scoring'
+import { emptyDay } from './habits'
+
+describe('emptyDay', () => {
+  it('includes duration_minutes: null for exercise and mobilize', () => {
+    const day = emptyDay()
+    expect(day.exercise).toEqual({ completed: false, type: '', duration_minutes: null })
+    expect(day.mobilize).toEqual({ completed: false, type: '', duration_minutes: null })
+  })
+
+  it('does not add duration_minutes to non-dropdown habits', () => {
+    const day = emptyDay()
+    expect(day.sleep).toEqual({ completed: false, hours: null })
+    expect(day.hydrate).toEqual({ completed: false, current_ml: 0, target_ml: 2000 })
+    expect(day.wellbeing).toEqual({ completed: false, activity_text: '' })
+    expect(day.reflect).toEqual({ completed: false, reflection_text: '' })
+  })
+})
 
 describe('scoreDay', () => {
   it('returns 0 for null/undefined input', () => {
@@ -46,6 +63,12 @@ describe('scoreDay', () => {
   it('supports legacy boolean format for backwards compatibility', () => {
     expect(scoreDay({ exercise: true })).toBe(5)
     expect(scoreDay({ exercise: false })).toBe(0)
+  })
+
+  it('scores correctly with duration_minutes in exercise data', () => {
+    expect(scoreDay({ exercise: { completed: true, type: 'Running', duration_minutes: 30 } })).toBe(5)
+    expect(scoreDay({ exercise: { completed: true, type: 'Running', duration_minutes: null } })).toBe(5)
+    expect(scoreDay({ exercise: { completed: false, type: '', duration_minutes: null } })).toBe(0)
   })
 
   it('scores reflect as completed when reflection_text is present', () => {
