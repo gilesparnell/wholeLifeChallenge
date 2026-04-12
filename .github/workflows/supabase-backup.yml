@@ -23,13 +23,6 @@ on:
         description: 'Why are you running this manually?'
         required: false
         default: 'ad-hoc backup'
-  # TEMPORARY: fire on push to this branch so the first run verifies
-  # end-to-end before the file gets merged to master. Remove before merge.
-  push:
-    branches:
-      - feat/phase1-error-tracking-and-backups
-    paths:
-      - '.github/workflows/supabase-backup.yml'
 
 concurrency:
   # Never run two backups at the same time
