@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { isEmailAllowed, upsertProfile, getProfileByEmail, listProfiles, listAllowedEmails, addAllowedEmail, removeAllowedEmail, updateProfile, deleteProfile, updateProfileStats, setLeaderboardVisibility } from './profiles'
+import { isEmailAllowed, upsertProfile, getProfileByEmail, listProfiles, listAllowedEmails, addAllowedEmail, removeAllowedEmail, updateProfile, deleteProfile, updateProfileStats, setLeaderboardVisibility, markOnboardingComplete } from './profiles'
 
 // Mock supabase for all tests
 const mockFrom = vi.fn()
@@ -270,5 +270,31 @@ describe('setLeaderboardVisibility', () => {
     mockFrom.mockReturnValue(chain)
     await setLeaderboardVisibility('abc', false)
     expect(chain.update).toHaveBeenCalledWith({ leaderboard_visible: false })
+  })
+})
+
+describe('markOnboardingComplete', () => {
+  beforeEach(() => {
+    mockFrom.mockReset()
+  })
+
+  it('sets onboarding_completed = true on the given profile', async () => {
+    const chain = chainable({ data: { id: 'abc' }, error: null })
+    mockFrom.mockReturnValue(chain)
+    await markOnboardingComplete('abc')
+    expect(mockFrom).toHaveBeenCalledWith('profiles')
+    expect(chain.update).toHaveBeenCalledWith({ onboarding_completed: true })
+    expect(chain.eq).toHaveBeenCalledWith('id', 'abc')
+  })
+
+  it('returns null when id is missing', async () => {
+    const result = await markOnboardingComplete(null)
+    expect(result).toBeNull()
+  })
+
+  it('returns null on database error', async () => {
+    mockFrom.mockReturnValue(chainable({ data: null, error: { message: 'boom' } }))
+    const result = await markOnboardingComplete('abc')
+    expect(result).toBeNull()
   })
 })

@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { DataProvider } from './contexts/DataContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import AuthGate from './components/AuthGate'
+import OnboardingGate from './components/OnboardingGate'
 import Layout from './components/Layout'
 import CheckIn from './pages/CheckIn'
 import Journal from './pages/Journal'
@@ -27,6 +28,7 @@ function App() {
       <AuthProvider>
         <AuthGate>
           <DataProvider>
+          <OnboardingGate>
           <Layout>
             <Suspense fallback={<PageFallback />}>
               <Routes>
@@ -39,6 +41,7 @@ function App() {
               </Routes>
             </Suspense>
           </Layout>
+          </OnboardingGate>
           </DataProvider>
         </AuthGate>
       </AuthProvider>

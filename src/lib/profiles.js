@@ -179,6 +179,23 @@ export const updateProfileStats = async (id, { totalScore, currentStreak, daysAc
 }
 
 /**
+ * Mark a user's onboarding as complete so the onboarding modal stops showing.
+ */
+export const markOnboardingComplete = async (id) => {
+  if (!supabase || !id) return null
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ onboarding_completed: true })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) return null
+  return data
+}
+
+/**
  * Toggle a user's opt-in to the public leaderboard.
  */
 export const setLeaderboardVisibility = async (id, visible) => {
