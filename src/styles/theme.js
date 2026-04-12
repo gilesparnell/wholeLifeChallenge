@@ -1,0 +1,30 @@
+export const colors = {
+  bg: 'var(--color-bg)',
+  surface: 'var(--color-surface)',
+  surfaceHover: 'var(--color-surface-hover)',
+  border: 'var(--color-border)',
+  borderSubtle: 'var(--color-border-subtle)',
+  text: 'var(--color-text)',
+  textMuted: 'var(--color-text-muted)',
+  textDim: 'var(--color-text-dim)',
+  textFaint: 'var(--color-text-faint)',
+  textGhost: 'var(--color-text-ghost)',
+  textInvisible: 'var(--color-text-invisible)',
+  nutritionGood: 'var(--color-nutrition-good)',
+  nutritionMid: 'var(--color-nutrition-mid)',
+  nutritionBad: 'var(--color-nutrition-bad)',
+  nutritionGoodText: 'var(--color-nutrition-good-text)',
+  nutritionMidText: 'var(--color-nutrition-mid-text)',
+  nutritionBadText: 'var(--color-nutrition-bad-text)',
+  accent: 'var(--color-accent)',
+  blue: 'var(--color-blue)',
+  green: 'var(--color-green)',
+  orange: 'var(--color-orange)',
+  purple: 'var(--color-purple)',
+  pink: 'var(--color-pink)',
+}
+
+export const fonts = {
+  display: "'Crimson Pro', serif",
+  body: "'DM Sans', sans-serif",
+}
