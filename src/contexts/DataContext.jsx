@@ -19,10 +19,17 @@ export function DataProvider({ children }) {
       setData(localLoadAll())
       setLoading(false)
     } else {
-      fetchAllEntries(user.id).then((entries) => {
-        setData(entries)
-        setLoading(false)
-      })
+      fetchAllEntries(user.id)
+        .then((entries) => {
+          setData(entries)
+        })
+        .catch((err) => {
+          console.error('Failed to fetch entries:', err)
+          setData({})
+        })
+        .finally(() => {
+          setLoading(false)
+        })
     }
   }, [user, isLocal])
 
