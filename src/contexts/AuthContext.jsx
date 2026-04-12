@@ -136,12 +136,20 @@ export function AuthProvider({ children }) {
         setLoading(false)
       })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      try {
-        await handleSession(newSession)
-      } catch (e) {
-        console.error('[auth] onAuthStateChange handleSession threw:', e)
-      }
+    // IMPORTANT: must not `await` supabase.* work inside this callback.
+    // auth-js holds the navigator lock for the key `lock:sb-*-auth-token`
+    // for the lifetime of the returned promise, and PostgREST queries
+    // (`supabase.from(...)`) also need that lock for their auth headers —
+    // awaiting them here causes a re-entrant deadlock that hangs every
+    // subsequent supabase call in the tab (supabase-js #1594, #1620,
+    // auth-js #762). Defer handleSession to a fresh task so the lock is
+    // released before any query runs.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setTimeout(() => {
+        handleSession(newSession).catch((e) => {
+          console.error('[auth] onAuthStateChange handleSession threw:', e)
+        })
+      }, 0)
     })
 
     return () => {

@@ -171,4 +171,61 @@ describe('AuthContext', () => {
     })
     expect(identifyUser).toHaveBeenCalledWith(null)
   })
+
+  // Regression for the auth-js navigatorLock re-entrancy deadlock
+  // (supabase-js issues #1594, #1620, auth-js #762).
+  //
+  // When the onAuthStateChange callback awaits supabase.from(...) work,
+  // auth-js holds the auth lock until the callback's promise resolves.
+  // But supabase.from(...) also needs that lock for its request headers,
+  // so it waits forever. Every subsequent supabase call in the tab hangs.
+  //
+  // The only safe shape for an onAuthStateChange callback is to schedule
+  // profile work outside the callback's promise chain (setTimeout 0 /
+  // queueMicrotask / detached promise) so the lock is released first.
+  it('onAuthStateChange callback returns without awaiting handleSession (auth lock safety)', async () => {
+    const { supabase } = await import('../lib/supabase')
+    const { isEmailAllowed, upsertProfile, getProfileById } = await import('../lib/profiles')
+
+    // Capture the callback auth-js would normally invoke
+    let capturedCallback = null
+    supabase.auth.onAuthStateChange.mockImplementation((cb) => {
+      capturedCallback = cb
+      return { data: { subscription: { unsubscribe: vi.fn() } } }
+    })
+
+    // Simulate the deadlock: isEmailAllowed never resolves, as if it were
+    // waiting for the auth lock the callback is holding.
+    isEmailAllowed.mockImplementation(() => new Promise(() => {}))
+    upsertProfile.mockResolvedValue({ id: 'u1', email: 'test@example.com', status: 'active' })
+    getProfileById.mockResolvedValue({ id: 'u1', email: 'test@example.com', status: 'active' })
+
+    await act(async () => {
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      )
+    })
+
+    expect(capturedCallback).toBeTypeOf('function')
+
+    // Fire a SIGNED_IN event. The returned value must resolve quickly —
+    // if it awaits handleSession (which awaits isEmailAllowed), auth-js
+    // will be stuck holding the lock and the whole app deadlocks.
+    const ret = capturedCallback('SIGNED_IN', {
+      user: { id: 'u1', email: 'test@example.com', user_metadata: {} },
+    })
+
+    const outcome = await Promise.race([
+      Promise.resolve(ret).then(() => 'released'),
+      new Promise((r) => setTimeout(() => r('stuck'), 50)),
+    ])
+    expect(outcome).toBe('released')
+
+    // But the work must still be scheduled — handleSession should run in a
+    // subsequent task, which means isEmailAllowed gets called eventually.
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+    expect(isEmailAllowed).toHaveBeenCalledWith('test@example.com')
+  })
 })
