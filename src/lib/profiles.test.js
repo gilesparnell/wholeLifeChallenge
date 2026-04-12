@@ -220,6 +220,31 @@ describe('deleteProfile', () => {
     expect(chain.delete).toHaveBeenCalled()
     expect(chain.eq).toHaveBeenCalledWith('id', 'abc')
   })
+
+  it('queries the profiles table (not daily_entries — cascade is handled at the DB level)', async () => {
+    const chain = chainable({ data: null, error: null })
+    mockFrom.mockReturnValue(chain)
+    await deleteProfile('abc')
+    expect(mockFrom).toHaveBeenCalledWith('profiles')
+  })
+
+  it('returns true on successful delete', async () => {
+    mockFrom.mockReturnValue(chainable({ data: null, error: null }))
+    const result = await deleteProfile('abc')
+    expect(result).toBe(true)
+  })
+
+  it('returns false when the delete fails', async () => {
+    mockFrom.mockReturnValue(chainable({ data: null, error: { message: 'denied' } }))
+    const result = await deleteProfile('abc')
+    expect(result).toBe(false)
+  })
+
+  it('returns null when id is missing', async () => {
+    const result = await deleteProfile(null)
+    expect(result).toBeNull()
+    expect(mockFrom).not.toHaveBeenCalled()
+  })
 })
 
 describe('updateProfileStats', () => {
