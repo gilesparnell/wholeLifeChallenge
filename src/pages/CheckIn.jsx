@@ -17,7 +17,7 @@ import HydrateCard from '../components/habits/HydrateCard'
 import ActivityModal from '../components/modals/ActivityModal'
 
 export default function CheckIn() {
-  const { data, loading, saveDay: save, clearAll } = useData()
+  const { data, loading, saveDay: save } = useData()
   const { profile } = useAuth()
   const [selectedDate, setSelectedDate] = useState(getToday())
   const [modalOpen, setModalOpen] = useState(null) // 'wellbeing' | 'reflect' | null
@@ -491,16 +491,6 @@ export default function CheckIn() {
         </div>
       </div>
 
-      {/* Reset */}
-      <div style={{ textAlign: 'center', marginTop: 32 }}>
-        <button onClick={() => {
-          if (confirm('Reset all data? This cannot be undone.')) {
-            clearAll()
-          }
-        }} style={{ background: 'none', border: 'none', color: colors.textInvisible, fontSize: 12, cursor: 'pointer', fontFamily: fonts.body }}>
-          Reset All Data
-        </button>
-      </div>
     </div>
   )
 }

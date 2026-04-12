@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Check In' },
   { to: '/progress', label: 'Progress' },
   { to: '/journal', label: 'Journal' },
-  { to: '/leaderboard', label: 'Board' },
+  { to: '/leaderboard', label: 'Leader Board' },
   { to: '/info', label: 'Info' },
 ]
 
