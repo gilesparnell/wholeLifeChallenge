@@ -26,9 +26,11 @@ export const subscribeLeaderboard = (onChange) => {
 }
 
 /**
- * Fetch the public leaderboard view (opted-in users only).
- * Returns rows with a 1-based `rank` added.
- * Throws a readable error on failure so callers can surface it.
+ * Fetch the public leaderboard via the get_leaderboard RPC function.
+ * The function is SECURITY DEFINER so it can read opted-in profile data
+ * without exposing sensitive columns (email, last_login_at) via direct
+ * table access. Returns rows already ordered by total_score desc, with
+ * a 1-based `rank` added. Throws on error.
  */
 export const fetchLeaderboard = async () => {
   if (!supabase) return []
@@ -40,15 +42,11 @@ export const fetchLeaderboard = async () => {
   )
 
   try {
-    const query = supabase
-      .from('leaderboard')
-      .select('*')
-      .order('total_score', { ascending: false })
-
+    const query = supabase.rpc('get_leaderboard')
     const { data, error } = await Promise.race([query, timeout])
 
     if (error) {
-      console.error('[leaderboard] query error:', error)
+      console.error('[leaderboard] rpc error:', error)
       throw new Error(error.message || 'Leaderboard query failed')
     }
     if (!data) return []
