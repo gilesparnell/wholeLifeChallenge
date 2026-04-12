@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { isEmailAllowed, upsertProfile, getProfileById } from '../lib/profiles'
+import { identifyUser } from '../lib/sentry'
 
 const AuthContext = createContext(null)
 
@@ -68,6 +69,7 @@ export function AuthProvider({ children }) {
     setSession(newSession)
     setUser(authUser)
     setProfile(fullProfile)
+    identifyUser({ id: authUser.id, email: authUser.email })
   }, [])
 
   useEffect(() => {
@@ -75,7 +77,6 @@ export function AuthProvider({ children }) {
     // Restore a dev-mode user if one was saved
     const devUser = loadDevUser()
     if (devUser) {
-      console.log('[auth] dev user restored:', devUser.email)
       setUser(devUser)
       setProfile({
         id: devUser.id,
@@ -85,6 +86,7 @@ export function AuthProvider({ children }) {
         status: 'active',
         onboarding_completed: true,
       })
+      identifyUser({ id: devUser.id, email: devUser.email })
       setLoading(false)
       return
     }
@@ -184,6 +186,7 @@ export function AuthProvider({ children }) {
     })
     setSession(null)
     setAuthError(null)
+    identifyUser({ id: devUser.id, email })
   }, [])
 
   const signOut = useCallback(async () => {
@@ -200,6 +203,7 @@ export function AuthProvider({ children }) {
     setUser(null)
     setProfile(null)
     setAuthError(null)
+    identifyUser(null)
   }, [])
 
   const isAdmin = profile?.role === 'admin' && profile?.status === 'active'

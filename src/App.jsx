@@ -7,6 +7,7 @@ import AuthGate from './components/AuthGate'
 import OnboardingGate from './components/OnboardingGate'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
+import { reportError } from './lib/sentry'
 import CheckIn from './pages/CheckIn'
 import Journal from './pages/Journal'
 import Info from './pages/Info'
@@ -24,7 +25,7 @@ const PageFallback = () => (
 
 function App() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary onError={reportError}>
       <BrowserRouter>
         <ThemeProvider>
         <AuthProvider>
@@ -32,7 +33,7 @@ function App() {
             <DataProvider>
             <OnboardingGate>
             <Layout>
-              <ErrorBoundary>
+              <ErrorBoundary onError={reportError}>
                 <Suspense fallback={<PageFallback />}>
                   <Routes>
                     <Route path="/" element={<CheckIn />} />
