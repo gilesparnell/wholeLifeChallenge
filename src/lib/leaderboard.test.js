@@ -14,15 +14,6 @@ vi.mock('./supabase', () => ({
   },
 }))
 
-const chainable = (resolveWith) => {
-  const chain = {
-    select: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    then: (cb) => Promise.resolve(resolveWith).then(cb),
-  }
-  return chain
-}
-
 describe('fetchLeaderboard', () => {
   beforeEach(() => {
     mockFrom.mockReset()

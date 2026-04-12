@@ -6,13 +6,6 @@ export default function SleepCard({ habit, value, canEdit, onChange }) {
   const completed = value?.completed || false
   const hours = value?.hours
 
-  const handleHoursChange = (e) => {
-    const h = parseFloat(e.target.value)
-    if (!isNaN(h) && h >= 0) {
-      onChange({ completed: true, hours: h })
-    }
-  }
-
   const handleClear = () => {
     onChange({ completed: false, hours: null })
     setShowInput(false)

@@ -1,0 +1,60 @@
+name: CI
+
+# Runs lint + tests + build on every push and pull request.
+# Used as the "required" status check for the master branch protection rule.
+
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  # Cancel in-progress runs on the same ref when a new commit is pushed
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint · Test · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Dummy placeholder values so the build doesn't fail trying to
+          # read real env vars. CI doesn't need to talk to Supabase.
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-key
+          VITE_SENTRY_DSN: ''
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## CI status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Event: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
