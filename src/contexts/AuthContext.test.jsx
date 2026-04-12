@@ -23,6 +23,12 @@ vi.mock('../lib/profiles', () => ({
   getProfileById: vi.fn().mockResolvedValue(null),
 }))
 
+// Mock sentry module — we'll assert it's called on dev sign-in / sign-out
+vi.mock('../lib/sentry', () => ({
+  identifyUser: vi.fn(),
+}))
+import { identifyUser } from '../lib/sentry'
+
 function TestConsumer() {
   const { user, session, loading, signIn, signOut, signInAsDev } = useAuth()
   return (
@@ -129,5 +135,40 @@ describe('AuthContext', () => {
       provider: 'google',
       options: expect.any(Object),
     })
+  })
+
+  it('calls identifyUser with the dev user when signInAsDev is invoked', async () => {
+    await act(async () => {
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      )
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByText('Dev Sign In'))
+    })
+    expect(identifyUser).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'giles@parnellsystems.com' })
+    )
+  })
+
+  it('calls identifyUser(null) on signOut', async () => {
+    await act(async () => {
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      )
+    })
+    // Sign in first so there's a user to clear
+    await act(async () => {
+      fireEvent.click(screen.getByText('Dev Sign In'))
+    })
+    identifyUser.mockClear()
+    await act(async () => {
+      fireEvent.click(screen.getByText('Sign Out'))
+    })
+    expect(identifyUser).toHaveBeenCalledWith(null)
   })
 })

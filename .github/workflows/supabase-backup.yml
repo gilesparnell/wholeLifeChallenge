@@ -1,0 +1,101 @@
+name: Supabase backup
+
+# Daily automated Postgres dump of the WLC Supabase project, plus a manual
+# trigger button in the Actions tab for ad-hoc snapshots.
+#
+# Two artefacts are produced per run:
+#   - wlc-backup-data.sql       (public schema data only, restore-ready)
+#   - wlc-backup-schema.sql     (full schema DDL, for rebuilding from scratch)
+#
+# Artefacts are retained for 30 days. Download from the run page in
+# GitHub Actions → Artifacts section.
+#
+# Requires secret: SUPABASE_ACCESS_TOKEN
+# Get one at https://supabase.com/dashboard/account/tokens
+
+on:
+  schedule:
+    # Daily at 03:00 UTC (off-peak)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why are you running this manually?'
+        required: false
+        default: 'ad-hoc backup'
+
+concurrency:
+  # Never run two backups at the same time
+  group: supabase-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Dump public schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_PROJECT_REF: lnnvwbqmpgusjoplvjjt
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Create backup directory
+        run: mkdir -p backup
+
+      - name: Dump public schema data
+        run: |
+          supabase db dump \
+            --linked \
+            --schema public \
+            --data-only \
+            --use-copy \
+            -f backup/wlc-backup-data.sql
+          wc -l backup/wlc-backup-data.sql
+
+      - name: Dump public schema DDL
+        run: |
+          supabase db dump \
+            --linked \
+            --schema public \
+            -f backup/wlc-backup-schema.sql
+          wc -l backup/wlc-backup-schema.sql
+
+      - name: Validate backup files are non-empty
+        run: |
+          if [ ! -s backup/wlc-backup-data.sql ]; then
+            echo "::error::Data backup is empty!"
+            exit 1
+          fi
+          if [ ! -s backup/wlc-backup-schema.sql ]; then
+            echo "::error::Schema backup is empty!"
+            exit 1
+          fi
+          echo "Data backup: $(wc -c < backup/wlc-backup-data.sql) bytes"
+          echo "Schema backup: $(wc -c < backup/wlc-backup-schema.sql) bytes"
+
+      - name: Upload backup artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wlc-supabase-backup-${{ github.run_number }}-${{ github.run_id }}
+          path: backup/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Summary
+        run: |
+          echo "## Backup complete :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Data:** $(wc -c < backup/wlc-backup-data.sql | numfmt --to=iec)B" >> $GITHUB_STEP_SUMMARY
+          echo "- **Schema:** $(wc -c < backup/wlc-backup-schema.sql | numfmt --to=iec)B" >> $GITHUB_STEP_SUMMARY
+          echo "- **Retention:** 30 days" >> $GITHUB_STEP_SUMMARY
+          echo "- **Download:** scroll up to the 'Artifacts' section on this run page" >> $GITHUB_STEP_SUMMARY

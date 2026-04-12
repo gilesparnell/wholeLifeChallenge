@@ -5,7 +5,9 @@ import { DataProvider } from './contexts/DataContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import AuthGate from './components/AuthGate'
 import OnboardingGate from './components/OnboardingGate'
+import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
+import { reportError } from './lib/sentry'
 import CheckIn from './pages/CheckIn'
 import Journal from './pages/Journal'
 import Info from './pages/Info'
@@ -23,30 +25,34 @@ const PageFallback = () => (
 
 function App() {
   return (
-    <BrowserRouter>
-      <ThemeProvider>
-      <AuthProvider>
-        <AuthGate>
-          <DataProvider>
-          <OnboardingGate>
-          <Layout>
-            <Suspense fallback={<PageFallback />}>
-              <Routes>
-                <Route path="/" element={<CheckIn />} />
-                <Route path="/progress" element={<Progress />} />
-                <Route path="/journal" element={<Journal />} />
-                <Route path="/leaderboard" element={<Leaderboard />} />
-                <Route path="/info" element={<Info />} />
-                <Route path="/admin" element={<Admin />} />
-              </Routes>
-            </Suspense>
-          </Layout>
-          </OnboardingGate>
-          </DataProvider>
-        </AuthGate>
-      </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <ErrorBoundary onError={reportError}>
+      <BrowserRouter>
+        <ThemeProvider>
+        <AuthProvider>
+          <AuthGate>
+            <DataProvider>
+            <OnboardingGate>
+            <Layout>
+              <ErrorBoundary onError={reportError}>
+                <Suspense fallback={<PageFallback />}>
+                  <Routes>
+                    <Route path="/" element={<CheckIn />} />
+                    <Route path="/progress" element={<Progress />} />
+                    <Route path="/journal" element={<Journal />} />
+                    <Route path="/leaderboard" element={<Leaderboard />} />
+                    <Route path="/info" element={<Info />} />
+                    <Route path="/admin" element={<Admin />} />
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
+            </Layout>
+            </OnboardingGate>
+            </DataProvider>
+          </AuthGate>
+        </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 
