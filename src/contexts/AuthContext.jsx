@@ -71,9 +71,11 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
+    console.log('[auth] mount')
     // Restore a dev-mode user if one was saved
     const devUser = loadDevUser()
     if (devUser) {
+      console.log('[auth] dev user restored:', devUser.email)
       setUser(devUser)
       setProfile({
         id: devUser.id,
@@ -81,35 +83,69 @@ export function AuthProvider({ children }) {
         display_name: devUser.user_metadata?.full_name || devUser.email.split('@')[0],
         role: devUser.email === 'giles@parnellsystems.com' ? 'admin' : 'user',
         status: 'active',
+        onboarding_completed: true,
       })
       setLoading(false)
       return
     }
 
     if (!supabase) {
+      console.warn('[auth] no supabase client')
       setLoading(false)
       return
     }
 
+    // Safety net: if getSession hangs more than 6s, assume signed-out so the
+    // app at least loads the login screen instead of being stuck on Loading.
+    let resolved = false
+    const safetyTimer = setTimeout(() => {
+      if (!resolved) {
+        console.warn('[auth] getSession timed out — clearing stale state')
+        try {
+          // Clear any stored Supabase session that might be jamming the SDK
+          Object.keys(localStorage).forEach((k) => {
+            if (k.startsWith('sb-') && k.includes('-auth-token')) {
+              localStorage.removeItem(k)
+            }
+          })
+        } catch { /* ignore */ }
+        setLoading(false)
+      }
+    }, 6000)
+
+    console.log('[auth] calling getSession')
     supabase.auth.getSession()
       .then(async ({ data: { session: initialSession } }) => {
+        resolved = true
+        clearTimeout(safetyTimer)
+        console.log('[auth] getSession resolved:', !!initialSession)
         try {
           await handleSession(initialSession)
+        } catch (e) {
+          console.error('[auth] handleSession threw:', e)
         } finally {
           setLoading(false)
         }
       })
-      .catch(() => setLoading(false))
+      .catch((e) => {
+        resolved = true
+        clearTimeout(safetyTimer)
+        console.error('[auth] getSession rejected:', e)
+        setLoading(false)
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       try {
         await handleSession(newSession)
-      } catch {
-        // ignored
+      } catch (e) {
+        console.error('[auth] onAuthStateChange handleSession threw:', e)
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      clearTimeout(safetyTimer)
+      subscription.unsubscribe()
+    }
   }, [handleSession])
 
   const signIn = useCallback(async () => {
