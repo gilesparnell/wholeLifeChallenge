@@ -1,5 +1,45 @@
 import { describe, it, expect } from 'vitest'
-import { computeBonuses, applyAutoBonuses } from './bonuses'
+import { computeBonuses, applyAutoBonuses, BONUS_INFO } from './bonuses'
+
+describe('BONUS_INFO', () => {
+  const keys = ['indulgence', 'restDay', 'nightOwl', 'freeDay']
+
+  it('defines info for all four bonus types', () => {
+    for (const key of keys) {
+      expect(BONUS_INFO[key]).toBeDefined()
+    }
+  })
+
+  it('each bonus has a label, icon, color, threshold, and description', () => {
+    for (const key of keys) {
+      const info = BONUS_INFO[key]
+      expect(info.label).toBeTypeOf('string')
+      expect(info.label.length).toBeGreaterThan(0)
+      expect(info.icon).toBeTypeOf('string')
+      expect(info.description).toBeTypeOf('string')
+      expect(info.description.length).toBeGreaterThan(20)
+    }
+  })
+
+  it('indulgence description mentions nutrition and the 4-day window', () => {
+    expect(BONUS_INFO.indulgence.description.toLowerCase()).toMatch(/nutrition/)
+    expect(BONUS_INFO.indulgence.description).toMatch(/4/)
+  })
+
+  it('rest day description mentions exercise and 10 days', () => {
+    expect(BONUS_INFO.restDay.description.toLowerCase()).toMatch(/exercise/)
+    expect(BONUS_INFO.restDay.description).toMatch(/10/)
+  })
+
+  it('night owl description mentions sleep and 6 days', () => {
+    expect(BONUS_INFO.nightOwl.description.toLowerCase()).toMatch(/sleep/)
+    expect(BONUS_INFO.nightOwl.description).toMatch(/6/)
+  })
+
+  it('free day description mentions 21 days', () => {
+    expect(BONUS_INFO.freeDay.description).toMatch(/21/)
+  })
+})
 
 // Helper to generate a perfect day
 const perfectDay = (overrides = {}) => ({

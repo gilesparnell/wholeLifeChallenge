@@ -3,7 +3,7 @@ import { HABITS, emptyDay } from '../lib/habits'
 import { scoreDay, calculateStreak, calculateHabitStreak } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
 import { getConfig } from '../lib/adminConfig'
-import { computeBonuses, applyAutoBonuses } from '../lib/bonuses'
+import { computeBonuses, applyAutoBonuses, BONUS_INFO } from '../lib/bonuses'
 import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePreview, computeCumulativeByDay } from '../lib/stats'
 import { calculateRecoveryScore, calculateStrainScore } from '../lib/recovery'
 import { getContextAwarePrompt } from '../lib/promptBank'
@@ -104,12 +104,17 @@ export default function CheckIn() {
     return () => clearTimeout(timer)
   }, [profile?.id, totalScore, streak, data, loading, dayIndex, allDates])
 
-  const BONUS_CONFIG = [
-    { key: 'indulgence', label: 'Indulgence', icon: '\u{1F37D}\uFE0F', color: colors.green },
-    { key: 'restDay', label: 'Rest Day', icon: '\u{1F6CC}', color: colors.blue },
-    { key: 'nightOwl', label: 'Night Owl', icon: '\u{1F989}', color: colors.purple },
-    { key: 'freeDay', label: 'Free Day', icon: '\u{1F31F}', color: colors.orange },
-  ]
+  // Map BONUS_INFO colorKey → theme colour so each card has its own accent
+  const colorForKey = {
+    green: colors.green, blue: colors.blue, purple: colors.purple, orange: colors.orange,
+  }
+  const BONUS_CONFIG = Object.entries(BONUS_INFO).map(([key, info]) => ({
+    key, label: info.label, icon: info.icon, color: colorForKey[info.colorKey],
+    description: info.description,
+  }))
+
+  // Track which bonus card has its info expanded (null = all collapsed)
+  const [expandedBonus, setExpandedBonus] = useState(null)
 
   if (loading) {
     return (
@@ -482,26 +487,44 @@ export default function CheckIn() {
       <div style={{ marginTop: 24 }}>
         <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 10, textAlign: 'center' }}>Bonus Tracker</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {BONUS_CONFIG.map(({ key, label, icon, color }) => {
+          {BONUS_CONFIG.map(({ key, label, icon, color, description }) => {
             const bonus = bonuses[key]
             const pct = Math.round((bonus.streak / bonus.threshold) * 100)
             const remaining = bonus.threshold - bonus.streak
+            const isExpanded = expandedBonus === key
             return (
               <div key={key} style={{
                 background: colors.surface, borderRadius: 10, padding: '10px 12px',
                 border: `1px solid ${bonus.earned > 0 ? color + '44' : colors.border}`,
+                gridColumn: isExpanded ? '1 / -1' : 'auto',
+                transition: 'grid-column 0.2s ease',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <span style={{ fontSize: 14 }}>{icon}</span>
                   <span style={{ fontSize: 12, fontWeight: 600, color: bonus.earned > 0 ? color : colors.textDim }}>{label}</span>
                   {bonus.earned > 0 && (
                     <span style={{
-                      marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#fff',
+                      fontSize: 11, fontWeight: 700, color: '#fff',
                       background: color, borderRadius: 6, padding: '1px 6px',
                     }}>
                       {bonus.earned}
                     </span>
                   )}
+                  <button
+                    onClick={() => setExpandedBonus(isExpanded ? null : key)}
+                    aria-label={`About ${label}`}
+                    title={`About ${label}`}
+                    style={{
+                      marginLeft: 'auto', width: 20, height: 20, borderRadius: '50%',
+                      border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700,
+                      fontFamily: fonts.body, lineHeight: 1, padding: 0,
+                      background: isExpanded ? color : colors.surfaceHover,
+                      color: isExpanded ? '#fff' : colors.textDim,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    i
+                  </button>
                 </div>
                 <div style={{ height: 4, background: colors.surfaceHover, borderRadius: 2, overflow: 'hidden', marginBottom: 4 }}>
                   <div style={{
@@ -518,6 +541,15 @@ export default function CheckIn() {
                       : 'Available!'
                   }
                 </div>
+                {isExpanded && (
+                  <p style={{
+                    fontSize: 12, color: colors.textMuted, lineHeight: 1.5,
+                    marginTop: 10, paddingTop: 10,
+                    borderTop: `1px solid ${colors.borderSubtle}`,
+                  }}>
+                    {description}
+                  </p>
+                )}
               </div>
             )
           })}

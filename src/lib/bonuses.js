@@ -1,5 +1,47 @@
 import { scoreDay } from './scoring'
 
+/**
+ * Static metadata for each WLC bonus type — label, icon, threshold, and
+ * an explanation of what the bonus is and how it's earned, sourced from
+ * the Whole Life Challenge official rules.
+ *
+ * Rendered in the Bonus Tracker on the CheckIn page.
+ */
+export const BONUS_INFO = {
+  indulgence: {
+    label: 'Indulgence',
+    icon: '\u{1F37D}\uFE0F',
+    colorKey: 'green',
+    threshold: 4,
+    description:
+      'Earn 1 indulgence bonus for every 4 consecutive days where you score 18+ out of 20 nutrition points. Use it to erase a non-compliant food deduction — a free pass when you slip up on nutrition.',
+  },
+  restDay: {
+    label: 'Rest Day',
+    icon: '\u{1F6CC}',
+    colorKey: 'blue',
+    threshold: 10,
+    description:
+      'Earn 1 rest day bonus for every 10 consecutive days of completed exercise. Use it to skip exercise on a recovery day without losing points — your body needs rest.',
+  },
+  nightOwl: {
+    label: 'Night Owl',
+    icon: '\u{1F989}',
+    colorKey: 'purple',
+    threshold: 6,
+    description:
+      'Earn 1 night owl bonus for every 6 consecutive days of meeting your sleep goal. Use it to skip a night of sleep tracking without losing points — perfect for travel or late nights.',
+  },
+  freeDay: {
+    label: 'Free Day',
+    icon: '\u{1F31F}',
+    colorKey: 'orange',
+    threshold: 21,
+    description:
+      'Earn 1 free day for every 21 consecutive near-perfect days (34+ out of 35 points). Activate it to instantly score a perfect 35/35 on any day — the ultimate reward for consistency.',
+  },
+}
+
 const isHabitCompleted = (value) => {
   if (value === true) return true
   if (value === false || value == null) return false
