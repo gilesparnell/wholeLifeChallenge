@@ -3,7 +3,7 @@ title: "feat: WLC production hardening"
 type: feat
 status: active
 date: 2026-04-12
-last_updated: 2026-04-12
+last_updated: 2026-04-13
 ---
 
 # feat: WLC production hardening
@@ -12,34 +12,53 @@ last_updated: 2026-04-12
 
 The Whole Life Challenge tracker is feature-complete (Phases 1–4 shipped) but operationally fragile. This plan systematically hardens the app for production use by external users — error tracking, backups, observability, accessibility, security, and resilience. 27 items grouped into three priority tiers, executed in order.
 
-## Current Status
+## Current Status (updated 2026-04-13)
 
 - **App is live** at https://wholelifechallenge.parnellsystems.com/
 - **Stack**: Vite 8 + React 19 + Supabase (auth + Postgres) + Recharts, deployed to Vercel from `gilesparnell/wholeLifeChallenge` on GitHub
-- **315 unit/integration tests passing** across 24 test files
-- **Database schema**: 6 Supabase migrations applied (profiles, allowed_emails, RLS, leaderboard view, onboarding flag)
-- **CI**: none configured — direct pushes to `master` go straight to production
-- **Docs site**: `docs/index.html` exists (Deep Ocean Tech style per global standard) but is minimal; user-guide.html stub exists
-- **Error tracking**: none — bugs disappear into the ether
-- **Backups**: none configured — entire dataset is one DROP TABLE away from gone
-- **Analytics**: none — no insight into who uses what
+- **351 unit/integration tests passing** across 26 test files
+- **Database schema**: 8 Supabase migrations applied (profiles, allowed_emails, RLS, leaderboard RPC, onboarding flag, RLS security fixes, cascade delete trigger)
+- **Real users on the app**: 4 whitelisted, 4 profiles (Giles x2, Jackie, Barnaby)
+- **CI**: none configured yet — **NEXT Phase 2 item (#9)**
+- **Docs site**: `docs/index.html` exists with working Launch App link; `user-guide.html` still stub
+- **Error tracking**: ✅ **Sentry wired up** (Phase 1, verified receiving prod events). Known-benign errors filtered via `ignoreErrors` to protect the 5K/month free quota.
+- **Backups**: ✅ **Daily GitHub Action at 03:00 UTC** (Phase 1, workflow file on master, manual despatch also works). Artefacts retained 30 days.
+- **Analytics**: none — **Phase 2 item (#10)**
+
+## Phase 1 completion (2026-04-12)
+
+All 6 P0 items merged to master via PR #2 and PR #3. Production deployed automatically by Vercel on each merge. Changes shipped:
+
+- React ErrorBoundary with two layers (app-wide + per-route), 8 unit tests, Sentry `onError` hook
+- `@sentry/react` initialised in `main.jsx`, with `ignoreErrors` filter for the Supabase auth-lock noise, ResizeObserver loops, and generic network failures. Browser tracing + session replay integrations active. 11 unit tests for `src/lib/sentry.js`
+- `.github/workflows/supabase-backup.yml` — daily cron at 03:00 UTC, manual despatch, 2 artefacts per run (data-only + schema-only SQL), retention 30 days. First run verified end-to-end with real production data downloaded.
+- Supabase Security Advisor: 0 errors, 0 applicable warnings (only `auth_leaked_password_protection` remains — not applicable to our OAuth-only auth). Fixed via migration 007:
+  - Leaderboard view converted to `get_leaderboard()` SECURITY DEFINER RPC function with explicit column whitelist and anon role explicitly revoked
+  - `search_path` pinned on `touch_updated_at`, `is_admin`, `handle_new_user` functions
+- Migration 008 added `cascade_delete_daily_entries()` trigger — deleting a profile now purges the user's daily_entries automatically. Verified live against the database via transaction+rollback.
+- README rewritten from the Vite default to a proper project overview — what the app does, stack, local dev setup, commands, deployment, admin tasks, architecture quick tour.
+
+## Carry-over items discovered during Phase 1
+
+- **`handle_new_user` trigger review** — this auto-creates a profile row on every `auth.users` insert, BEFORE the client's whitelist check runs. Non-whitelisted Google accounts create a short-lived profile row that the client then signs out. Minor footprint but worth reviewing.
+- **32 pre-existing lint errors** — mostly in the legacy `whole-life-challenge.jsx` root-level file (unused vars, empty blocks), plus a few in `src/pages/CheckIn.jsx`, `src/pages/Progress.jsx`, `src/pages/Leaderboard.jsx`. Must be fixed before Phase 2 item #9 (CI) can go green.
 
 ## Items Summary
 
-| # | Tier | Item | Effort |
-|---|------|------|--------|
-| 1 | **P0** | React Error Boundary | S |
-| 2 | **P0** | Sentry error tracking | S |
-| 3 | **P0** | Daily Supabase backup automation | M |
-| 4 | **P0** | RLS security audit | S |
-| 5 | **P0** | Updated README | S |
-| 6 | **P0** | User-deletion cascade test | S |
-| 7 | **P1** | Lighthouse audit on production | M |
-| 8 | **P1** | WCAG AA contrast verification | S |
-| 9 | **P1** | CI on PRs (GitHub Actions) | S |
-| 10 | **P1** | Analytics tool (PostHog/Plausible) | S |
-| 11 | **P1** | Branch protection on main | XS |
-| 12 | **P1** | Vercel preview deployments | XS |
+| # | Tier | Item | Effort | Status |
+|---|------|------|--------|--------|
+| 1 | **P0** | React Error Boundary | S | ✅ DONE (2026-04-12) |
+| 2 | **P0** | Sentry error tracking | S | ✅ DONE (2026-04-12) |
+| 3 | **P0** | Daily Supabase backup automation | M | ✅ DONE (2026-04-12) |
+| 4 | **P0** | RLS security audit | S | ✅ DONE (2026-04-12) |
+| 5 | **P0** | Updated README | S | ✅ DONE (2026-04-12) |
+| 6 | **P0** | User-deletion cascade test | S | ✅ DONE (2026-04-12) |
+| 7 | **P1** | Lighthouse audit on production | M | 📋 |
+| 8 | **P1** | WCAG AA contrast verification | S | 📋 |
+| 9 | **P1** | CI on PRs (GitHub Actions) | S | 📋 **NEXT** |
+| 10 | **P1** | Analytics tool (PostHog/Plausible) | S | 📋 |
+| 11 | **P1** | Branch protection on main | XS | 📋 |
+| 12 | **P1** | Vercel preview deployments | XS | ✅ DONE (2026-04-12) |
 | 13 | **P2** | PWA + offline support | L |
 | 14 | **P2** | Zod runtime validation | M |
 | 15 | **P2** | Bundle audit (Recharts replacement?) | M |
@@ -767,21 +786,21 @@ These items improve the long-term health of the app and unlock new use cases. Ta
 
 ## Phase Summary
 
-| Phase | Items | Effort | Risk | Dependencies |
-|-------|-------|--------|------|--------------|
-| **P0: Critical** | 1, 2, 3, 4, 5, 6 | 1–2 days | Low | None — internal changes only |
-| **P1: Polish & Observability** | 7, 8, 9, 10, 11, 12 | 2–3 days | Low | P0 done (Sentry hooks into ErrorBoundary) |
-| **P2: Quality & Operations** | 13–27 | 1+ week | Mixed | Some interdependencies (PWA + retry queue, Settings + GDPR) |
+| Phase | Items | Effort | Risk | Dependencies | Status |
+|-------|-------|--------|------|--------------|--------|
+| **P0: Critical** | 1, 2, 3, 4, 5, 6 | 1–2 days | Low | None — internal changes only | ✅ **COMPLETE** (2026-04-12, merged via PR #2 + #3) |
+| **P1: Polish & Observability** | 7, 8, 9, 10, 11, 12 | 2–3 days | Low | P0 done (Sentry hooks into ErrorBoundary) | 🚧 IN PROGRESS (#12 done; #9 next) |
+| **P2: Quality & Operations** | 13–27 | 1+ week | Mixed | Some interdependencies (PWA + retry queue, Settings + GDPR) | 📋 Not started |
 
 ## Acceptance Criteria
 
-### Phase 1 (P0)
-- [ ] App no longer whitescreens on component errors (recovery UI)
-- [ ] All production errors visible in Sentry within 60s
-- [ ] Daily backup runs successfully and produces a usable artefact
-- [ ] Supabase Security Advisor reports zero error/warn items
-- [ ] README answers "what is this and how do I run it" in <5 minutes
-- [ ] User deletion produces no orphan rows
+### Phase 1 (P0) — ✅ COMPLETE (2026-04-12)
+- [x] App no longer whitescreens on component errors (recovery UI)
+- [x] All production errors visible in Sentry within 60s (verified via smoke test — lock-steal error captured on first prod session)
+- [x] Daily backup runs successfully and produces a usable artefact (first run: 48s, 2 SQL files downloaded + inspected)
+- [x] Supabase Security Advisor reports zero error/warn items (only non-applicable auth_leaked_password_protection remains — documented)
+- [x] README answers "what is this and how do I run it" in <5 minutes
+- [x] User deletion produces no orphan rows (verified via tx+rollback test on live DB)
 
 ### Phase 2 (P1)
 - [ ] Lighthouse: ≥90 mobile / ≥95 desktop on Performance, Accessibility, Best Practices, SEO
