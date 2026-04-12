@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Whole Life Challenge — User Guide</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --surface: #151821; --surface2: #1a1f2e;
+    --border: #1e293b; --border2: #2d3748;
+    --text1: #e2e8f0; --text2: #94a3b8; --text3: #475569;
+    --mono: 'SF Mono', Menlo, monospace;
+    --green: #34d399; --green-bg: #0a1f14; --green-border: #059669;
+    --amber: #fbbf24; --amber-bg: #1a1208; --amber-border: #d97706;
+    --blue: #60a5fa; --blue-bg: #0f1a2e; --blue-border: #3b82f6;
+    --purple: #a78bfa; --purple-bg: #1a1035; --purple-border: #6d28d9;
+    --teal: #2dd4bf; --teal-bg: #051a18; --teal-border: #0d9488;
+    --rose: #fb7185; --rose-bg: #1a0808; --rose-border: #e11d48;
+    --coral: #fb923c; --coral-bg: #1a0f08; --coral-border: #ea580c;
+    --slate: #9ca3af; --slate-bg: #111827; --slate-border: #374151;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text1);
+    min-height: 100vh; padding: 40px 24px 80px;
+    line-height: 1.6;
+  }
+  .guide { max-width: 900px; margin: 0 auto; }
+
+  .guide-header { text-align: center; margin-bottom: 48px; }
+  .guide-header h1 {
+    font-size: 28px; font-weight: 700; color: var(--text1);
+    margin-bottom: 8px; letter-spacing: -0.02em;
+  }
+  .guide-header p { font-size: 14px; color: var(--text3); }
+  .guide-header .version {
+    display: inline-block; font-size: 10px; font-family: var(--mono);
+    color: var(--teal); background: var(--teal-bg); border: 1px solid var(--teal-border);
+    padding: 2px 8px; border-radius: 4px; margin-top: 12px;
+  }
+  .nav-links {
+    display: flex; gap: 12px; justify-content: center;
+    margin-top: 16px; flex-wrap: wrap;
+  }
+  .nav-link {
+    font-size: 12px; font-weight: 600; padding: 6px 16px;
+    border-radius: 6px; text-decoration: none; transition: opacity 0.2s;
+  }
+  .nav-link:hover { opacity: 0.8; }
+  .nav-link.green { color: var(--green); background: var(--green-bg); border: 1px solid var(--green-border); }
+  .nav-link.purple { color: var(--purple); background: var(--purple-bg); border: 1px solid var(--purple-border); }
+
+  .toc {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px 28px; margin-bottom: 40px;
+  }
+  .toc-title { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+  .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  .toc-item {
+    font-size: 13px; color: var(--blue); text-decoration: none;
+    display: flex; align-items: center; gap: 8px; padding: 4px 0;
+  }
+  .toc-item:hover { color: var(--text1); }
+  .toc-num { font-family: var(--mono); font-size: 10px; color: var(--text3); min-width: 20px; }
+
+  .section { margin-bottom: 48px; }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+  .section-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .section-header h2 { font-size: 18px; font-weight: 700; color: var(--text1); }
+  .section-header .section-sub { font-size: 12px; color: var(--text3); }
+
+  .concept-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .concept-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; position: relative; overflow: hidden;
+  }
+  .concept-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .concept-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .concept-card p { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .concept-card .badge {
+    display: inline-block; font-size: 9px; font-weight: 700; font-family: var(--mono);
+    padding: 2px 6px; border-radius: 3px; margin-top: 10px; letter-spacing: 0.05em;
+  }
+
+  .card-purple::before { background: var(--purple); } .card-purple h3 { color: var(--purple); }
+  .card-blue::before { background: var(--blue); } .card-blue h3 { color: var(--blue); }
+  .card-green::before { background: var(--green); } .card-green h3 { color: var(--green); }
+  .card-amber::before { background: var(--amber); } .card-amber h3 { color: var(--amber); }
+  .card-teal::before { background: var(--teal); } .card-teal h3 { color: var(--teal); }
+  .card-coral::before { background: var(--coral); } .card-coral h3 { color: var(--coral); }
+  .card-rose::before { background: var(--rose); } .card-rose h3 { color: var(--rose); }
+
+  .flow {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 24px;
+  }
+  .flow-title {
+    font-size: 11px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px;
+  }
+  .flow-steps { display: flex; flex-wrap: wrap; align-items: center; gap: 0; }
+  .flow-step {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 10px 16px; position: relative;
+  }
+  .flow-step .step-num {
+    font-size: 9px; font-family: var(--mono); color: var(--text3);
+    margin-bottom: 2px;
+  }
+  .flow-step .step-text { font-size: 12px; color: var(--text2); }
+  .flow-step .step-detail { font-size: 10px; color: var(--text3); margin-top: 2px; }
+  .flow-arrow {
+    color: var(--text3); font-size: 16px; padding: 0 8px; flex-shrink: 0;
+  }
+
+  .status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .status-chip {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .status-label { font-size: 12px; font-weight: 600; }
+  .status-desc { font-size: 10px; color: var(--text3); }
+
+  .tip {
+    background: var(--teal-bg); border: 1px solid var(--teal-border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .tip-text { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .tip-text strong { color: var(--teal); }
+
+  .warn {
+    background: var(--amber-bg); border: 1px solid var(--amber-border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .warn-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .warn-text { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .warn-text strong { color: var(--amber); }
+
+  .ref-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  .ref-table th {
+    text-align: left; font-size: 10px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 8px 12px; border-bottom: 2px solid var(--border);
+  }
+  .ref-table td {
+    font-size: 12px; color: var(--text2); padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ref-table td:first-child { font-weight: 600; color: var(--text1); }
+
+  .feature-list { list-style: none; padding: 0; }
+  .feature-list li {
+    font-size: 12px; color: var(--text2); padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .feature-list li:last-child { border-bottom: none; }
+  .feature-list .feat-icon { font-size: 12px; flex-shrink: 0; margin-top: 2px; }
+
+  .desc { font-size: 13px; color: var(--text2); margin-bottom: 16px; line-height: 1.6; }
+
+  @media (max-width: 600px) {
+    .flow-steps { flex-direction: column; gap: 0; }
+    .flow-arrow { transform: rotate(90deg); padding: 4px 0; }
+    .concept-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="guide">
+
+  <!-- HEADER -->
+  <div class="guide-header">
+    <h1>Whole Life Challenge</h1>
+    <p>A 75-day habit tracker with daily scoring, bonuses, recovery metrics, and AI reflections.</p>
+    <span class="version">v4 &middot; Updated 2026-04-12</span>
+    <div class="nav-links">
+      <a class="nav-link green" href="index.html">&#128200; Project Docs</a>
+      <a class="nav-link purple" href="https://github.com/gilesparnell/wholeLifeChallenge" target="_blank" rel="noopener">&#128506; GitHub Repository</a>
+    </div>
+  </div>
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc">
+    <div class="toc-title">In This Guide</div>
+    <div class="toc-grid">
+      <a class="toc-item" href="#overview"><span class="toc-num">01</span> Overview</a>
+      <a class="toc-item" href="#pillars"><span class="toc-num">02</span> The 7 Pillars</a>
+      <a class="toc-item" href="#scoring"><span class="toc-num">03</span> Daily Scoring</a>
+      <a class="toc-item" href="#checkin"><span class="toc-num">04</span> Check-In Page</a>
+      <a class="toc-item" href="#bonuses"><span class="toc-num">05</span> Bonus System</a>
+      <a class="toc-item" href="#recovery"><span class="toc-num">06</span> Recovery &amp; Strain</a>
+      <a class="toc-item" href="#reflections"><span class="toc-num">07</span> AI Reflections</a>
+      <a class="toc-item" href="#progress"><span class="toc-num">08</span> Progress &amp; Charts</a>
+      <a class="toc-item" href="#journal"><span class="toc-num">09</span> Journal</a>
+      <a class="toc-item" href="#leaderboard"><span class="toc-num">10</span> Leaderboard</a>
+      <a class="toc-item" href="#admin"><span class="toc-num">11</span> Admin Console</a>
+      <a class="toc-item" href="#auth"><span class="toc-num">12</span> Auth &amp; Onboarding</a>
+      <a class="toc-item" href="#tips"><span class="toc-num">13</span> Tips &amp; Reference</a>
+    </div>
+  </div>
+
+  <!-- 1. OVERVIEW -->
+  <div class="section" id="overview">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--teal-bg);border:1px solid var(--teal-border)">&#127919;</div>
+      <div><h2>Overview</h2><div class="section-sub">What is the Whole Life Challenge?</div></div>
+    </div>
+    <p class="desc">
+      The Whole Life Challenge is a 75-day programme where you build sustainable habits across 7 areas of your life. Each day you score points for completing habits and maintaining good nutrition. The app tracks your progress, calculates bonuses for consistency, provides AI-powered reflexion prompts, and lets you compete on a real-time leaderboard.
+    </p>
+    <div class="flow">
+      <div class="flow-title">Your Daily Routine</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-num">1</div>
+          <div class="step-text" style="color:var(--green)">Open Check In</div>
+          <div class="step-detail">Navigate to today's date</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step">
+          <div class="step-num">2</div>
+          <div class="step-text" style="color:var(--coral)">Rate nutrition</div>
+          <div class="step-detail">Score 0-5 for food choices</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step">
+          <div class="step-num">3</div>
+          <div class="step-text" style="color:var(--blue)">Log 6 habits</div>
+          <div class="step-detail">Exercise, mobilise, sleep, hydrate, well-being, reflect</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step">
+          <div class="step-num">4</div>
+          <div class="step-text" style="color:var(--purple)">Optional: self-report</div>
+          <div class="step-detail">Rate recovery metrics</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step">
+          <div class="step-num">5</div>
+          <div class="step-text" style="color:var(--amber)">Review score</div>
+          <div class="step-detail">Max 35 points per day</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. THE 7 PILLARS -->
+  <div class="section" id="pillars">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--purple-bg);border:1px solid var(--purple-border)">&#127895;</div>
+      <div><h2>The 7 Pillars</h2><div class="section-sub">The habits you track every day</div></div>
+    </div>
+    <p class="desc">Each day has a nutrition score plus 6 trackable habits. Together they form the 7 pillars of the challenge.</p>
+    <div class="concept-row">
+      <div class="concept-card card-coral">
+        <h3>Nutrition (0-5 pts)</h3>
+        <p>Start with 5 points and deduct 1 for each non-compliant food choice. Linked to the WLC Nutrition Levels Guide.</p>
+        <span class="badge" style="background:var(--coral-bg);color:var(--coral);border:1px solid var(--coral-border)">Foundation</span>
+      </div>
+      <div class="concept-card card-rose">
+        <h3>Exercise (5 pts)</h3>
+        <p>10+ minutes of activity. Select your type from a dropdown (HIIT, Running, Weights, etc.) and log duration.</p>
+        <span class="badge" style="background:var(--rose-bg);color:var(--rose);border:1px solid var(--rose-border)">5 Points</span>
+      </div>
+      <div class="concept-card card-amber">
+        <h3>Mobilise (5 pts)</h3>
+        <p>10 minutes of stretching, foam rolling, yoga, or similar mobility work. Log type and duration.</p>
+        <span class="badge" style="background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)">5 Points</span>
+      </div>
+    </div>
+    <div class="concept-row">
+      <div class="concept-card card-purple">
+        <h3>Sleep (5 pts)</h3>
+        <p>Log your sleep hours using preset buttons (5h to 10.5h in half-hour increments).</p>
+        <span class="badge" style="background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)">5 Points</span>
+      </div>
+      <div class="concept-card card-blue">
+        <h3>Hydrate (5 pts)</h3>
+        <p>Track water intake with tap-to-add buttons. Visual progress bar fills toward your daily target (default 2000ml).</p>
+        <span class="badge" style="background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)">5 Points</span>
+      </div>
+      <div class="concept-card card-green">
+        <h3>Well-Being (5 pts)</h3>
+        <p>Complete a weekly well-being practice. Describe your activity in a free-form text entry.</p>
+        <span class="badge" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)">5 Points</span>
+      </div>
+    </div>
+    <div class="concept-row">
+      <div class="concept-card card-teal" style="max-width:calc(33.33% - 11px)">
+        <h3>Reflect (5 pts)</h3>
+        <p>Write a daily journal entry. AI-powered prompts are available to inspire your reflexion.</p>
+        <span class="badge" style="background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border)">5 Points</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. DAILY SCORING -->
+  <div class="section" id="scoring">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--green-bg);border:1px solid var(--green-border)">&#127942;</div>
+      <div><h2>Daily Scoring</h2><div class="section-sub">How your points add up</div></div>
+    </div>
+    <p class="desc">Your daily score is the sum of your nutrition score plus 5 points for each completed habit. A perfect day is 35 points.</p>
+    <table class="ref-table">
+      <thead>
+        <tr><th>Component</th><th>Points</th><th>How It Works</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Nutrition</td><td>0 &ndash; 5</td><td>Start at 5, deduct 1 per non-compliant food choice</td></tr>
+        <tr><td>Exercise</td><td>0 or 5</td><td>5 points when 10+ min activity logged</td></tr>
+        <tr><td>Mobilise</td><td>0 or 5</td><td>5 points when 10+ min mobility logged</td></tr>
+        <tr><td>Sleep</td><td>0 or 5</td><td>5 points when sleep hours recorded</td></tr>
+        <tr><td>Hydrate</td><td>0 or 5</td><td>5 points when daily water target reached</td></tr>
+        <tr><td>Well-Being</td><td>0 or 5</td><td>5 points when practice described</td></tr>
+        <tr><td>Reflect</td><td>0 or 5</td><td>5 points when reflexion written</td></tr>
+        <tr><td style="color:var(--green);font-weight:700">Total</td><td style="color:var(--green);font-weight:700">0 &ndash; 35</td><td style="color:var(--green)">Perfect day = 35 points</td></tr>
+      </tbody>
+    </table>
+    <div class="tip">
+      <span class="tip-icon">&#9432;</span>
+      <span class="tip-text">The <strong>Stats Row</strong> at the top of Check In shows your daily score, cumulative total, completion rate, and current streak of perfect (35/35) days.</span>
+    </div>
+  </div>
+
+  <!-- 4. CHECK-IN PAGE -->
+  <div class="section" id="checkin">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--blue-bg);border:1px solid var(--blue-border)">&#9745;</div>
+      <div><h2>Check-In Page</h2><div class="section-sub">Your daily command centre</div></div>
+    </div>
+    <p class="desc">The Check-In page is the heart of the app. It shows today's habits, your scores, and the bonus tracker. Use the left/right arrows to navigate between days.</p>
+    <div class="flow">
+      <div class="flow-title">Page Layout (Top to Bottom)</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-text" style="color:var(--green)">Stats Row</div>
+          <div class="step-detail">Today / Total / Rate / Streak</div>
+        </div>
+        <div class="flow-arrow">&middot;</div>
+        <div class="flow-step">
+          <div class="step-text" style="color:var(--coral)">Nutrition</div>
+          <div class="step-detail">Score selector (0-5)</div>
+        </div>
+        <div class="flow-arrow">&middot;</div>
+        <div class="flow-step">
+          <div class="step-text" style="color:var(--blue)">Habit Cards</div>
+          <div class="step-detail">6 cards in 2-col grid</div>
+        </div>
+        <div class="flow-arrow">&middot;</div>
+        <div class="flow-step">
+          <div class="step-text" style="color:var(--purple)">Self-Report</div>
+          <div class="step-detail">Recovery metrics (optional)</div>
+        </div>
+        <div class="flow-arrow">&middot;</div>
+        <div class="flow-step">
+          <div class="step-text" style="color:var(--amber)">Bonus Tracker</div>
+          <div class="step-detail">4 bonus progress bars</div>
+        </div>
+      </div>
+    </div>
+    <ul class="feature-list">
+      <li><span class="feat-icon">&#128197;</span> <strong>Date navigation</strong> &mdash; Arrow buttons move between days within the challenge window (Day 1 to today). You can edit past days but not future ones.</li>
+      <li><span class="feat-icon">&#127775;</span> <strong>Per-habit streaks</strong> &mdash; Small coloured badges show your current consecutive-day streak for each habit.</li>
+      <li><span class="feat-icon">&#128170;</span> <strong>Exercise &amp; Mobilise</strong> &mdash; Select activity type from a dropdown, then log duration with preset buttons (15/30/45/60/90 min) or enter a custom value.</li>
+      <li><span class="feat-icon">&#128167;</span> <strong>Hydrate</strong> &mdash; Tap the water button to add increments (default 250ml). A progress bar fills toward your target.</li>
+      <li><span class="feat-icon">&#128173;</span> <strong>Well-Being &amp; Reflect</strong> &mdash; Open a bottom-sheet modal and write free-form text. Reflect includes an optional AI prompt (tap the info icon).</li>
+      <li><span class="feat-icon">&#127917;</span> <strong>Free Day</strong> &mdash; When available, an "Activate Free Day" button appears. This gives you a full 35/35 regardless of actual completion.</li>
+    </ul>
+  </div>
+
+  <!-- 5. BONUS SYSTEM -->
+  <div class="section" id="bonuses">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--amber-bg);border:1px solid var(--amber-border)">&#11088;</div>
+      <div><h2>Bonus System</h2><div class="section-sub">Rewards for consistency</div></div>
+    </div>
+    <p class="desc">Four bonus types reward sustained effort. Bonuses are earned through streaks and auto-apply when you miss a habit (except Free Day, which is manual).</p>
+    <div class="concept-row">
+      <div class="concept-card card-coral">
+        <h3>Indulgence</h3>
+        <p><strong>Earn:</strong> 18+ nutrition points over 4 consecutive days.<br><strong>Effect:</strong> Auto-restores nutrition to 5/5 on a bad food day.</p>
+        <span class="badge" style="background:var(--coral-bg);color:var(--coral);border:1px solid var(--coral-border)">Auto-Apply</span>
+      </div>
+      <div class="concept-card card-green">
+        <h3>Rest Day</h3>
+        <p><strong>Earn:</strong> 10 consecutive days of completed exercise.<br><strong>Effect:</strong> Auto-covers a missed exercise day.</p>
+        <span class="badge" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)">Auto-Apply</span>
+      </div>
+    </div>
+    <div class="concept-row">
+      <div class="concept-card card-purple">
+        <h3>Night Owl</h3>
+        <p><strong>Earn:</strong> 6 consecutive days of completed sleep logging.<br><strong>Effect:</strong> Auto-covers a missed sleep day.</p>
+        <span class="badge" style="background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)">Auto-Apply</span>
+      </div>
+      <div class="concept-card card-amber">
+        <h3>Free Day</h3>
+        <p><strong>Earn:</strong> 21 consecutive days with a score of 34 or higher.<br><strong>Effect:</strong> Marks the entire day as 35/35. Must be manually activated.</p>
+        <span class="badge" style="background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)">Manual</span>
+      </div>
+    </div>
+    <div class="tip">
+      <span class="tip-icon">&#9432;</span>
+      <span class="tip-text">The <strong>Bonus Tracker</strong> at the bottom of Check In shows your earned/available/used count for each bonus, plus a progress bar toward the next one.</span>
+    </div>
+  </div>
+
+  <!-- 6. RECOVERY & STRAIN -->
+  <div class="section" id="recovery">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--rose-bg);border:1px solid var(--rose-border)">&#128147;</div>
+      <div><h2>Recovery &amp; Strain</h2><div class="section-sub">Optional self-report metrics</div></div>
+    </div>
+    <p class="desc">The "How Do You Feel?" section lets you rate daily recovery metrics. These feed into a Recovery Score and a WHOOP-inspired Strain Score.</p>
+    <table class="ref-table">
+      <thead>
+        <tr><th>Metric</th><th>Scale</th><th>Weight</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Sleep Quality</td><td>1 &ndash; 5 (higher = better)</td><td>25%</td></tr>
+        <tr><td>Sleep Hours</td><td>Linked to Sleep habit data</td><td>20%</td></tr>
+        <tr><td>Energy Level</td><td>1 &ndash; 5 (higher = better)</td><td>20%</td></tr>
+        <tr><td>Soreness</td><td>1 &ndash; 5 (lower = better, inverted)</td><td>15%</td></tr>
+        <tr><td>Stress Level</td><td>1 &ndash; 5 (lower = better, inverted)</td><td>10%</td></tr>
+        <tr><td>Mood</td><td>1 &ndash; 5 (higher = better)</td><td>10%</td></tr>
+      </tbody>
+    </table>
+    <div class="concept-row">
+      <div class="concept-card card-green">
+        <h3>Recovery Score</h3>
+        <p>0&ndash;100 scale. Weighted average of all six metrics above. Higher is better rested and ready to train.</p>
+        <span class="badge" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)">0 &ndash; 100</span>
+      </div>
+      <div class="concept-card card-coral">
+        <h3>Strain Score</h3>
+        <p>0&ndash;21 scale (WHOOP-inspired). Calculated from exercise + mobilise duration multiplied by activity intensity (HIIT=1.0, Walking=0.4, Yoga=0.3).</p>
+        <span class="badge" style="background:var(--coral-bg);color:var(--coral);border:1px solid var(--coral-border)">0 &ndash; 21</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. AI REFLECTIONS -->
+  <div class="section" id="reflections">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--teal-bg);border:1px solid var(--teal-border)">&#129504;</div>
+      <div><h2>AI Reflections</h2><div class="section-sub">Context-aware prompts from 60+ sources</div></div>
+    </div>
+    <p class="desc">When you open the Reflect modal, tap the info icon to reveal a daily prompt. Prompts are context-aware &mdash; they adapt based on what you've done today.</p>
+    <div class="flow">
+      <div class="flow-title">How Prompts Are Selected</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-num">1</div>
+          <div class="step-text" style="color:var(--teal)">Analyse today</div>
+          <div class="step-detail">Completed habits + recovery data</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step">
+          <div class="step-num">2</div>
+          <div class="step-text" style="color:var(--blue)">Match context tags</div>
+          <div class="step-detail">exercise-completed, low-energy, high-streak, etc.</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step">
+          <div class="step-num">3</div>
+          <div class="step-text" style="color:var(--purple)">Select prompt</div>
+          <div class="step-detail">From matching pool of 60+ prompts</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step">
+          <div class="step-num">4</div>
+          <div class="step-text" style="color:var(--green)">Fallback</div>
+          <div class="step-detail">Day-based prompt if no match</div>
+        </div>
+      </div>
+    </div>
+    <p class="desc">Prompt sources include Marcus Aurelius, Epictetus, Seneca, Bren&eacute; Brown, James Clear, David Goggins, Matthew Walker, Martin Seligman, Carol Dweck, Simon Sinek, Kelly McGonigal, and many more.</p>
+    <div class="tip">
+      <span class="tip-icon">&#9432;</span>
+      <span class="tip-text">Context tags include: <strong>exercise-completed</strong>, <strong>hydration-missed</strong>, <strong>high-streak</strong> (5+ days), <strong>low-energy</strong> (recovery &lt; 40), <strong>rest-day</strong>, <strong>nutrition</strong>, <strong>sleep</strong>, <strong>wellbeing</strong>, and <strong>general</strong>.</span>
+    </div>
+  </div>
+
+  <!-- 8. PROGRESS & CHARTS -->
+  <div class="section" id="progress">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--blue-bg);border:1px solid var(--blue-border)">&#128200;</div>
+      <div><h2>Progress &amp; Charts</h2><div class="section-sub">Visualise your challenge data</div></div>
+    </div>
+    <p class="desc">The Progress page is a comprehensive dashboard with multiple visualisations of your challenge data.</p>
+    <table class="ref-table">
+      <thead>
+        <tr><th>Chart</th><th>What It Shows</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Daily Score</td><td>Area chart of your daily score (0&ndash;35) over time</td></tr>
+        <tr><td>Cumulative Score</td><td>Running total with perfect-pace reference line and competitor overlay</td></tr>
+        <tr><td>Habit Breakdown</td><td>Weekly stacked bar chart showing nutrition + all 6 habits</td></tr>
+        <tr><td>Weekly Active Minutes</td><td>Stacked bars of exercise + mobilise duration per week</td></tr>
+        <tr><td>Duration Trend</td><td>Line chart of exercise and mobilise duration over time</td></tr>
+        <tr><td>Activity Type Breakdown</td><td>Horizontal bar chart of total minutes per exercise type</td></tr>
+        <tr><td>Recovery &amp; Strain</td><td>Dual-axis line chart: recovery (0&ndash;100) vs strain (0&ndash;21)</td></tr>
+        <tr><td>Habit Heatmap</td><td>Colour grid: rows = habits, columns = days. Scrollable.</td></tr>
+        <tr><td>Weekly Totals</td><td>Progress bars showing weekly score vs max (245 per week)</td></tr>
+      </tbody>
+    </table>
+    <div class="tip">
+      <span class="tip-icon">&#9432;</span>
+      <span class="tip-text">The <strong>Cumulative Score</strong> chart overlays lines for leaderboard competitors so you can compare progress in real time.</span>
+    </div>
+  </div>
+
+  <!-- 9. JOURNAL -->
+  <div class="section" id="journal">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--slate-bg);border:1px solid var(--slate-border)">&#128221;</div>
+      <div><h2>Journal</h2><div class="section-sub">Review your reflections</div></div>
+    </div>
+    <p class="desc">The Journal page lists all your reflections in reverse chronological order (newest first). Each entry shows the day number, date, full reflexion text, and that day's score out of 35. Reflections are written via the Reflect modal on Check In &mdash; the Journal is read-only.</p>
+    <div class="tip">
+      <span class="tip-icon">&#9432;</span>
+      <span class="tip-text"><strong>Reflections are always private</strong> &mdash; even when you opt in to the leaderboard, your journal entries are never shared with other users.</span>
+    </div>
+  </div>
+
+  <!-- 10. LEADERBOARD -->
+  <div class="section" id="leaderboard">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--amber-bg);border:1px solid var(--amber-border)">&#127941;</div>
+      <div><h2>Leaderboard</h2><div class="section-sub">Compete with other challengers</div></div>
+    </div>
+    <p class="desc">The Board page shows a ranked list of all users who have opted in. Participation is entirely optional.</p>
+    <ul class="feature-list">
+      <li><span class="feat-icon">&#128275;</span> <strong>Opt in</strong> &mdash; Toggle "Join the leaderboard" on the Board page. Off by default.</li>
+      <li><span class="feat-icon">&#127942;</span> <strong>Rankings</strong> &mdash; Sorted by total score. Top 3 get medal icons. Your entry is highlighted with a "You" badge.</li>
+      <li><span class="feat-icon">&#128200;</span> <strong>Stats shown</strong> &mdash; Display name, days active, current streak, and total score.</li>
+      <li><span class="feat-icon">&#9889;</span> <strong>Real-time updates</strong> &mdash; The leaderboard auto-refreshes when anyone's data changes via Supabase subscriptions.</li>
+      <li><span class="feat-icon">&#128202;</span> <strong>Progress comparison</strong> &mdash; Opted-in competitors appear as overlay lines on the Cumulative Score chart on the Progress page.</li>
+    </ul>
+    <div class="warn">
+      <span class="warn-icon">&#9888;</span>
+      <span class="warn-text">Only your <strong>display name and scores</strong> are visible to others. Reflections, recovery data, and other personal metrics remain private.</span>
+    </div>
+  </div>
+
+  <!-- 11. ADMIN CONSOLE -->
+  <div class="section" id="admin">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--rose-bg);border:1px solid var(--rose-border)">&#128737;</div>
+      <div><h2>Admin Console</h2><div class="section-sub">Configure the challenge (admin-only)</div></div>
+    </div>
+    <p class="desc">Accessible via the shield icon in the header. Only users with the admin role can see and use this page.</p>
+    <table class="ref-table">
+      <thead>
+        <tr><th>Section</th><th>What You Can Do</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>User Management</td><td>View all users, edit display names, promote/demote admins, toggle active/inactive, delete access</td></tr>
+        <tr><td>Email Whitelist</td><td>Add or remove email addresses that are allowed to sign up</td></tr>
+        <tr><td>Exercise Types</td><td>Add or remove activity types for the Exercise dropdown (defaults: HIIT, Running, Weights, etc.)</td></tr>
+        <tr><td>Mobilise Types</td><td>Add or remove activity types for the Mobilise dropdown</td></tr>
+        <tr><td>Hydration Config</td><td>Set daily target (default 2000ml) and increment per tap (default 250ml)</td></tr>
+        <tr><td>Challenge Settings</td><td>Set start date and duration (presets: 42, 60, 75, 90 days or custom)</td></tr>
+        <tr><td>Sample Data</td><td>Load 30 days of realistic test data for demos</td></tr>
+        <tr><td>Reset</td><td>Reset settings to defaults or clear all user data (irreversible)</td></tr>
+      </tbody>
+    </table>
+    <div class="warn">
+      <span class="warn-icon">&#9888;</span>
+      <span class="warn-text"><strong>"Clear All Data"</strong> permanently deletes all check-in data for all users. Use with extreme caution.</span>
+    </div>
+  </div>
+
+  <!-- 12. AUTH & ONBOARDING -->
+  <div class="section" id="auth">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--green-bg);border:1px solid var(--green-border)">&#128274;</div>
+      <div><h2>Auth &amp; Onboarding</h2><div class="section-sub">Signing in and getting started</div></div>
+    </div>
+    <div class="flow">
+      <div class="flow-title">Sign-In Flow</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-num">1</div>
+          <div class="step-text" style="color:var(--green)">Sign in with Google</div>
+          <div class="step-detail">OAuth via Supabase</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step">
+          <div class="step-num">2</div>
+          <div class="step-text" style="color:var(--blue)">Whitelist check</div>
+          <div class="step-detail">Email must be pre-approved by admin</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step">
+          <div class="step-num">3</div>
+          <div class="step-text" style="color:var(--purple)">Profile created</div>
+          <div class="step-detail">Display name + avatar from Google</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step">
+          <div class="step-num">4</div>
+          <div class="step-text" style="color:var(--amber)">Onboarding</div>
+          <div class="step-detail">4-slide welcome tutorial</div>
+        </div>
+      </div>
+    </div>
+    <p class="desc" style="margin-top:16px">First-time users see a 4-slide onboarding modal explaining the challenge concept, scoring system, bonuses, and how to get started. It only appears once.</p>
+    <ul class="feature-list">
+      <li><span class="feat-icon">&#127760;</span> <strong>Google OAuth</strong> &mdash; Primary sign-in method. Your email must be on the admin's whitelist.</li>
+      <li><span class="feat-icon">&#127769;</span> <strong>Theme toggle</strong> &mdash; Sun/moon icon in the header switches between light, dark, and system-follows-OS modes. Persists across sessions.</li>
+      <li><span class="feat-icon">&#128682;</span> <strong>Sign out</strong> &mdash; Button in the top-right header. Clears your session.</li>
+    </ul>
+  </div>
+
+  <!-- 13. TIPS & REFERENCE -->
+  <div class="section" id="tips">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--teal-bg);border:1px solid var(--teal-border)">&#128161;</div>
+      <div><h2>Tips &amp; Reference</h2><div class="section-sub">Quick reference for power users</div></div>
+    </div>
+    <table class="ref-table">
+      <thead>
+        <tr><th>Page</th><th>URL</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Check In</td><td>/</td><td>Daily habit tracking &amp; scoring</td></tr>
+        <tr><td>Progress</td><td>/progress</td><td>Charts and statistics dashboard</td></tr>
+        <tr><td>Journal</td><td>/journal</td><td>View all reflections</td></tr>
+        <tr><td>Board</td><td>/leaderboard</td><td>Opt-in competitive leaderboard</td></tr>
+        <tr><td>Info</td><td>/info</td><td>Resource library</td></tr>
+        <tr><td>Admin</td><td>/admin</td><td>Settings console (admin-only)</td></tr>
+      </tbody>
+    </table>
+    <div class="tip">
+      <span class="tip-icon">&#9889;</span>
+      <span class="tip-text"><strong>Consistency beats perfection.</strong> The bonus system rewards streaks &mdash; even if you miss a day, your earned bonuses can cover you. Focus on showing up daily rather than getting a perfect 35 every time.</span>
+    </div>
+    <div class="tip">
+      <span class="tip-icon">&#128270;</span>
+      <span class="tip-text"><strong>Use the heatmap.</strong> The Habit Heatmap on the Progress page instantly reveals which pillars you're neglecting. Look for grey columns &mdash; those are missed days.</span>
+    </div>
+    <div class="tip">
+      <span class="tip-icon">&#128221;</span>
+      <span class="tip-text"><strong>Write reflections early.</strong> The AI prompts are most relevant when your other habits are already logged for the day, since they use context from your completed habits and recovery data.</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

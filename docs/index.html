@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Whole Life Challenge — Project Docs</title>
+  <meta name="description" content="Whole Life Challenge project documentation — user guide, plans, and progress tracking.">
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+    :root{
+      --font-display:'Satoshi',-apple-system,BlinkMacSystemFont,sans-serif;
+      --font-body:'Outfit',-apple-system,BlinkMacSystemFont,sans-serif;
+      --bg-deep:#0a0c10;--bg-surface:#12151c;--bg-raised:#1a1e28;
+      --text-primary:#e8eaf0;--text-secondary:#8b92a8;--text-tertiary:#4a5068;
+      --accent:#38bfa0;--accent-light:#5edcb8;
+      --accent-muted:rgba(56,191,160,0.15);--accent-glow:rgba(56,191,160,0.20);
+      --warm:#e8a44a;--warm-muted:rgba(232,164,74,0.12);
+      --blue:#6199e6;--blue-muted:rgba(97,153,230,0.12);
+      --purple:#a78bfa;--purple-muted:rgba(167,139,250,0.12);
+      --coral:#f07b6e;--coral-muted:rgba(240,123,110,0.12);
+      --green:#34d399;--green-muted:rgba(52,211,153,0.12);
+      --border:rgba(255,255,255,0.06);--border-hover:rgba(255,255,255,0.14);
+      --radius:20px;
+    }
+
+    body{font-family:var(--font-body);background:var(--bg-deep);color:var(--text-primary);line-height:1.6;letter-spacing:-0.01em;min-height:100vh;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+
+    .mesh-bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+    .mesh-bg .blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:0.5;will-change:transform}
+    .mesh-bg .blob:nth-child(1){width:650px;height:650px;background:hsla(168,55%,32%,0.35);top:-12%;left:-8%;animation:d1 20s ease-in-out infinite alternate}
+    .mesh-bg .blob:nth-child(2){width:500px;height:500px;background:hsla(335,45%,28%,0.25);top:5%;right:-12%;animation:d2 24s ease-in-out infinite alternate}
+    .mesh-bg .blob:nth-child(3){width:580px;height:580px;background:hsla(215,55%,28%,0.28);bottom:-18%;left:25%;animation:d3 28s ease-in-out infinite alternate}
+    .mesh-bg .blob:nth-child(4){width:400px;height:400px;background:hsla(40,50%,30%,0.15);bottom:10%;right:5%;animation:d4 22s ease-in-out infinite alternate}
+    @keyframes d1{to{transform:translate(90px,70px) scale(1.08)}}
+    @keyframes d2{to{transform:translate(-70px,90px) scale(0.92)}}
+    @keyframes d3{to{transform:translate(50px,-60px) scale(1.12)}}
+    @keyframes d4{to{transform:translate(-40px,-50px) scale(1.06)}}
+
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:3rem 2rem 4rem}
+
+    .site-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:3rem}
+    .brand{display:flex;align-items:center;gap:14px;text-decoration:none}
+    .brand-mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#2a8a74);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:900;font-size:1.2rem;color:#fff;letter-spacing:-0.03em}
+    .brand-text{font-family:var(--font-display);font-weight:700;font-size:1.25rem;letter-spacing:-0.03em}
+    .header-links{display:flex;align-items:center;gap:1.25rem}
+    .header-links a{color:var(--text-secondary);text-decoration:none;font-size:0.85rem;font-weight:500;transition:color 0.2s;display:flex;align-items:center;gap:6px}
+    .header-links a:hover{color:var(--text-primary)}
+    .header-links svg{width:18px;height:18px;fill:currentColor}
+
+    .hero{margin-bottom:3.5rem}
+    .hero .label{font-family:var(--font-body);font-size:0.7rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:0.75rem;display:flex;align-items:center;gap:10px}
+    .hero h1{font-family:var(--font-display);font-size:clamp(2.5rem,5.5vw,4.2rem);font-weight:900;line-height:1.05;letter-spacing:-0.04em;margin-bottom:1rem}
+    .hero .tagline{font-size:clamp(1rem,2vw,1.2rem);color:var(--text-secondary);max-width:560px;line-height:1.65}
+    .badge{display:inline-flex;align-items:center;gap:5px;font-size:0.62rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:3px 10px;border-radius:100px}
+    .badge--active{background:rgba(52,211,153,0.12);color:#34d399}
+    .badge--active::before{content:'';width:5px;height:5px;background:#34d399;border-radius:50%;animation:pulse 2.5s ease-in-out infinite}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,0.4)}50%{box-shadow:0 0 0 5px rgba(52,211,153,0)}}
+
+    .stats-row{display:flex;gap:2.5rem;margin-top:1.5rem;flex-wrap:wrap}
+    .stat{display:flex;flex-direction:column}
+    .stat-value{font-family:var(--font-display);font-weight:900;font-size:1.8rem;letter-spacing:-0.03em;color:var(--accent);line-height:1}
+    .stat-label{font-size:0.72rem;color:var(--text-tertiary);margin-top:4px;font-weight:500}
+
+    .section-label{font-family:var(--font-body);font-size:0.65rem;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:1.25rem;padding-left:2px}
+
+    .bento{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+
+    .card{background:rgba(18,21,28,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:var(--radius);padding:1.6rem;position:relative;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:transform 0.45s cubic-bezier(0.16,1,0.3,1),box-shadow 0.45s cubic-bezier(0.16,1,0.3,1),border-color 0.4s ease}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);pointer-events:none;z-index:2}
+    .card::after{content:'';position:absolute;width:350px;height:350px;background:radial-gradient(circle,var(--card-glow,var(--accent-glow)) 0%,transparent 70%);border-radius:50%;pointer-events:none;opacity:0;transition:opacity 0.4s ease;top:var(--mouse-y,50%);left:var(--mouse-x,50%);transform:translate(-50%,-50%);z-index:1}
+    .card:hover::after{opacity:1}
+    .card:hover{transform:translateY(-3px) scale(1.008);border-color:var(--border-hover);box-shadow:0 24px 64px rgba(0,0,0,0.35),0 0 48px var(--card-glow,var(--accent-muted))}
+    .card--wide{grid-column:span 2}
+    .card-top{flex:1;position:relative;z-index:3}
+    .card h2{font-family:var(--font-display);font-weight:700;font-size:1.15rem;line-height:1.2;letter-spacing:-0.025em;margin-bottom:0.5rem}
+    .card p{color:var(--text-secondary);font-size:0.88rem;line-height:1.6}
+    .card-footer{margin-top:auto;padding-top:1.25rem;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:3}
+    .card-link{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-weight:500;font-size:0.85rem;transition:gap 0.3s ease,color 0.3s ease}
+    .card-link:hover{gap:10px;color:var(--accent-light)}
+    .card-icon{font-size:1.5rem;margin-bottom:0.75rem;display:block}
+    .card-count{font-size:0.7rem;font-weight:600;letter-spacing:0.06em;color:var(--text-tertiary);background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:100px;padding:2px 10px}
+
+    .doc-list{list-style:none;margin-top:0.75rem;display:flex;flex-direction:column;gap:4px}
+    .doc-list li{font-size:0.78rem;color:var(--text-secondary);display:flex;align-items:center;gap:8px}
+    .doc-list li::before{content:'';width:4px;height:4px;background:var(--accent);border-radius:50%;flex-shrink:0}
+
+    .site-footer{margin-top:4rem;padding-top:2rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:0.78rem;color:var(--text-tertiary)}
+    .site-footer a{color:var(--text-secondary);text-decoration:none;transition:color 0.2s}
+    .site-footer a:hover{color:var(--accent)}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .hero{animation:fadeUp 0.7s ease-out both}
+    .card{animation:fadeUp 0.6s ease-out both}
+    .bento .card:nth-child(1){animation-delay:0.1s}
+    .bento .card:nth-child(2){animation-delay:0.15s}
+    .bento .card:nth-child(3){animation-delay:0.2s}
+    .bento .card:nth-child(4){animation-delay:0.25s}
+
+    @media(max-width:900px){.bento{grid-template-columns:repeat(2,1fr)}.card--wide{grid-column:span 2}}
+    @media(max-width:580px){.bento{grid-template-columns:1fr}.card--wide{grid-column:span 1}.page{padding:2rem 1rem 3rem}.site-header{flex-direction:column;align-items:flex-start;gap:1rem}.site-footer{flex-direction:column;gap:0.75rem;text-align:center}}
+  </style>
+</head>
+<body>
+
+<div class="mesh-bg" aria-hidden="true"><div class="blob"></div><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
+
+<div class="page">
+
+  <header class="site-header">
+    <a href="https://gilesparnell.github.io/" class="brand">
+      <div class="brand-mark">PS</div>
+      <span class="brand-text">Parnell Systems</span>
+    </a>
+    <nav class="header-links">
+      <a href="https://gilesparnell.github.io/">Hub Portal</a>
+      <a href="https://github.com/gilesparnell/wholeLifeChallenge" target="_blank">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="label">
+      <span class="badge badge--active">Active</span>
+      Project Documentation
+    </div>
+    <h1>Whole Life Challenge</h1>
+    <p class="tagline">75-day habit tracker with daily scoring across 7 pillars, bonus system, AI-powered reflections, recovery metrics, and a real-time leaderboard. Built with React + Supabase.</p>
+    <div class="stats-row">
+      <div class="stat"><span class="stat-value">75</span><span class="stat-label">Day Challenge</span></div>
+      <div class="stat"><span class="stat-value">35</span><span class="stat-label">Max Daily Score</span></div>
+      <div class="stat"><span class="stat-value">7</span><span class="stat-label">Pillars</span></div>
+      <div class="stat"><span class="stat-value">1</span><span class="stat-label">User Guide</span></div>
+    </div>
+  </section>
+
+  <div class="section-label">Documentation</div>
+  <div class="bento">
+
+    <!-- User Guide -->
+    <a href="user-guide.html" class="card card--wide" style="--card-glow:rgba(97,153,230,0.2)">
+      <div class="card-top">
+        <span class="card-icon">&#128214;</span>
+        <h2>User Guide</h2>
+        <p>Complete end-user documentation covering daily check-ins, the 7 pillars, scoring, bonuses, recovery metrics, AI reflections, leaderboard, and admin settings.</p>
+      </div>
+      <div class="card-footer">
+        <span class="card-link">Read guide <span>&rarr;</span></span>
+      </div>
+    </a>
+
+    <!-- Feature Overview -->
+    <div class="card" style="--card-glow:rgba(167,139,250,0.2)">
+      <div class="card-top">
+        <span class="card-icon">&#9889;</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+          <h2>Key Features</h2>
+        </div>
+        <ul class="doc-list">
+          <li>6 daily habits + nutrition scoring</li>
+          <li>4 auto-applying bonus types</li>
+          <li>Recovery &amp; strain metrics</li>
+          <li>60+ AI reflexion prompts</li>
+          <li>Real-time leaderboard</li>
+          <li>Admin console &amp; whitelist</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Tech Stack -->
+    <div class="card" style="--card-glow:rgba(52,211,153,0.2)">
+      <div class="card-top">
+        <span class="card-icon">&#128736;</span>
+        <h2>Tech Stack</h2>
+        <ul class="doc-list">
+          <li>React 19 + Vite 8</li>
+          <li>React Router DOM v7</li>
+          <li>Supabase (Auth + Database)</li>
+          <li>Recharts for visualisations</li>
+          <li>Vercel deployment</li>
+          <li>Google OAuth</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- App Link -->
+    <a href="https://whole-life-challenge.vercel.app" class="card" style="--card-glow:var(--accent-glow)" target="_blank">
+      <div class="card-top">
+        <span class="card-icon">&#127919;</span>
+        <h2>Launch App</h2>
+        <p>Open the live Whole Life Challenge tracker. Requires a whitelisted Google account to sign in.</p>
+      </div>
+      <div class="card-footer">
+        <span class="card-link">Open app <span>&rarr;</span></span>
+      </div>
+    </a>
+
+  </div>
+
+  <footer class="site-footer">
+    <span>&copy; 2026 Parnell Systems &middot; Whole Life Challenge</span>
+    <span>
+      <a href="https://gilesparnell.github.io/">Hub Portal</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://gilesparnell.github.io/Claude/">Knowledge Portal</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://github.com/gilesparnell/wholeLifeChallenge" target="_blank">GitHub</a>
+    </span>
+  </footer>
+
+</div>
+
+<script>
+document.querySelectorAll('.card').forEach(el=>{
+  el.addEventListener('mousemove',e=>{const r=el.getBoundingClientRect();el.style.setProperty('--mouse-x',(e.clientX-r.left)+'px');el.style.setProperty('--mouse-y',(e.clientY-r.top)+'px');});
+});
+</script>
+
+</body>
+</html>
