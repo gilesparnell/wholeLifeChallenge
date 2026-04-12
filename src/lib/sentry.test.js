@@ -65,6 +65,20 @@ describe('sentry init helper', () => {
     expect(initArgs.replaysOnErrorSampleRate).toBe(1.0)
   })
 
+  it('initSentry ignores known-benign Supabase auth lock errors', async () => {
+    vi.stubEnv('VITE_SENTRY_DSN', 'https://abc@o1.ingest.us.sentry.io/2')
+    const { initSentry } = await import('./sentry')
+    initSentry()
+    const initArgs = mockInit.mock.calls[0][0]
+    expect(initArgs.ignoreErrors).toBeInstanceOf(Array)
+    // The specific message Supabase-js throws when another tab steals the lock
+    const hasLockFilter = initArgs.ignoreErrors.some((pattern) =>
+      (typeof pattern === 'string' && pattern.includes('Lock')) ||
+      (pattern instanceof RegExp && pattern.test("Lock 'lock:sb-xxx-auth-token' was released because another request stole it"))
+    )
+    expect(hasLockFilter).toBe(true)
+  })
+
   it('initSentry is safe to call twice (idempotent)', async () => {
     vi.stubEnv('VITE_SENTRY_DSN', 'https://abc@o1.ingest.us.sentry.io/2')
     const { initSentry } = await import('./sentry')
