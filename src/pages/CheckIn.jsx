@@ -287,7 +287,8 @@ export default function CheckIn() {
               <div style={{ fontWeight: 600, fontSize: 14 }}>Nutrition</div>
               <div style={{ fontSize: 12, color: colors.textDim }}>
                 Deduct per non-compliant food
-                {' '}
+              </div>
+              <div style={{ fontSize: 12, color: colors.textDim, marginTop: 2, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 <a
                   href="https://www.wholelifechallenge.com/how-to-choose-your-whole-life-challenge-nutrition-level/"
                   target="_blank"
@@ -295,7 +296,37 @@ export default function CheckIn() {
                   onClick={(e) => e.stopPropagation()}
                   style={{ color: colors.accent, textDecoration: 'none' }}
                 >
-                  (Levels Guide)
+                  Levels Guide
+                </a>
+                <span style={{ color: colors.textFaint }}>·</span>
+                <a
+                  href="https://docs.google.com/spreadsheets/d/1hcls-EhtaEaYtuGWA-zZOHhMnYkGjDYyHS_avpt_C38/edit?gid=1200321614#gid=1200321614"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ color: colors.accent, textDecoration: 'none' }}
+                >
+                  Kickstart
+                </a>
+                <span style={{ color: colors.textFaint }}>·</span>
+                <a
+                  href="https://docs.google.com/spreadsheets/d/1VLSYsjTf3ypjno33P5swuJgYHPSM-TxS-yJq8x8nRcs/edit?gid=1495910106#gid=1495910106"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ color: colors.accent, textDecoration: 'none' }}
+                >
+                  Lifestyle
+                </a>
+                <span style={{ color: colors.textFaint }}>·</span>
+                <a
+                  href="https://docs.google.com/spreadsheets/d/1AEjsVb09RbVey_SvEoHLCzyjWXtIXTZBoU6R6fiE7ho/edit?gid=37573136#gid=37573136"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ color: colors.accent, textDecoration: 'none' }}
+                >
+                  Performance
                 </a>
               </div>
             </div>
