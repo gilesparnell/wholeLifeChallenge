@@ -371,7 +371,7 @@ export default function CheckIn() {
           background: colors.surface, borderRadius: 14, padding: 16, marginTop: 16,
           border: `1px solid ${colors.border}`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2 }}>
               How Do You Feel?
             </p>
@@ -390,21 +390,27 @@ export default function CheckIn() {
               ) : null
             })()}
           </div>
+          <p style={{ fontSize: 11, color: colors.textFaint, marginBottom: 12, lineHeight: 1.4 }}>
+            Rate each on 1&ndash;5. Scale direction differs per metric &mdash; see the hint under each label.
+          </p>
           <div className="wlc-selfreport-grid">
             {[
-              { key: 'sleepQuality', label: 'Sleep Quality', icon: '\u{1F634}' },
-              { key: 'energyLevel', label: 'Energy', icon: '\u26A1' },
-              { key: 'soreness', label: 'Soreness', icon: '\u{1F4AA}' },
-              { key: 'stressLevel', label: 'Stress', icon: '\u{1F9E0}' },
-              { key: 'mood', label: 'Mood', icon: '\u{1F60A}' },
-            ].map(({ key, label, icon }) => {
+              { key: 'sleepQuality', label: 'Sleep Quality', icon: '\u{1F634}', hint: '1 = poor · 5 = great' },
+              { key: 'energyLevel', label: 'Energy', icon: '\u26A1', hint: '1 = drained · 5 = energised' },
+              { key: 'soreness', label: 'Soreness', icon: '\u{1F4AA}', hint: '1 = none · 5 = very sore' },
+              { key: 'stressLevel', label: 'Stress', icon: '\u{1F9E0}', hint: '1 = calm · 5 = maxed out' },
+              { key: 'mood', label: 'Mood', icon: '\u{1F60A}', hint: '1 = low · 5 = great' },
+            ].map(({ key, label, icon, hint }) => {
               const sr = currentDay.selfReport || {}
               const val = sr[key] ?? 0
               return (
                 <div key={key} className="wlc-selfreport-row">
                   <span className="wlc-selfreport-label">
                     <span style={{ fontSize: 14 }}>{icon}</span>
-                    <span>{label}</span>
+                    <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                      <span>{label}</span>
+                      <span style={{ fontSize: 10, color: colors.textFaint, fontWeight: 400 }}>{hint}</span>
+                    </span>
                   </span>
                   <div className="wlc-selfreport-scale">
                     {[1, 2, 3, 4, 5].map((v) => (
