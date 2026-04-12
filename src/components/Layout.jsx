@@ -71,6 +71,20 @@ export default function Layout({ children }) {
                 {'\u{1F6E1}\uFE0F'}
               </Link>
             )}
+            <a
+              href="https://gilesparnell.github.io/wholeLifeChallenge/user-guide.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="User Guide"
+              title="User Guide"
+              style={{
+                background: 'none', border: 'none', color: colors.textGhost,
+                fontSize: 18, cursor: 'pointer', padding: '2px 4px',
+                textDecoration: 'none', lineHeight: 1,
+              }}
+            >
+              {'\u2139\uFE0F'}
+            </a>
             <button
               onClick={toggleTheme}
               aria-label="Toggle theme"
