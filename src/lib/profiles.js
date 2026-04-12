@@ -155,16 +155,21 @@ export const deleteProfile = async (id) => {
  * Update a user's denormalised stats on their profile row.
  * These drive the public leaderboard view.
  */
-export const updateProfileStats = async (id, { totalScore, currentStreak, daysActive }) => {
+export const updateProfileStats = async (id, { totalScore, currentStreak, daysActive, cumulativeByDay }) => {
   if (!supabase || !id) return null
+
+  const patch = {
+    total_score: totalScore,
+    current_streak: currentStreak,
+    days_active: daysActive,
+  }
+  if (cumulativeByDay !== undefined) {
+    patch.cumulative_by_day = cumulativeByDay
+  }
 
   const { data, error } = await supabase
     .from('profiles')
-    .update({
-      total_score: totalScore,
-      current_streak: currentStreak,
-      days_active: daysActive,
-    })
+    .update(patch)
     .eq('id', id)
     .select()
     .single()

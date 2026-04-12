@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { computeLeaderboard, fetchLeaderboard } from './leaderboard'
+import { computeLeaderboard, fetchLeaderboard, subscribeLeaderboard } from './leaderboard'
 
 const mockFrom = vi.fn()
+const mockChannel = vi.fn()
+const mockRemoveChannel = vi.fn()
 vi.mock('./supabase', () => ({
   supabase: {
     from: (...args) => mockFrom(...args),
+    channel: (...args) => mockChannel(...args),
+    removeChannel: (...args) => mockRemoveChannel(...args),
   },
 }))
 
@@ -59,6 +63,74 @@ describe('fetchLeaderboard', () => {
     mockFrom.mockReturnValue(chainable({ data: null, error: null }))
     const result = await fetchLeaderboard()
     expect(result).toEqual([])
+  })
+})
+
+describe('subscribeLeaderboard', () => {
+  beforeEach(() => {
+    mockChannel.mockReset()
+    mockRemoveChannel.mockReset()
+  })
+
+  it('subscribes to postgres_changes on the profiles table', () => {
+    const onChange = vi.fn()
+    const fakeChannel = {
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+    }
+    mockChannel.mockReturnValue(fakeChannel)
+
+    subscribeLeaderboard(onChange)
+
+    expect(mockChannel).toHaveBeenCalledWith('leaderboard-changes')
+    expect(fakeChannel.on).toHaveBeenCalledWith(
+      'postgres_changes',
+      expect.objectContaining({
+        event: '*',
+        schema: 'public',
+        table: 'profiles',
+      }),
+      expect.any(Function)
+    )
+    expect(fakeChannel.subscribe).toHaveBeenCalled()
+  })
+
+  it('returns an unsubscribe function that removes the channel', () => {
+    const fakeChannel = { on: vi.fn().mockReturnThis(), subscribe: vi.fn().mockReturnThis() }
+    mockChannel.mockReturnValue(fakeChannel)
+
+    const unsubscribe = subscribeLeaderboard(vi.fn())
+    expect(typeof unsubscribe).toBe('function')
+
+    unsubscribe()
+    expect(mockRemoveChannel).toHaveBeenCalledWith(fakeChannel)
+  })
+
+  it('calls onChange when a postgres_changes event fires', () => {
+    const onChange = vi.fn()
+    let registeredHandler = null
+    const fakeChannel = {
+      on: vi.fn((_event, _filter, handler) => {
+        registeredHandler = handler
+        return fakeChannel
+      }),
+      subscribe: vi.fn().mockReturnThis(),
+    }
+    mockChannel.mockReturnValue(fakeChannel)
+
+    subscribeLeaderboard(onChange)
+    expect(registeredHandler).toBeDefined()
+
+    registeredHandler({ eventType: 'UPDATE', new: { id: 'abc' } })
+    expect(onChange).toHaveBeenCalled()
+  })
+
+  it('returns a noop unsubscribe when supabase is unavailable', async () => {
+    // Temporarily replace mockChannel to throw
+    mockChannel.mockImplementation(() => { throw new Error('no client') })
+    const unsubscribe = subscribeLeaderboard(vi.fn())
+    expect(typeof unsubscribe).toBe('function')
+    expect(() => unsubscribe()).not.toThrow()
   })
 })
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchLeaderboard } from '../lib/leaderboard'
+import { fetchLeaderboard, subscribeLeaderboard } from '../lib/leaderboard'
 import { setLeaderboardVisibility } from '../lib/profiles'
 import { useAuth } from '../contexts/AuthContext'
 import { colors, fonts } from '../styles/theme'
@@ -21,6 +21,12 @@ export default function Leaderboard() {
     refresh()
     setLocalVisible(!!profile?.leaderboard_visible)
   }, [refresh, profile?.leaderboard_visible])
+
+  // Live updates: refetch whenever any profile row changes
+  useEffect(() => {
+    const unsubscribe = subscribeLeaderboard(() => { refresh() })
+    return unsubscribe
+  }, [refresh])
 
   const toggleVisibility = async () => {
     if (!profile?.id || savingVisibility) return

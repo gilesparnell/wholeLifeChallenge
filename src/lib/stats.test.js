@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePreview } from './stats'
+import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePreview, computeCumulativeByDay } from './stats'
 
 const perfectDay = {
   nutrition: 5,
@@ -114,6 +114,52 @@ describe('calculateRate', () => {
   it('caps at 100 (should never exceed)', () => {
     // Defensive — totalScore should never exceed maxPossible when both are calculated correctly
     expect(calculateRate(200, 100)).toBe(100)
+  })
+})
+
+describe('computeCumulativeByDay', () => {
+  it('returns an array of cumulative scores up to dayIndex', () => {
+    const dates = ['2026-04-12', '2026-04-13', '2026-04-14']
+    const data = {
+      [dates[0]]: { nutrition: 5 },
+      [dates[1]]: { nutrition: 3 },
+      [dates[2]]: { nutrition: 4 },
+    }
+    const result = computeCumulativeByDay(data, dates, 2)
+    expect(result).toEqual([5, 8, 12])
+  })
+
+  it('returns empty array for negative dayIndex', () => {
+    expect(computeCumulativeByDay({}, ['2026-04-12'], -1)).toEqual([])
+  })
+
+  it('treats missing days as 0', () => {
+    const dates = ['2026-04-12', '2026-04-13', '2026-04-14']
+    const data = { [dates[0]]: { nutrition: 5 } }
+    const result = computeCumulativeByDay(data, dates, 2)
+    expect(result).toEqual([5, 5, 5])
+  })
+
+  it('handles perfect days summing to 35', () => {
+    const dates = ['2026-04-12', '2026-04-13']
+    const perfectDay = {
+      nutrition: 5,
+      exercise: { completed: true },
+      mobilize: { completed: true },
+      sleep: { completed: true },
+      hydrate: { completed: true },
+      wellbeing: { completed: true },
+      reflect: { completed: true },
+    }
+    const data = { [dates[0]]: perfectDay, [dates[1]]: perfectDay }
+    expect(computeCumulativeByDay(data, dates, 1)).toEqual([35, 70])
+  })
+
+  it('caps array length at allDates.length', () => {
+    const dates = ['2026-04-12']
+    const data = { [dates[0]]: { nutrition: 5 } }
+    const result = computeCumulativeByDay(data, dates, 100)
+    expect(result.length).toBe(1)
   })
 })
 

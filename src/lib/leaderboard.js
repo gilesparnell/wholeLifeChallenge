@@ -2,6 +2,30 @@ import { scoreDay, calculateStreak } from './scoring'
 import { supabase } from './supabase'
 
 /**
+ * Subscribe to live changes on the profiles table. Calls `onChange` whenever
+ * a row is inserted, updated, or deleted (so the caller can refetch the
+ * leaderboard view). Returns an unsubscribe function.
+ */
+export const subscribeLeaderboard = (onChange) => {
+  if (!supabase) return () => {}
+  try {
+    const channel = supabase
+      .channel('leaderboard-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => onChange?.(payload)
+      )
+      .subscribe()
+    return () => {
+      try { supabase.removeChannel(channel) } catch { /* ignore */ }
+    }
+  } catch {
+    return () => {}
+  }
+}
+
+/**
  * Fetch the public leaderboard view (opted-in users only).
  * Returns rows with a 1-based `rank` added.
  */

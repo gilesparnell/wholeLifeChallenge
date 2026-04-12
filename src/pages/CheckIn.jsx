@@ -4,7 +4,7 @@ import { scoreDay, calculateStreak, calculateHabitStreak } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
 import { getConfig } from '../lib/adminConfig'
 import { computeBonuses, applyAutoBonuses } from '../lib/bonuses'
-import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePreview } from '../lib/stats'
+import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePreview, computeCumulativeByDay } from '../lib/stats'
 import { calculateRecoveryScore, calculateStrainScore } from '../lib/recovery'
 import { getContextAwarePrompt } from '../lib/promptBank'
 import { updateProfileStats } from '../lib/profiles'
@@ -93,10 +93,16 @@ export default function CheckIn() {
 
     lastSyncRef.current = { totalScore, streak, daysActive }
     const timer = setTimeout(() => {
-      updateProfileStats(profile.id, { totalScore, currentStreak: streak, daysActive })
+      const cumulativeByDay = computeCumulativeByDay(data, allDates, dayIndex)
+      updateProfileStats(profile.id, {
+        totalScore,
+        currentStreak: streak,
+        daysActive,
+        cumulativeByDay,
+      })
     }, 600)
     return () => clearTimeout(timer)
-  }, [profile?.id, totalScore, streak, data, loading, dayIndex])
+  }, [profile?.id, totalScore, streak, data, loading, dayIndex, allDates])
 
   const BONUS_CONFIG = [
     { key: 'indulgence', label: 'Indulgence', icon: '\u{1F37D}\uFE0F', color: colors.green },

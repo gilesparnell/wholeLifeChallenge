@@ -1,14 +1,44 @@
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, LineChart, Line } from 'recharts'
+import { useState, useEffect } from 'react'
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, LineChart, Line, ComposedChart } from 'recharts'
 import { HABITS } from '../lib/habits'
 import { scoreDay } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, CHALLENGE_DAYS } from '../lib/dates'
 import { getWeeklyExerciseMinutes, getActivityTypeBreakdown, getDailyDurationTrend } from '../lib/exerciseStats'
 import { getRecoveryTrend } from '../lib/recovery'
+import { fetchLeaderboard, subscribeLeaderboard } from '../lib/leaderboard'
 import { useData } from '../contexts/DataContext'
+import { useAuth } from '../contexts/AuthContext'
 import { colors, fonts } from '../styles/theme'
+
+// Palette for overlay user lines on the cumulative chart.
+const OVERLAY_COLORS = [
+  '#6B5CE7', // purple
+  '#2E9E5A', // green
+  '#C87F2A', // orange
+  '#D14A7A', // pink
+  '#2E8BC0', // blue
+  '#7BAE38', // lime
+  '#A0522D', // sienna
+  '#5F4B8B', // indigo
+]
 
 export default function Progress() {
   const { data, loading } = useData()
+  const { profile } = useAuth()
+  const [leaderboard, setLeaderboard] = useState([])
+
+  // Fetch leaderboard on mount + subscribe to live updates so the comparison
+  // overlay reflects what other users are doing.
+  useEffect(() => {
+    let alive = true
+    const refresh = async () => {
+      const result = await fetchLeaderboard()
+      if (alive) setLeaderboard(result)
+    }
+    refresh()
+    const unsubscribe = subscribeLeaderboard(refresh)
+    return () => { alive = false; unsubscribe() }
+  }, [])
 
   const today = getToday()
   const dayIndex = getDayIndex(today)
@@ -26,11 +56,23 @@ export default function Progress() {
     date: d,
   }))
 
-  // Cumulative score chart data
+  // Cumulative score chart data — merged with each opted-in user's
+  // cumulative_by_day for the comparison overlay.
+  // Only show comparison overlays for users OTHER than yourself, since
+  // your own line is already on the chart as `total`.
+  const otherUsers = leaderboard.filter((u) => u.id !== profile?.id)
   let cumulative = 0
   const cumulativeData = visibleDates.map((d, i) => {
     cumulative += scoreDay(data[d])
-    return { day: i + 1, total: cumulative, perfectPace: (i + 1) * 35 }
+    const row = { day: i + 1, total: cumulative, perfectPace: (i + 1) * 35 }
+    otherUsers.forEach((u) => {
+      const arr = Array.isArray(u.cumulative_by_day) ? u.cumulative_by_day : []
+      // Use last known value if user has fewer days than us (they may not
+      // have checked in for the current day yet).
+      const v = i < arr.length ? arr[i] : (arr.length > 0 ? arr[arr.length - 1] : 0)
+      row[`user_${u.id}`] = v
+    })
+    return row
   })
 
   // Per-habit bar chart data (weekly)
@@ -96,11 +138,13 @@ export default function Progress() {
         </ResponsiveContainer>
       </div>
 
-      {/* Cumulative Score Chart (NEW) */}
+      {/* Cumulative Score Chart with comparison overlay */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
-        <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingLeft: 8 }}>Cumulative Score</p>
-        <ResponsiveContainer width="100%" height={180}>
-          <AreaChart data={cumulativeData}>
+        <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingLeft: 8 }}>
+          Cumulative Score{otherUsers.length > 0 ? ` (vs ${otherUsers.length} ${otherUsers.length === 1 ? 'other' : 'others'})` : ''}
+        </p>
+        <ResponsiveContainer width="100%" height={200}>
+          <ComposedChart data={cumulativeData}>
             <defs>
               <linearGradient id="cumulGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={colors.blue} stopOpacity={0.4} />
@@ -111,13 +155,42 @@ export default function Progress() {
             <YAxis tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} width={36} />
             <Tooltip
               contentStyle={{ background: colors.surfaceHover, border: `1px solid ${colors.borderSubtle}`, borderRadius: 8, color: colors.text, fontSize: 12 }}
-              formatter={(v, name) => [v, name === 'total' ? 'Your Score' : 'Perfect Pace']}
+              formatter={(v, name) => {
+                if (name === 'total') return [v, 'You']
+                if (name === 'perfectPace') return [v, 'Perfect pace']
+                const userId = name.replace('user_', '')
+                const u = otherUsers.find((x) => x.id === userId)
+                return [v, u?.display_name || 'Player']
+              }}
               labelFormatter={(l) => `Day ${l}`}
             />
             <Area type="monotone" dataKey="perfectPace" stroke={colors.textGhost} strokeWidth={1} strokeDasharray="4 4" fill="none" dot={false} />
-            <Area type="monotone" dataKey="total" stroke={colors.blue} strokeWidth={2} fill="url(#cumulGrad)" dot={false} />
-          </AreaChart>
+            {/* Other users' lines (faded) */}
+            {otherUsers.map((u, i) => (
+              <Line
+                key={u.id}
+                type="monotone"
+                dataKey={`user_${u.id}`}
+                stroke={OVERLAY_COLORS[i % OVERLAY_COLORS.length]}
+                strokeWidth={1.5}
+                strokeOpacity={0.6}
+                dot={false}
+              />
+            ))}
+            {/* Your line on top */}
+            <Area type="monotone" dataKey="total" stroke={colors.blue} strokeWidth={2.5} fill="url(#cumulGrad)" dot={false} />
+          </ComposedChart>
         </ResponsiveContainer>
+        {otherUsers.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '4px 8px 4px', justifyContent: 'center' }}>
+            <span style={{ fontSize: 11, color: colors.blue, fontWeight: 600 }}>{'\u25CF'} You</span>
+            {otherUsers.map((u, i) => (
+              <span key={u.id} style={{ fontSize: 11, color: OVERLAY_COLORS[i % OVERLAY_COLORS.length] }}>
+                {'\u25CF'} {u.display_name || 'Player'}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Per-Habit Bar Chart (NEW) */}

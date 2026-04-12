@@ -36,6 +36,22 @@ export const calculateRate = (totalScore, maxPossible) => {
 }
 
 /**
+ * Compute a cumulative score array, one entry per day from start to dayIndex.
+ * Used by the comparison view on Progress.jsx — overlay each user's history.
+ */
+export const computeCumulativeByDay = (data, allDates, dayIndex) => {
+  if (dayIndex < 0) return []
+  const endIdx = Math.min(dayIndex, allDates.length - 1)
+  const result = []
+  let running = 0
+  for (let i = 0; i <= endIdx; i++) {
+    running += scoreDay(data[allDates[i]])
+    result.push(running)
+  }
+  return result
+}
+
+/**
  * Truncate a text snippet for inline preview. Takes the first line, trims
  * whitespace, and caps at `limit` characters (default 40) with a trailing
  * ellipsis if it overflows.
