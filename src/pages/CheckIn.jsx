@@ -1,12 +1,15 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { HABITS, emptyDay } from '../lib/habits'
 import { scoreDay, calculateStreak, calculateHabitStreak } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
 import { getConfig } from '../lib/adminConfig'
-import { computeBonuses } from '../lib/bonuses'
+import { computeBonuses, applyAutoBonuses } from '../lib/bonuses'
+import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePreview } from '../lib/stats'
 import { calculateRecoveryScore, calculateStrainScore } from '../lib/recovery'
 import { getContextAwarePrompt } from '../lib/promptBank'
+import { updateProfileStats } from '../lib/profiles'
 import { useData } from '../contexts/DataContext'
+import { useAuth } from '../contexts/AuthContext'
 import { colors, fonts } from '../styles/theme'
 import ExerciseCard from '../components/habits/ExerciseCard'
 import SleepCard from '../components/habits/SleepCard'
@@ -15,6 +18,7 @@ import ActivityModal from '../components/modals/ActivityModal'
 
 export default function CheckIn() {
   const { data, loading, saveDay: save, clearAll } = useData()
+  const { profile } = useAuth()
   const [selectedDate, setSelectedDate] = useState(getToday())
   const [modalOpen, setModalOpen] = useState(null) // 'wellbeing' | 'reflect' | null
   const config = getConfig()
@@ -26,22 +30,37 @@ export default function CheckIn() {
   const selDayIndex = getDayIndex(selectedDate)
   const canEdit = selDayIndex >= 0 && selDayIndex <= dayIndex && selDayIndex < CHALLENGE_DAYS
 
+  // Wraps save with bonus auto-application. Computes bonuses BEFORE the new
+  // day is written (so we don't double-count the save we're about to make)
+  // then applies any available bonuses to cover missing habits on the day.
+  const saveWithBonuses = (date, updatedDay) => {
+    const currentBonuses = computeBonuses(data, allDates, dayIndex)
+    const withBonuses = applyAutoBonuses(updatedDay, currentBonuses)
+    save(date, withBonuses)
+  }
+
   const updateHabit = (habitId, value) => {
-    save(selectedDate, { ...currentDay, [habitId]: value })
+    saveWithBonuses(selectedDate, { ...currentDay, [habitId]: value })
   }
 
   const setNutrition = (val) => {
-    save(selectedDate, { ...currentDay, nutrition: val })
+    saveWithBonuses(selectedDate, { ...currentDay, nutrition: val })
   }
 
   const handleModalSave = (habitId, text) => {
     if (habitId === 'reflect') {
       const reflectObj = { completed: text.length > 0, reflection_text: text }
-      save(selectedDate, { ...currentDay, reflect: reflectObj, reflection: text })
+      saveWithBonuses(selectedDate, { ...currentDay, reflect: reflectObj, reflection: text })
     } else if (habitId === 'wellbeing') {
       const wellbeingObj = { completed: text.length > 0, activity_text: text }
-      save(selectedDate, { ...currentDay, wellbeing: wellbeingObj })
+      saveWithBonuses(selectedDate, { ...currentDay, wellbeing: wellbeingObj })
     }
+  }
+
+  const activateFreeDay = () => {
+    if (!confirm('Activate Free Day? This will count as a perfect 35/35 day.')) return
+    const nextApplied = { ...(currentDay.bonusApplied || {}), freeDay: true }
+    save(selectedDate, { ...currentDay, bonusApplied: nextApplied })
   }
 
   const isHabitDone = (habit) => {
@@ -51,16 +70,33 @@ export default function CheckIn() {
     return false
   }
 
-  const totalScore = Object.entries(data).reduce((sum, [k, v]) => {
-    const idx = getDayIndex(k)
-    if (idx >= 0 && idx < CHALLENGE_DAYS) return sum + scoreDay(v)
-    return sum
-  }, 0)
-
-  const maxPossible = Math.max(1, Math.min(dayIndex + 1, CHALLENGE_DAYS)) * 35
-  const pct = Math.round((totalScore / maxPossible) * 100)
+  const totalScore = calculateTotalScore(data, allDates, dayIndex)
+  const maxPossible = calculateMaxPossible(dayIndex, CHALLENGE_DAYS)
+  const pct = calculateRate(totalScore, maxPossible)
   const streak = calculateStreak(data, allDates, dayIndex)
   const bonuses = computeBonuses(data, allDates, dayIndex)
+
+  // Sync stats to the user's profile (debounced) so the leaderboard view sees fresh data.
+  // Only runs for real (non-dev) profiles since dev users have a fake id.
+  const lastSyncRef = useRef({ totalScore: null, streak: null })
+  useEffect(() => {
+    const isRealProfile = profile?.id && !String(profile.id).startsWith('dev-')
+    if (!isRealProfile || loading) return
+
+    const daysActive = Object.keys(data).filter((d) => {
+      const i = getDayIndex(d)
+      return i >= 0 && i <= dayIndex
+    }).length
+
+    const last = lastSyncRef.current
+    if (last.totalScore === totalScore && last.streak === streak && last.daysActive === daysActive) return
+
+    lastSyncRef.current = { totalScore, streak, daysActive }
+    const timer = setTimeout(() => {
+      updateProfileStats(profile.id, { totalScore, currentStreak: streak, daysActive })
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [profile?.id, totalScore, streak, data, loading, dayIndex])
 
   const BONUS_CONFIG = [
     { key: 'indulgence', label: 'Indulgence', icon: '\u{1F37D}\uFE0F', color: colors.green },
@@ -115,6 +151,11 @@ export default function CheckIn() {
         )
       case 'modal': {
         const done = isHabitDone(habit)
+        const val = currentDay[habit.id]
+        const savedText = habit.id === 'reflect'
+          ? (val?.reflection_text ?? currentDay.reflection ?? '')
+          : (val?.activity_text ?? '')
+        const preview = done && savedText ? truncatePreview(savedText) : null
         return (
           <div
             key={habit.id}
@@ -128,12 +169,16 @@ export default function CheckIn() {
               opacity: canEdit ? 1 : 0.5,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
               <span style={{ fontSize: 22 }}>{habit.icon}</span>
-              <div>
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, color: done ? habit.color : colors.textDim }}>{habit.label}</div>
-                <div style={{ fontSize: 12, color: colors.textFaint }}>
-                  {done ? 'Logged' : habit.desc}
+                <div style={{
+                  fontSize: 12, color: colors.textFaint,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  fontStyle: preview ? 'italic' : 'normal',
+                }}>
+                  {preview || habit.desc}
                 </div>
               </div>
             </div>
@@ -170,19 +215,20 @@ export default function CheckIn() {
       {/* Stats Row */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {[
-          { label: 'Today', value: scoreDay(currentDay), max: '/35', accent: colors.accent },
-          { label: 'Total', value: totalScore, max: `/${maxPossible}`, accent: colors.blue },
-          { label: 'Rate', value: `${pct}%`, max: '', accent: colors.green },
-          { label: 'Streak', value: streak, max: '\u{1F525}', accent: colors.orange },
+          { label: 'Today', value: scoreDay(currentDay), max: '/35', accent: colors.accent, hint: 'Today\u2019s score' },
+          { label: 'Total', value: totalScore, max: `/${maxPossible}`, accent: colors.blue, hint: 'Earned so far' },
+          { label: 'Rate', value: `${pct}%`, max: '', accent: colors.green, hint: 'Of max possible' },
+          { label: 'Streak', value: streak, max: '\u{1F525}', accent: colors.orange, hint: 'Perfect days in a row' },
         ].map((s, i) => (
           <div key={i} style={{
-            flex: 1, background: colors.surface, borderRadius: 12, padding: '14px 8px', textAlign: 'center',
+            flex: 1, background: colors.surface, borderRadius: 12, padding: '12px 6px', textAlign: 'center',
             border: `1px solid ${colors.border}`,
           }}>
             <div style={{ fontSize: 22, fontFamily: fonts.display, fontWeight: 700, color: s.accent }}>
               {s.value}<span style={{ fontSize: 12, color: colors.textGhost, fontWeight: 400 }}>{s.max}</span>
             </div>
-            <div style={{ fontSize: 12, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginTop: 2, fontWeight: 600 }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: colors.textDim, marginTop: 3, lineHeight: 1.2 }}>{s.hint}</div>
           </div>
         ))}
       </div>
@@ -357,6 +403,41 @@ export default function CheckIn() {
           { streak, recoveryScore: calculateRecoveryScore(currentDay.selfReport) }
         ) : null}
       />
+
+      {/* Free Day activation — only when available and selected date is today or past */}
+      {canEdit && bonuses.freeDay.available > 0 && !(currentDay.bonusApplied?.freeDay) && (
+        <div style={{ marginTop: 24, textAlign: 'center' }}>
+          <button
+            onClick={activateFreeDay}
+            style={{
+              background: `linear-gradient(135deg, ${colors.orange}, ${colors.accent})`,
+              color: '#fff', border: 'none', borderRadius: 12,
+              padding: '14px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              fontFamily: fonts.body, boxShadow: '0 4px 12px rgba(232, 99, 74, 0.3)',
+              letterSpacing: 1,
+            }}
+          >
+            {'\u{1F31F}'} Activate Free Day ({bonuses.freeDay.available} available)
+          </button>
+          <p style={{ fontSize: 11, color: colors.textFaint, marginTop: 6 }}>
+            Marks this day as a perfect 35/35
+          </p>
+        </div>
+      )}
+
+      {/* Active Free Day banner */}
+      {currentDay.bonusApplied?.freeDay && (
+        <div style={{
+          marginTop: 24, padding: '12px 16px',
+          background: colors.orange + '22', borderRadius: 12,
+          border: `1px solid ${colors.orange}44`,
+          textAlign: 'center',
+        }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: colors.orange }}>
+            {'\u{1F31F}'} Free Day active — scored 35/35
+          </p>
+        </div>
+      )}
 
       {/* Bonus Progress */}
       <div style={{ marginTop: 24 }}>

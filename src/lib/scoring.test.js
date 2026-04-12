@@ -84,6 +84,49 @@ describe('scoreDay', () => {
     }
     expect(scoreDay(mixed)).toBe(14) // 4 + 5 + 5 + 0
   })
+
+  describe('bonus application', () => {
+    it('counts missed nutrition as 5 when indulgence bonus is applied', () => {
+      expect(scoreDay({ nutrition: 2, bonusApplied: { indulgence: true } })).toBe(5)
+    })
+
+    it('counts missed exercise as completed when rest day bonus is applied', () => {
+      expect(scoreDay({
+        exercise: { completed: false, type: '', duration_minutes: null },
+        bonusApplied: { restDay: true },
+      })).toBe(5)
+    })
+
+    it('counts missed sleep as completed when night owl bonus is applied', () => {
+      expect(scoreDay({
+        sleep: { completed: false, hours: null },
+        bonusApplied: { nightOwl: true },
+      })).toBe(5)
+    })
+
+    it('returns max 35 when free day bonus is applied', () => {
+      expect(scoreDay({
+        nutrition: 0,
+        exercise: { completed: false },
+        sleep: { completed: false },
+        bonusApplied: { freeDay: true },
+      })).toBe(35)
+    })
+
+    it('stacks multiple bonuses on the same day', () => {
+      const day = {
+        nutrition: 0,
+        exercise: { completed: false },
+        mobilize: { completed: true, type: 'Yoga' },
+        sleep: { completed: false, hours: null },
+        hydrate: { completed: true, current_ml: 2000, target_ml: 2000 },
+        wellbeing: { completed: true, activity_text: 'Meditation' },
+        reflect: { completed: true, reflection_text: 'Good' },
+        bonusApplied: { indulgence: true, restDay: true, nightOwl: true },
+      }
+      expect(scoreDay(day)).toBe(35)
+    })
+  })
 })
 
 describe('calculateStreak', () => {

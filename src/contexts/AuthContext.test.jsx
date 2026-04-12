@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, fireEvent } from '@testing-library/react'
 import { AuthProvider, useAuth } from './AuthContext'
 
 // Mock supabase
@@ -16,15 +16,24 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
+// Mock profiles module (never called when session is null)
+vi.mock('../lib/profiles', () => ({
+  isEmailAllowed: vi.fn().mockResolvedValue(true),
+  upsertProfile: vi.fn().mockResolvedValue(null),
+  getProfileById: vi.fn().mockResolvedValue(null),
+}))
+
 function TestConsumer() {
-  const { user, session, loading, signIn, signOut } = useAuth()
+  const { user, session, loading, signIn, signOut, signInAsDev } = useAuth()
   return (
     <div>
       <span data-testid="loading">{String(loading)}</span>
       <span data-testid="user">{user ? user.email : 'none'}</span>
+      <span data-testid="user-name">{user?.user_metadata?.full_name || ''}</span>
       <span data-testid="session">{session ? 'active' : 'none'}</span>
       <button onClick={signIn}>Sign In</button>
       <button onClick={signOut}>Sign Out</button>
+      <button onClick={() => signInAsDev('giles@parnellsystems.com')}>Dev Sign In</button>
     </div>
   )
 }
@@ -32,6 +41,7 @@ function TestConsumer() {
 describe('AuthContext', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    try { localStorage.removeItem('wlc-dev-user') } catch { /* no storage in this env */ }
   })
 
   it('provides loading=true initially then resolves to false', async () => {
@@ -45,7 +55,7 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('loading').textContent).toBe('false')
   })
 
-  it('provides no user when session is null (auth enabled)', async () => {
+  it('provides no user when session is null (not signed in)', async () => {
     await act(async () => {
       render(
         <AuthProvider>
@@ -53,11 +63,10 @@ describe('AuthContext', () => {
         </AuthProvider>
       )
     })
-    // AUTH_ENABLED is true, getSession returns null → user is null
     expect(screen.getByTestId('user').textContent).toBe('none')
   })
 
-  it('exposes signIn and signOut functions', async () => {
+  it('exposes signIn, signOut, and signInAsDev functions', async () => {
     await act(async () => {
       render(
         <AuthProvider>
@@ -67,5 +76,58 @@ describe('AuthContext', () => {
     })
     expect(screen.getByText('Sign In')).toBeDefined()
     expect(screen.getByText('Sign Out')).toBeDefined()
+    expect(screen.getByText('Dev Sign In')).toBeDefined()
+  })
+
+  it('signInAsDev sets a local mock user without calling Supabase', async () => {
+    await act(async () => {
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      )
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByText('Dev Sign In'))
+    })
+    expect(screen.getByTestId('user').textContent).toBe('giles@parnellsystems.com')
+    expect(screen.getByTestId('user-name').textContent).toBe('giles')
+  })
+
+  it('signOut clears the dev user', async () => {
+    await act(async () => {
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      )
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByText('Dev Sign In'))
+    })
+    expect(screen.getByTestId('user').textContent).toBe('giles@parnellsystems.com')
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Sign Out'))
+    })
+    expect(screen.getByTestId('user').textContent).toBe('none')
+  })
+
+  it('calls supabase.signInWithOAuth when signIn is invoked', async () => {
+    const { supabase } = await import('../lib/supabase')
+    await act(async () => {
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      )
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByText('Sign In'))
+    })
+    expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'google',
+      options: expect.any(Object),
+    })
   })
 })

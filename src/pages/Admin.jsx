@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
+import { Navigate } from 'react-router-dom'
 import { getConfig, setConfig, DEFAULT_CONFIG } from '../lib/adminConfig'
 import { generateSampleData } from '../lib/sampleData'
 import { useData } from '../contexts/DataContext'
+import { useAuth } from '../contexts/AuthContext'
 import { getAllDates } from '../lib/dates'
 import { colors, fonts } from '../styles/theme'
+import AdminUsersManager from '../components/admin/AdminUsersManager'
 
 export default function Admin() {
   const { saveDay, clearAll } = useData()
+  const { profile, isAdmin, loading: authLoading } = useAuth()
   const [config, setLocalConfig] = useState(DEFAULT_CONFIG)
   const [newExercise, setNewExercise] = useState('')
   const [newMobilize, setNewMobilize] = useState('')
@@ -15,6 +19,19 @@ export default function Admin() {
   useEffect(() => {
     setLocalConfig(getConfig())
   }, [])
+
+  // Gate the whole page on admin role
+  if (authLoading) {
+    return (
+      <div style={{ textAlign: 'center', padding: 40, color: colors.textDim }}>
+        Loading...
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/" replace />
+  }
 
   const saveAll = (updated) => {
     setLocalConfig(updated)
@@ -102,6 +119,9 @@ export default function Admin() {
           Settings saved
         </div>
       )}
+
+      {/* Users & Whitelist */}
+      <AdminUsersManager currentUserId={profile?.id} />
 
       {/* Exercise Types */}
       <div style={cardStyle}>

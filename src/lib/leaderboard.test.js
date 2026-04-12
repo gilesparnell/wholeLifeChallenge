@@ -1,5 +1,66 @@
-import { describe, it, expect } from 'vitest'
-import { computeLeaderboard } from './leaderboard'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { computeLeaderboard, fetchLeaderboard } from './leaderboard'
+
+const mockFrom = vi.fn()
+vi.mock('./supabase', () => ({
+  supabase: {
+    from: (...args) => mockFrom(...args),
+  },
+}))
+
+const chainable = (resolveWith) => {
+  const chain = {
+    select: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    then: (cb) => Promise.resolve(resolveWith).then(cb),
+  }
+  return chain
+}
+
+describe('fetchLeaderboard', () => {
+  beforeEach(() => {
+    mockFrom.mockReset()
+  })
+
+  it('queries the leaderboard view', async () => {
+    const chain = chainable({ data: [], error: null })
+    mockFrom.mockReturnValue(chain)
+    await fetchLeaderboard()
+    expect(mockFrom).toHaveBeenCalledWith('leaderboard')
+  })
+
+  it('orders by total_score descending', async () => {
+    const chain = chainable({ data: [], error: null })
+    mockFrom.mockReturnValue(chain)
+    await fetchLeaderboard()
+    expect(chain.order).toHaveBeenCalledWith('total_score', { ascending: false })
+  })
+
+  it('returns rows with rank added based on order', async () => {
+    const rows = [
+      { id: 'a', display_name: 'Alice', total_score: 100, current_streak: 3, days_active: 5 },
+      { id: 'b', display_name: 'Bob', total_score: 80, current_streak: 2, days_active: 4 },
+    ]
+    mockFrom.mockReturnValue(chainable({ data: rows, error: null }))
+    const result = await fetchLeaderboard()
+    expect(result).toHaveLength(2)
+    expect(result[0].rank).toBe(1)
+    expect(result[1].rank).toBe(2)
+    expect(result[0].display_name).toBe('Alice')
+  })
+
+  it('returns empty array when query fails', async () => {
+    mockFrom.mockReturnValue(chainable({ data: null, error: { message: 'denied' } }))
+    const result = await fetchLeaderboard()
+    expect(result).toEqual([])
+  })
+
+  it('returns empty array when data is null', async () => {
+    mockFrom.mockReturnValue(chainable({ data: null, error: null }))
+    const result = await fetchLeaderboard()
+    expect(result).toEqual([])
+  })
+})
 
 describe('computeLeaderboard', () => {
   const allDates = ['2026-04-11', '2026-04-12', '2026-04-13']

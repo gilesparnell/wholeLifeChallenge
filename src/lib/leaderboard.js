@@ -1,4 +1,22 @@
 import { scoreDay, calculateStreak } from './scoring'
+import { supabase } from './supabase'
+
+/**
+ * Fetch the public leaderboard view (opted-in users only).
+ * Returns rows with a 1-based `rank` added.
+ */
+export const fetchLeaderboard = async () => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('leaderboard')
+    .select('*')
+    .order('total_score', { ascending: false })
+
+  if (error || !data) return []
+
+  return data.map((entry, i) => ({ ...entry, rank: i + 1 }))
+}
 
 export const computeLeaderboard = (usersData, allDates, dayIndex) => {
   if (!usersData.length) return []

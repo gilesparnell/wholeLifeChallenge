@@ -16,4 +16,5 @@ export const emptyDay = () => ({
   wellbeing: { completed: false, activity_text: '' },
   reflect: { completed: false, reflection_text: '' },
   selfReport: null,
+  bonusApplied: {},
 })

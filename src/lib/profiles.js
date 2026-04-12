@@ -1,0 +1,191 @@
+import { supabase } from './supabase'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const normaliseEmail = (email) => (email || '').trim().toLowerCase()
+
+/**
+ * Check if an email address is on the allowed_emails whitelist.
+ * Returns false on any error or missing input.
+ */
+export const isEmailAllowed = async (email) => {
+  if (!email) return false
+  if (!supabase) return false
+
+  const normalised = normaliseEmail(email)
+  // Use ilike for case-insensitive match against allowed_emails.email
+  const { data, error } = await supabase
+    .from('allowed_emails')
+    .select('email')
+    .ilike('email', normalised)
+    .maybeSingle()
+
+  if (error) return false
+  return !!data
+}
+
+/**
+ * Insert or update a profile row on sign-in.
+ * Always updates last_login_at.
+ */
+export const upsertProfile = async ({ id, email, displayName, avatarUrl }) => {
+  if (!supabase || !id || !email) return null
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .upsert(
+      {
+        id,
+        email: normaliseEmail(email),
+        display_name: displayName || email.split('@')[0],
+        avatar_url: avatarUrl ?? null,
+        last_login_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' }
+    )
+    .select()
+    .single()
+
+  if (error) return null
+  return data
+}
+
+export const getProfileByEmail = async (email) => {
+  if (!supabase || !email) return null
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('email', normaliseEmail(email))
+    .maybeSingle()
+
+  if (error) return null
+  return data
+}
+
+export const getProfileById = async (id) => {
+  if (!supabase || !id) return null
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) return null
+  return data
+}
+
+export const listProfiles = async () => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: true })
+
+  if (error || !data) return []
+  return data
+}
+
+export const listAllowedEmails = async () => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('allowed_emails')
+    .select('*')
+    .order('created_at', { ascending: true })
+
+  if (error || !data) return []
+  return data
+}
+
+export const addAllowedEmail = async (email, addedBy) => {
+  if (!supabase) return null
+  const normalised = normaliseEmail(email)
+  if (!EMAIL_RE.test(normalised)) return null
+
+  const { data, error } = await supabase
+    .from('allowed_emails')
+    .insert({ email: normalised, added_by: addedBy ?? null })
+    .select()
+    .single()
+
+  if (error) return null
+  return data
+}
+
+export const removeAllowedEmail = async (id) => {
+  if (!supabase || !id) return null
+
+  const { error } = await supabase
+    .from('allowed_emails')
+    .delete()
+    .eq('id', id)
+
+  return !error
+}
+
+export const updateProfile = async (id, patch) => {
+  if (!supabase || !id || !patch) return null
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) return null
+  return data
+}
+
+export const deleteProfile = async (id) => {
+  if (!supabase || !id) return null
+
+  const { error } = await supabase
+    .from('profiles')
+    .delete()
+    .eq('id', id)
+
+  return !error
+}
+
+/**
+ * Update a user's denormalised stats on their profile row.
+ * These drive the public leaderboard view.
+ */
+export const updateProfileStats = async (id, { totalScore, currentStreak, daysActive }) => {
+  if (!supabase || !id) return null
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      total_score: totalScore,
+      current_streak: currentStreak,
+      days_active: daysActive,
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) return null
+  return data
+}
+
+/**
+ * Toggle a user's opt-in to the public leaderboard.
+ */
+export const setLeaderboardVisibility = async (id, visible) => {
+  if (!supabase || !id) return null
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ leaderboard_visible: !!visible })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) return null
+  return data
+}

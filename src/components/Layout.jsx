@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { colors, fonts } from '../styles/theme'
@@ -10,11 +10,10 @@ const NAV_ITEMS = [
   { to: '/journal', label: 'Journal' },
   { to: '/leaderboard', label: 'Board' },
   { to: '/info', label: 'Info' },
-  { to: '/admin', label: 'Admin' },
 ]
 
 export default function Layout({ children }) {
-  const { user, signOut } = useAuth()
+  const { user, signOut, isAdmin } = useAuth()
   const { resolvedTheme, toggleTheme } = useTheme()
   const location = useLocation()
   const today = getToday()
@@ -58,6 +57,20 @@ export default function Layout({ children }) {
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 28, animation: 'fadeUp 0.5s ease' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                aria-label="Admin"
+                title="Admin"
+                style={{
+                  background: 'none', border: 'none', color: colors.purple,
+                  fontSize: 18, cursor: 'pointer', padding: '2px 4px',
+                  textDecoration: 'none', lineHeight: 1,
+                }}
+              >
+                {'\u{1F6E1}\uFE0F'}
+              </Link>
+            )}
             <button
               onClick={toggleTheme}
               aria-label="Toggle theme"

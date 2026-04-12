@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeBonuses } from './bonuses'
+import { computeBonuses, applyAutoBonuses } from './bonuses'
 
 // Helper to generate a perfect day
 const perfectDay = (overrides = {}) => ({
@@ -39,7 +39,15 @@ describe('computeBonuses', () => {
       expect(result).toHaveProperty('freeDay')
     })
 
-    it('each bonus has earned, streak, and threshold fields', () => {
+    it('each bonus has earned, used, available, streak, and threshold fields', () => {
+      const result = computeBonuses({}, [], 0)
+      for (const key of ['indulgence', 'restDay', 'nightOwl', 'freeDay']) {
+        expect(result[key]).toHaveProperty('used')
+        expect(result[key]).toHaveProperty('available')
+      }
+    })
+
+    it('legacy earned-only assertion retained for backwards compatibility', () => {
       const result = computeBonuses({}, [], 0)
       for (const key of ['indulgence', 'restDay', 'nightOwl', 'freeDay']) {
         expect(result[key]).toHaveProperty('earned')
@@ -225,5 +233,124 @@ describe('computeBonuses', () => {
       const result = computeBonuses(data, dates, 9)
       expect(result.restDay.earned).toBe(1) // 10 consecutive exercise days
     })
+  })
+
+  describe('bonus usage tracking', () => {
+    it('counts days with bonusApplied as used', () => {
+      const dates = makeDates(11)
+      const data = fillData(dates, () => perfectDay())
+      // Day 10 (index 10) has rest day bonus applied
+      data[dates[10]] = { ...perfectDay({ exercise: { completed: false } }), bonusApplied: { restDay: true } }
+      const result = computeBonuses(data, dates, 10)
+      expect(result.restDay.earned).toBe(1)
+      expect(result.restDay.used).toBe(1)
+      expect(result.restDay.available).toBe(0)
+    })
+
+    it('available = earned - used', () => {
+      // Earn 2 indulgence bonuses (8 consecutive 5-nutrition days), use 1
+      const dates = makeDates(9)
+      const data = fillData(dates, () => perfectDay())
+      // Day 8 (index 8): low nutrition, but indulgence applied
+      data[dates[8]] = { ...perfectDay({ nutrition: 2 }), bonusApplied: { indulgence: true } }
+      const result = computeBonuses(data, dates, 8)
+      expect(result.indulgence.earned).toBe(2)
+      expect(result.indulgence.used).toBe(1)
+      expect(result.indulgence.available).toBe(1)
+    })
+
+    it('used count is 0 when no bonuses have been applied', () => {
+      const dates = makeDates(4)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 3)
+      expect(result.indulgence.used).toBe(0)
+      expect(result.indulgence.available).toBe(1)
+    })
+  })
+})
+
+describe('applyAutoBonuses', () => {
+  const bonuses = (overrides = {}) => ({
+    indulgence: { earned: 1, used: 0, available: 1, streak: 0, threshold: 4 },
+    restDay: { earned: 1, used: 0, available: 1, streak: 0, threshold: 10 },
+    nightOwl: { earned: 1, used: 0, available: 1, streak: 0, threshold: 6 },
+    freeDay: { earned: 0, used: 0, available: 0, streak: 0, threshold: 21 },
+    ...overrides,
+  })
+
+  it('returns the day unchanged when no habits are missed', () => {
+    const day = {
+      nutrition: 5,
+      exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+      sleep: { completed: true, hours: 8 },
+    }
+    const result = applyAutoBonuses(day, bonuses())
+    expect(result.bonusApplied || {}).toEqual({})
+  })
+
+  it('auto-applies indulgence bonus when nutrition is missed and bonus is available', () => {
+    const day = { nutrition: 2 }
+    const result = applyAutoBonuses(day, bonuses())
+    expect(result.bonusApplied.indulgence).toBe(true)
+  })
+
+  it('auto-applies rest day bonus when exercise is missed and bonus is available', () => {
+    const day = { exercise: { completed: false, type: '', duration_minutes: null } }
+    const result = applyAutoBonuses(day, bonuses())
+    expect(result.bonusApplied.restDay).toBe(true)
+  })
+
+  it('auto-applies night owl bonus when sleep is missed and bonus is available', () => {
+    const day = { sleep: { completed: false, hours: null } }
+    const result = applyAutoBonuses(day, bonuses())
+    expect(result.bonusApplied.nightOwl).toBe(true)
+  })
+
+  it('does not auto-apply when bonus is unavailable', () => {
+    const day = { nutrition: 2 }
+    const result = applyAutoBonuses(day, bonuses({
+      indulgence: { earned: 1, used: 1, available: 0, streak: 0, threshold: 4 },
+    }))
+    expect(result.bonusApplied?.indulgence).toBeFalsy()
+  })
+
+  it('does not auto-apply when habit is completed', () => {
+    const day = { exercise: { completed: true, type: 'Running', duration_minutes: 30 } }
+    const result = applyAutoBonuses(day, bonuses())
+    expect(result.bonusApplied?.restDay).toBeFalsy()
+  })
+
+  it('does not override already-applied bonuses on the day', () => {
+    const day = {
+      nutrition: 2,
+      bonusApplied: { indulgence: true },
+    }
+    const result = applyAutoBonuses(day, bonuses())
+    // Still applied (not overridden), count not duplicated
+    expect(result.bonusApplied.indulgence).toBe(true)
+  })
+
+  it('preserves other day fields', () => {
+    const day = {
+      nutrition: 2,
+      exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+      wellbeing: { completed: true, activity_text: 'Meditation' },
+    }
+    const result = applyAutoBonuses(day, bonuses())
+    expect(result.nutrition).toBe(2)
+    expect(result.exercise).toEqual({ completed: true, type: 'Running', duration_minutes: 30 })
+    expect(result.wellbeing).toEqual({ completed: true, activity_text: 'Meditation' })
+  })
+
+  it('applies multiple bonuses in a single call', () => {
+    const day = {
+      nutrition: 2,
+      exercise: { completed: false, type: '', duration_minutes: null },
+      sleep: { completed: false, hours: null },
+    }
+    const result = applyAutoBonuses(day, bonuses())
+    expect(result.bonusApplied.indulgence).toBe(true)
+    expect(result.bonusApplied.restDay).toBe(true)
+    expect(result.bonusApplied.nightOwl).toBe(true)
   })
 })
