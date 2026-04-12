@@ -28,6 +28,21 @@ export const initSentry = () => {
     replaysOnErrorSampleRate: 1.0,
     // Strip any query strings from URLs that might contain PII
     sendDefaultPii: false,
+    // Filter out known-benign errors so they don't chew through the quota
+    ignoreErrors: [
+      // Supabase-js navigator.locks mutex "theft" during concurrent token
+      // refreshes across tabs. Internal to the SDK, cosmetic, harmless.
+      // See: https://github.com/supabase/supabase-js/issues/1400
+      /Lock .*auth-token.* was released because another request stole it/,
+      // ResizeObserver noise that's expected and handled by the browser
+      'ResizeObserver loop limit exceeded',
+      'ResizeObserver loop completed with undelivered notifications',
+      // Network errors the user can't do anything about and we don't
+      // want to page on — they're usually the user's wifi, not our bug
+      'Network request failed',
+      'Failed to fetch',
+      'Load failed',
+    ],
   })
 
   initialised = true
