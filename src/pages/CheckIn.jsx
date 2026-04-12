@@ -385,7 +385,7 @@ export default function CheckIn() {
               ) : null
             })()}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div className="wlc-selfreport-grid">
             {[
               { key: 'sleepQuality', label: 'Sleep Quality', icon: '\u{1F634}' },
               { key: 'energyLevel', label: 'Energy', icon: '\u26A1' },
@@ -396,10 +396,12 @@ export default function CheckIn() {
               const sr = currentDay.selfReport || {}
               const val = sr[key] ?? 0
               return (
-                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 14 }}>{icon}</span>
-                  <span style={{ fontSize: 12, color: colors.textDim, minWidth: 55 }}>{label}</span>
-                  <div style={{ display: 'flex', gap: 3 }}>
+                <div key={key} className="wlc-selfreport-row">
+                  <span className="wlc-selfreport-label">
+                    <span style={{ fontSize: 14 }}>{icon}</span>
+                    <span>{label}</span>
+                  </span>
+                  <div className="wlc-selfreport-scale">
                     {[1, 2, 3, 4, 5].map((v) => (
                       <button
                         key={v}
@@ -408,8 +410,8 @@ export default function CheckIn() {
                           save(selectedDate, { ...currentDay, selfReport: updated })
                         }}
                         style={{
-                          width: 26, height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
-                          fontSize: 11, fontWeight: 700, fontFamily: fonts.body,
+                          width: 30, height: 30, borderRadius: 6, border: 'none', cursor: 'pointer',
+                          fontSize: 12, fontWeight: 700, fontFamily: fonts.body,
                           background: val === v ? colors.accent : colors.surfaceHover,
                           color: val === v ? '#fff' : colors.textFaint,
                           transition: 'all 0.15s ease',

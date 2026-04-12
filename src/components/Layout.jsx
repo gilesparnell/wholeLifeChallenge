@@ -36,6 +36,10 @@ export default function Layout({ children }) {
         .nav-btn:hover { background: var(--color-surface-hover) !important; }
         textarea:focus, input:focus, select:focus { outline: none; border-color: var(--color-accent) !important; }
         .wlc-container { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+        .wlc-selfreport-grid { display: flex; flex-direction: column; gap: 10px; }
+        .wlc-selfreport-row { display: flex; align-items: center; gap: 8px; }
+        .wlc-selfreport-label { font-size: 12px; color: var(--color-text-dim); flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+        .wlc-selfreport-scale { display: flex; gap: 4px; flex-shrink: 0; }
         @media (min-width: 768px) {
           .wlc-container { max-width: 720px; padding: 32px 24px 48px; }
           .wlc-stats-row { gap: 12px !important; }
@@ -43,6 +47,7 @@ export default function Layout({ children }) {
           .wlc-habits-grid > * { margin-bottom: 0 !important; }
           .wlc-charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
           .wlc-charts-grid > * { margin-bottom: 0 !important; }
+          .wlc-selfreport-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         }
         @media (min-width: 1024px) {
           .wlc-container { max-width: 960px; }
