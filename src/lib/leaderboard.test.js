@@ -53,10 +53,9 @@ describe('fetchLeaderboard', () => {
     expect(result[0].display_name).toBe('Alice')
   })
 
-  it('returns empty array when query fails', async () => {
+  it('throws when query returns an error so caller can show retry UI', async () => {
     mockFrom.mockReturnValue(chainable({ data: null, error: { message: 'denied' } }))
-    const result = await fetchLeaderboard()
-    expect(result).toEqual([])
+    await expect(fetchLeaderboard()).rejects.toThrow(/denied/)
   })
 
   it('returns empty array when data is null', async () => {

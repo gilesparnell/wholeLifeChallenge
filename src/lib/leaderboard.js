@@ -28,18 +28,36 @@ export const subscribeLeaderboard = (onChange) => {
 /**
  * Fetch the public leaderboard view (opted-in users only).
  * Returns rows with a 1-based `rank` added.
+ * Throws a readable error on failure so callers can surface it.
  */
 export const fetchLeaderboard = async () => {
   if (!supabase) return []
 
-  const { data, error } = await supabase
-    .from('leaderboard')
-    .select('*')
-    .order('total_score', { ascending: false })
+  // Safety net: Supabase request can hang indefinitely if the client is
+  // in a weird state. Race it against a 5s timeout.
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('fetchLeaderboard timed out')), 5000)
+  )
 
-  if (error || !data) return []
+  try {
+    const query = supabase
+      .from('leaderboard')
+      .select('*')
+      .order('total_score', { ascending: false })
 
-  return data.map((entry, i) => ({ ...entry, rank: i + 1 }))
+    const { data, error } = await Promise.race([query, timeout])
+
+    if (error) {
+      console.error('[leaderboard] query error:', error)
+      throw new Error(error.message || 'Leaderboard query failed')
+    }
+    if (!data) return []
+
+    return data.map((entry, i) => ({ ...entry, rank: i + 1 }))
+  } catch (e) {
+    console.error('[leaderboard] fetch exception:', e)
+    throw e
+  }
 }
 
 export const computeLeaderboard = (usersData, allDates, dayIndex) => {

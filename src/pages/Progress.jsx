@@ -32,8 +32,14 @@ export default function Progress() {
   useEffect(() => {
     let alive = true
     const refresh = async () => {
-      const result = await fetchLeaderboard()
-      if (alive) setLeaderboard(result)
+      try {
+        const result = await fetchLeaderboard()
+        if (alive) setLeaderboard(result)
+      } catch (e) {
+        // Silently fail for the comparison overlay — chart still works without others
+        console.warn('[progress] leaderboard fetch failed:', e?.message)
+        if (alive) setLeaderboard([])
+      }
     }
     refresh()
     const unsubscribe = subscribeLeaderboard(refresh)

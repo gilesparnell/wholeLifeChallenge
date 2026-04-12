@@ -8,13 +8,21 @@ export default function Leaderboard() {
   const { profile, user } = useAuth()
   const [board, setBoard] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [savingVisibility, setSavingVisibility] = useState(false)
   const [localVisible, setLocalVisible] = useState(false)
 
   const refresh = useCallback(async () => {
-    const result = await fetchLeaderboard()
-    setBoard(result)
-    setLoading(false)
+    try {
+      setError(null)
+      const result = await fetchLeaderboard()
+      setBoard(result)
+    } catch (e) {
+      console.error('[leaderboard] fetch failed:', e)
+      setError(e?.message || 'Failed to load leaderboard')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -51,8 +59,31 @@ export default function Leaderboard() {
         Leaderboard
       </h2>
       <p style={{ fontSize: 12, color: colors.textDim, textAlign: 'center', marginBottom: 16 }}>
-        {board.length === 0 ? 'No one has opted in yet' : `${board.length} challenger${board.length === 1 ? '' : 's'}`}
+        {error
+          ? 'Couldn\u2019t load leaderboard'
+          : board.length === 0 ? 'No one has opted in yet' : `${board.length} challenger${board.length === 1 ? '' : 's'}`}
       </p>
+
+      {error && (
+        <div style={{
+          background: colors.nutritionBad, color: colors.nutritionBadText,
+          padding: '10px 14px', borderRadius: 10, fontSize: 12, marginBottom: 16,
+          textAlign: 'center',
+        }}>
+          {error}
+          <button
+            onClick={refresh}
+            style={{
+              marginLeft: 8, padding: '4px 10px', borderRadius: 6,
+              border: `1px solid ${colors.nutritionBadText}66`,
+              background: 'transparent', color: colors.nutritionBadText,
+              fontSize: 11, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Opt-in toggle */}
       {profile && (
