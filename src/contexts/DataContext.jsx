@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useAuth } from './AuthContext'
-import { fetchAllEntries, upsertEntry } from '../lib/supabaseStore'
+import { fetchAllEntries, upsertEntry, clearAllEntries } from '../lib/supabaseStore'
+import { updateProfileStats } from '../lib/profiles'
 import { loadAll as localLoadAll, saveDay as localSaveDay, clearAll as localClearAll } from '../lib/dataStore'
 
 const DataContext = createContext(null)
@@ -43,10 +44,24 @@ export function DataProvider({ children }) {
     }
   }, [isLocal, user])
 
-  const clearAll = useCallback(() => {
+  const clearAll = useCallback(async () => {
+    // Always wipe local cache (harmless if empty)
     localClearAll()
     setData({})
-  }, [])
+
+    // For signed-in Supabase users, also delete rows from daily_entries
+    // and reset the denormalised profile stats (otherwise the leaderboard
+    // would still show stale totals).
+    if (!isLocal && user?.id) {
+      await clearAllEntries(user.id)
+      await updateProfileStats(user.id, {
+        totalScore: 0,
+        currentStreak: 0,
+        daysActive: 0,
+        cumulativeByDay: [],
+      })
+    }
+  }, [isLocal, user])
 
   return (
     <DataContext.Provider value={{ data, loading, saveDay, clearAll }}>

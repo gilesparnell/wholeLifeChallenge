@@ -293,53 +293,64 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Sample Data */}
-      <div style={cardStyle}>
-        <label style={labelStyle}>Sample Data</label>
-        <p style={{ fontSize: 12, color: colors.textMuted, marginBottom: 10 }}>
-          Load 30 days of realistic sample data for testing charts and reports.
-        </p>
+      {/* Sample Data — DEV ONLY. Hidden in production because it's a
+          destructive footgun for real users. */}
+      {import.meta.env.DEV && (
+        <div style={cardStyle}>
+          <label style={labelStyle}>Sample Data (Dev only)</label>
+          <p style={{ fontSize: 12, color: colors.textMuted, marginBottom: 10 }}>
+            Load 30 days of sample data for testing charts and reports. Overwrites your real check-in data.
+          </p>
+          <button
+            onClick={async () => {
+              if (confirm('Load 30 days of sample data? This will OVERWRITE any existing check-in data. Dev testing only.')) {
+                const sample = generateSampleData(30)
+                const allDates = getAllDates()
+                for (const date of allDates) {
+                  if (sample[date]) {
+                    await saveDay(date, sample[date])
+                  }
+                }
+                setSaved(true)
+                setTimeout(() => setSaved(false), 2000)
+              }
+            }}
+            style={btnStyle}
+          >
+            Load Sample Data
+          </button>
+        </div>
+      )}
+
+      {/* Reset */}
+      <div style={{ textAlign: 'center', marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <button
+          onClick={resetToDefaults}
+          title="Reset exercise types, hydration target, and challenge dates to defaults. Does not touch your check-in data."
+          style={{
+            background: 'none', border: `1px solid ${colors.borderSubtle}`, borderRadius: 8,
+            padding: '8px 16px', color: colors.textGhost, fontSize: 12, cursor: 'pointer',
+            fontFamily: fonts.body,
+          }}
+        >
+          Reset Challenge Rules
+        </button>
         <button
           onClick={async () => {
-            if (confirm('Load 30 days of sample data? This will replace any existing check-in data.')) {
-              const sample = generateSampleData(30)
-              const allDates = getAllDates()
-              for (const date of allDates) {
-                if (sample[date]) {
-                  await saveDay(date, sample[date])
-                }
-              }
+            if (confirm('Delete ALL of your check-in data? This cannot be undone.')) {
+              await clearAll()
               setSaved(true)
               setTimeout(() => setSaved(false), 2000)
             }
           }}
-          style={btnStyle}
+          title="Delete every daily entry you\u2019ve made. Your profile stays."
+          style={{
+            background: 'none', border: `1px solid ${colors.nutritionBadText}66`, borderRadius: 8,
+            padding: '8px 16px', color: colors.nutritionBadText, fontSize: 12, cursor: 'pointer',
+            fontFamily: fonts.body,
+          }}
         >
-          Load Sample Data
-        </button>
-      </div>
-
-      {/* Reset */}
-      <div style={{ textAlign: 'center', marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center' }}>
-        <button onClick={resetToDefaults} style={{
-          background: 'none', border: `1px solid ${colors.borderSubtle}`, borderRadius: 8,
-          padding: '8px 16px', color: colors.textGhost, fontSize: 12, cursor: 'pointer',
-          fontFamily: fonts.body,
-        }}>
-          Reset Settings
-        </button>
-        <button onClick={() => {
-          if (confirm('Clear all check-in data? This cannot be undone.')) {
-            clearAll()
-            setSaved(true)
-            setTimeout(() => setSaved(false), 2000)
-          }
-        }} style={{
-          background: 'none', border: `1px solid ${colors.borderSubtle}`, borderRadius: 8,
-          padding: '8px 16px', color: colors.textGhost, fontSize: 12, cursor: 'pointer',
-          fontFamily: fonts.body,
-        }}>
-          Clear All Data
+          Delete All My Check-In Data
         </button>
       </div>
     </div>

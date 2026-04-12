@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { rowToEntry, entryToRow, fetchAllEntries, upsertEntry } from './supabaseStore'
+import { rowToEntry, entryToRow, fetchAllEntries, upsertEntry, clearAllEntries } from './supabaseStore'
 
 // Mock supabase
 vi.mock('./supabase', () => ({
@@ -138,6 +138,41 @@ describe('supabaseStore', () => {
 
       const result = await upsertEntry('user-123', '2026-04-11', { nutrition: 5 })
       expect(result).toEqual({ success: false, error: 'RLS denied' })
+    })
+  })
+
+  // --- clearAllEntries ---
+  describe('clearAllEntries', () => {
+    it('deletes all daily_entries for the given user_id', async () => {
+      const eqMock = vi.fn().mockResolvedValue({ data: null, error: null })
+      const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+      supabase.from.mockReturnValue({ delete: deleteMock })
+
+      const result = await clearAllEntries('user-123')
+
+      expect(supabase.from).toHaveBeenCalledWith('daily_entries')
+      expect(deleteMock).toHaveBeenCalled()
+      expect(eqMock).toHaveBeenCalledWith('user_id', 'user-123')
+      expect(result).toEqual({ success: true })
+    })
+
+    it('returns error when delete fails', async () => {
+      const eqMock = vi.fn().mockResolvedValue({ data: null, error: { message: 'RLS denied' } })
+      const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+      supabase.from.mockReturnValue({ delete: deleteMock })
+
+      const result = await clearAllEntries('user-123')
+      expect(result).toEqual({ success: false, error: 'RLS denied' })
+    })
+
+    it('returns error when no user_id provided', async () => {
+      const result = await clearAllEntries(null)
+      expect(result.success).toBe(false)
+    })
+
+    it('does not call supabase when user_id is empty', async () => {
+      await clearAllEntries('')
+      expect(supabase.from).not.toHaveBeenCalled()
     })
   })
 })

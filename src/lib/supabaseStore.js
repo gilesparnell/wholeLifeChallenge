@@ -68,3 +68,23 @@ export async function upsertEntry(userId, date, dayData) {
   }
   return { success: true }
 }
+
+/**
+ * Delete all daily_entries for a given user. Used by the "Clear All Data"
+ * button in the admin page.
+ */
+export async function clearAllEntries(userId) {
+  if (!userId) {
+    return { success: false, error: 'Missing user_id' }
+  }
+
+  const { error } = await supabase
+    .from('daily_entries')
+    .delete()
+    .eq('user_id', userId)
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+  return { success: true }
+}
