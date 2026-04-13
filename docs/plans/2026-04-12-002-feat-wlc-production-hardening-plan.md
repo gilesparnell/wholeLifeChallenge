@@ -8,6 +8,30 @@ last_updated: 2026-04-13
 
 # feat: WLC production hardening
 
+## Tier A — in review (2026-04-13 afternoon)
+
+After the overnight session was paused for rethink, the salvageable work was split into 4 small reviewable PRs against `master`. Each is a self-contained slice with passing tests and a focused diff.
+
+| PR | Branch | Item(s) | Tests |
+|----|---|---|---|
+| [#8](https://github.com/gilesparnell/wholeLifeChallenge/pull/8)  | `chore/ci-and-lint-cleanup` | #9 CI workflow + lint cleanup | 366/366 |
+| [#9](https://github.com/gilesparnell/wholeLifeChallenge/pull/9)  | `a11y/wcag-contrast`        | #7 + #8 WCAG AA contrast + Lighthouse fixes | 366/366 |
+| [#10](https://github.com/gilesparnell/wholeLifeChallenge/pull/10) | `feat/404-not-found-page`   | #20 404 NotFound page | 369/369 |
+| [#11](https://github.com/gilesparnell/wholeLifeChallenge/pull/11) | `feat/health-endpoint`      | #21 /health endpoint  | 369/369 |
+
+**Merge order:** #8 first (so subsequent PRs get CI). #10 and #11 conflict on `src/App.jsx` (both add a `<Route>`) — whichever lands first, the other rebases.
+
+The original `feat/phase2-3-overnight` branch is now superseded and can be deleted once all 4 PRs are merged.
+
+### Tier B — your-action items (parallel to Tier A review)
+
+These don't need a Claude session and can be done while the PRs are reviewed:
+- **#11 branch protection on master** — GitHub Settings → Branches → require PR + CI checks (do this *after* PR #8 lands so the check name exists)
+- **#10 PostHog signup** — create account, paste API key back here for wiring
+- **#27 Supabase quota alarms** — Supabase dashboard → Project Settings → Billing → Usage Alerts
+
+---
+
 ## Overview
 
 The Whole Life Challenge tracker is feature-complete (Phases 1–4 shipped) but operationally fragile. This plan systematically hardens the app for production use by external users — error tracking, backups, observability, accessibility, security, and resilience. 27 items grouped into three priority tiers, executed in order.
@@ -53,27 +77,27 @@ All 6 P0 items merged to master via PR #2 and PR #3. Production deployed automat
 | 4 | **P0** | RLS security audit | S | ✅ DONE (2026-04-12) |
 | 5 | **P0** | Updated README | S | ✅ DONE (2026-04-12) |
 | 6 | **P0** | User-deletion cascade test | S | ✅ DONE (2026-04-12) |
-| 7 | **P1** | Lighthouse audit on production | M | 📋 |
-| 8 | **P1** | WCAG AA contrast verification | S | 📋 |
-| 9 | **P1** | CI on PRs (GitHub Actions) | S | 📋 **NEXT** |
-| 10 | **P1** | Analytics tool (PostHog/Plausible) | S | 📋 |
-| 11 | **P1** | Branch protection on main | XS | 📋 |
+| 7 | **P1** | Lighthouse audit on production | M | 🔵 PR [#9](https://github.com/gilesparnell/wholeLifeChallenge/pull/9) (in review) |
+| 8 | **P1** | WCAG AA contrast verification | S | 🔵 PR [#9](https://github.com/gilesparnell/wholeLifeChallenge/pull/9) (in review) |
+| 9 | **P1** | CI on PRs (GitHub Actions) | S | 🔵 PR [#8](https://github.com/gilesparnell/wholeLifeChallenge/pull/8) (in review) |
+| 10 | **P1** | Analytics tool (PostHog/Plausible) | S | 📋 (needs PostHog signup) |
+| 11 | **P1** | Branch protection on main | XS | 📋 (your action — after #8 merges) |
 | 12 | **P1** | Vercel preview deployments | XS | ✅ DONE (2026-04-12) |
-| 13 | **P2** | PWA + offline support | L |
-| 14 | **P2** | Zod runtime validation | M |
-| 15 | **P2** | Bundle audit (Recharts replacement?) | M |
-| 16 | **P2** | TypeScript progressive migration (lib/) | L |
-| 17 | **P2** | CHECK constraints on daily_entries | S |
-| 18 | **P2** | Auth expiry / TOKEN_REFRESHED handling | S |
-| 19 | **P2** | Network retry queue + saving indicator | M |
-| 20 | **P2** | 404 NotFound page | XS |
-| 21 | **P2** | /health endpoint | S |
-| 22 | **P2** | Project docs site fleshed out | M |
-| 23 | **P2** | Operational runbook | S |
-| 24 | **P2** | GDPR data export button | S |
-| 25 | **P2** | Privacy policy page | S |
-| 26 | **P2** | Cookie / storage notice | XS |
-| 27 | **P2** | Supabase quota alarms | XS |
+| 13 | **P2** | PWA + offline support | L | 📋 |
+| 14 | **P2** | Zod runtime validation | M | 📋 |
+| 15 | **P2** | Bundle audit (Recharts replacement?) | M | 📋 |
+| 16 | **P2** | TypeScript progressive migration (lib/) | L | 📋 |
+| 17 | **P2** | CHECK constraints on daily_entries | S | 📋 |
+| 18 | **P2** | Auth expiry / TOKEN_REFRESHED handling | S | 📋 |
+| 19 | **P2** | Network retry queue + saving indicator | M | 📋 |
+| 20 | **P2** | 404 NotFound page | XS | 🔵 PR [#10](https://github.com/gilesparnell/wholeLifeChallenge/pull/10) (in review) |
+| 21 | **P2** | /health endpoint | S | 🔵 PR [#11](https://github.com/gilesparnell/wholeLifeChallenge/pull/11) (in review) |
+| 22 | **P2** | Project docs site fleshed out | M | 📋 |
+| 23 | **P2** | Operational runbook | S | 📋 |
+| 24 | **P2** | GDPR data export button | S | 📋 |
+| 25 | **P2** | Privacy policy page | S | 📋 |
+| 26 | **P2** | Cookie / storage notice | XS | 📋 |
+| 27 | **P2** | Supabase quota alarms | XS | 📋 (your action) |
 
 Effort: XS = <30 min, S = 1–2 h, M = half day, L = 1+ day
 
