@@ -14,6 +14,15 @@ Bump in `package.json` and add a new entry below **before merging the PR**. The 
 
 ---
 
+## [0.10.1] — 2026-04-13
+
+### Fixed
+- Service worker update detection: `public/sw.js` was previously byte-identical between deploys, so the browser never fired `updatefound` and the "New version available" toast never showed for anyone. Moved to `src/sw.template.js` with a `__WLC_BUILD_ID__` placeholder that's substituted at build time with the git SHA via a new Vite plugin (`wlcServiceWorkerPlugin` in `vite.config.js`). Each deploy now produces a genuinely different `sw.js`, so the browser detects the update and the toast flow works end-to-end.
+- `CACHE_NAME` now includes the build SHA (`wlc-cache-<sha>`) so old caches from previous builds are purged automatically in the `activate` handler.
+- Background fetch in `staleWhileRevalidate` now uses `event.waitUntil` to keep the service worker alive until the cache update completes — previously it was fire-and-forget and could be aborted before landing.
+
+---
+
 ## [0.10.0] — 2026-04-13
 
 ### Added
