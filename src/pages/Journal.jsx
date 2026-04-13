@@ -2,6 +2,7 @@ import { scoreDay } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
 import { useData } from '../contexts/DataContext'
 import { colors, fonts } from '../styles/theme'
+import Help from '../components/Help'
 
 export default function Journal() {
   const { data, loading } = useData()
@@ -29,8 +30,30 @@ export default function Journal() {
 
   return (
     <div style={{ animation: 'fadeUp 0.4s ease' }}>
-      <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, marginBottom: 20, textAlign: 'center' }}>
+      <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, marginBottom: 20, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
         Reflections
+        <Help title="Why reflect?">
+          <p style={{ marginBottom: 10 }}>
+            The Reflect habit is worth 5 points a day, but the real value is longer-term.
+            Writing a sentence or two every evening pulls your day out of autopilot and
+            into focus &mdash; and gives you something to read back when a week has
+            blurred together.
+          </p>
+          <p style={{ marginBottom: 10 }}>
+            <strong>What to write about:</strong>
+          </p>
+          <ul style={{ marginBottom: 10, paddingLeft: 20, lineHeight: 1.6 }}>
+            <li>What went well today? One specific thing.</li>
+            <li>What tripped you up? Was it avoidable?</li>
+            <li>Energy, mood, sleep &mdash; how did your body feel?</li>
+            <li>One thing you&rsquo;re grateful for.</li>
+            <li>One thing you want to do differently tomorrow.</li>
+          </ul>
+          <p>
+            Don&rsquo;t overthink it. Two sentences beats none. The habit is showing up,
+            not writing an essay.
+          </p>
+        </Help>
       </h2>
       {visibleDates.reverse().map((d) => {
         const entry = data[d]

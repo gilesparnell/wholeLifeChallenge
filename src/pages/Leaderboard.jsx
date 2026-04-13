@@ -3,6 +3,7 @@ import { fetchLeaderboard, subscribeLeaderboard } from '../lib/leaderboard'
 import { setLeaderboardVisibility } from '../lib/profiles'
 import { useAuth } from '../contexts/AuthContext'
 import { colors, fonts } from '../styles/theme'
+import Help from '../components/Help'
 
 export default function Leaderboard() {
   const { profile, user } = useAuth()
@@ -55,8 +56,40 @@ export default function Leaderboard() {
 
   return (
     <div style={{ animation: 'fadeUp 0.4s ease' }}>
-      <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, marginBottom: 8, textAlign: 'center' }}>
+      <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, marginBottom: 8, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
         Leaderboard
+        <Help title="Leaderboard">
+          <p style={{ marginBottom: 10 }}>
+            A friendly ranking of challengers who&rsquo;ve opted in to sharing their score.
+            Useful for light accountability and a bit of competitive nudge &mdash; not
+            for public shaming.
+          </p>
+          <p style={{ marginBottom: 10 }}>
+            <strong>Who can see what:</strong>
+          </p>
+          <ul style={{ marginBottom: 10, paddingLeft: 20, lineHeight: 1.6 }}>
+            <li>
+              <strong>You&rsquo;re only listed if you opt in</strong> via the toggle at
+              the bottom of this page. Off by default.
+            </li>
+            <li>
+              Others see your <strong>display name, total score, streak and days active</strong>
+              &mdash; nothing else.
+            </li>
+            <li>
+              Your reflections, self-reports, nutrition scores and individual habit
+              details are <strong>never shared</strong>. Those stay private to you.
+            </li>
+            <li>
+              You can turn visibility off at any time &mdash; your historical data stays
+              intact, you just disappear from the board.
+            </li>
+          </ul>
+          <p>
+            This isn&rsquo;t a public website &mdash; only other challengers with an
+            account can see the board.
+          </p>
+        </Help>
       </h2>
       <p style={{ fontSize: 12, color: colors.textDim, textAlign: 'center', marginBottom: 16 }}>
         {error

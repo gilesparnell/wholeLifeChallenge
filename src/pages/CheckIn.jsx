@@ -15,6 +15,7 @@ import ExerciseCard from '../components/habits/ExerciseCard'
 import SleepCard from '../components/habits/SleepCard'
 import HydrateCard from '../components/habits/HydrateCard'
 import ActivityModal from '../components/modals/ActivityModal'
+import Help from '../components/Help'
 
 export default function CheckIn() {
   const { data, loading, saveDay: save } = useData()
@@ -112,9 +113,6 @@ export default function CheckIn() {
     key, label: info.label, icon: info.icon, color: colorForKey[info.colorKey],
     description: info.description,
   }))
-
-  // Track which bonus card has its info expanded (null = all collapsed)
-  const [expandedBonus, setExpandedBonus] = useState(null)
 
   if (loading) {
     return (
@@ -289,7 +287,23 @@ export default function CheckIn() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 22 }}>{'\u{1F957}'}</span>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>Nutrition</div>
+              <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 4 }}>
+                Nutrition
+                <Help title="Nutrition">
+                  <p style={{ marginBottom: 10 }}>
+                    Nutrition is scored out of 5. Start at 5 and deduct 1 point for each
+                    non-compliant food or drink you had today.
+                  </p>
+                  <p style={{ marginBottom: 10 }}>
+                    What counts as non-compliant depends on the <strong>level you chose</strong>
+                    {' '}(Kickstart, Lifestyle or Performance). Each level has a different list
+                    of allowed foods — tap the level links below to see its rules.
+                  </p>
+                  <p>
+                    Tap a number 5&ndash;0 to log your score for the day.
+                  </p>
+                </Help>
+              </div>
               <div style={{ fontSize: 12, color: colors.textDim }}>
                 Deduct per non-compliant food
               </div>
@@ -371,9 +385,24 @@ export default function CheckIn() {
           background: colors.surface, borderRadius: 14, padding: 16, marginTop: 16,
           border: `1px solid ${colors.border}`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
               How Do You Feel?
+              <Help title="How Do You Feel?">
+                <p style={{ marginBottom: 10 }}>
+                  A quick daily check-in on recovery. Rate each metric on a 1&ndash;5
+                  scale &mdash; it powers your <strong>Recovery score</strong> (0&ndash;100)
+                  which helps you spot patterns over the challenge.
+                </p>
+                <p style={{ marginBottom: 10 }}>
+                  <strong>Heads up:</strong> the scale direction differs per metric.
+                  For Sleep Quality, Energy and Mood higher is better.
+                  For Soreness and Stress <em>lower</em> is better.
+                </p>
+                <p>
+                  Tap the info icon next to each metric for specific 1 vs 5 meanings.
+                </p>
+              </Help>
             </p>
             {currentDay.selfReport && (() => {
               const recovery = calculateRecoveryScore(currentDay.selfReport)
@@ -390,26 +419,38 @@ export default function CheckIn() {
               ) : null
             })()}
           </div>
-          <p style={{ fontSize: 11, color: colors.textFaint, marginBottom: 12, lineHeight: 1.4 }}>
-            Rate each on 1&ndash;5. Scale direction differs per metric &mdash; see the hint under each label.
-          </p>
           <div className="wlc-selfreport-grid">
             {[
-              { key: 'sleepQuality', label: 'Sleep Quality', icon: '\u{1F634}', hint: '1 = poor · 5 = great' },
-              { key: 'energyLevel', label: 'Energy', icon: '\u26A1', hint: '1 = drained · 5 = energised' },
-              { key: 'soreness', label: 'Soreness', icon: '\u{1F4AA}', hint: '1 = none · 5 = very sore' },
-              { key: 'stressLevel', label: 'Stress', icon: '\u{1F9E0}', hint: '1 = calm · 5 = maxed out' },
-              { key: 'mood', label: 'Mood', icon: '\u{1F60A}', hint: '1 = low · 5 = great' },
-            ].map(({ key, label, icon, hint }) => {
+              {
+                key: 'sleepQuality', label: 'Sleep Quality', icon: '\u{1F634}',
+                help: <p>How well did you sleep last night?<br/><strong>1</strong> = poor, restless, unrefreshed. <strong>5</strong> = deep, solid, woke up great.</p>,
+              },
+              {
+                key: 'energyLevel', label: 'Energy', icon: '\u26A1',
+                help: <p>How energised do you feel right now?<br/><strong>1</strong> = drained, struggling. <strong>5</strong> = firing on all cylinders.</p>,
+              },
+              {
+                key: 'soreness', label: 'Soreness', icon: '\u{1F4AA}',
+                help: <p>How much muscle soreness do you have today?<br/><strong>1</strong> = none. <strong>5</strong> = very sore, hard to move. Lower is better for recovery.</p>,
+              },
+              {
+                key: 'stressLevel', label: 'Stress', icon: '\u{1F9E0}',
+                help: <p>How stressed or mentally loaded do you feel?<br/><strong>1</strong> = calm and clear. <strong>5</strong> = maxed out, overwhelmed. Lower is better for recovery.</p>,
+              },
+              {
+                key: 'mood', label: 'Mood', icon: '\u{1F60A}',
+                help: <p>How\u2019s your mood overall today?<br/><strong>1</strong> = low, flat, down. <strong>5</strong> = great, positive, upbeat.</p>,
+              },
+            ].map(({ key, label, icon, help }) => {
               const sr = currentDay.selfReport || {}
               const val = sr[key] ?? 0
               return (
                 <div key={key} className="wlc-selfreport-row">
                   <span className="wlc-selfreport-label">
                     <span style={{ fontSize: 14 }}>{icon}</span>
-                    <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                       <span>{label}</span>
-                      <span style={{ fontSize: 10, color: colors.textFaint, fontWeight: 400 }}>{hint}</span>
+                      <Help title={label}>{help}</Help>
                     </span>
                   </span>
                   <div className="wlc-selfreport-scale">
@@ -491,19 +532,35 @@ export default function CheckIn() {
 
       {/* Bonus Progress */}
       <div style={{ marginTop: 24 }}>
-        <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 10, textAlign: 'center' }}>Bonus Tracker</p>
+        <p style={{
+          fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2,
+          marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+        }}>
+          Bonus Tracker
+          <Help title="Bonus Tracker">
+            <p style={{ marginBottom: 10 }}>
+              Bonuses reward consistency. Each bonus tracks a specific streak &mdash; hit the
+              threshold and you earn a bonus you can spend to cover a missed habit.
+            </p>
+            <p style={{ marginBottom: 10 }}>
+              The progress bar shows how close you are to earning the next one. A number
+              badge on a card means you already have unused bonuses banked.
+            </p>
+            <p>
+              Tap the info icon on any individual bonus card to see exactly what it tracks
+              and how to earn it.
+            </p>
+          </Help>
+        </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {BONUS_CONFIG.map(({ key, label, icon, color, description }) => {
             const bonus = bonuses[key]
             const pct = Math.round((bonus.streak / bonus.threshold) * 100)
             const remaining = bonus.threshold - bonus.streak
-            const isExpanded = expandedBonus === key
             return (
               <div key={key} style={{
                 background: colors.surface, borderRadius: 10, padding: '10px 12px',
                 border: `1px solid ${bonus.earned > 0 ? color + '44' : colors.border}`,
-                gridColumn: isExpanded ? '1 / -1' : 'auto',
-                transition: 'grid-column 0.2s ease',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <span style={{ fontSize: 14 }}>{icon}</span>
@@ -516,21 +573,11 @@ export default function CheckIn() {
                       {bonus.earned}
                     </span>
                   )}
-                  <button
-                    onClick={() => setExpandedBonus(isExpanded ? null : key)}
-                    aria-label={`About ${label}`}
-                    title={`About ${label}`}
-                    style={{
-                      marginLeft: 'auto', width: 20, height: 20, borderRadius: '50%',
-                      border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700,
-                      fontFamily: fonts.body, lineHeight: 1, padding: 0,
-                      background: isExpanded ? color : colors.surfaceHover,
-                      color: isExpanded ? '#fff' : colors.textDim,
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    i
-                  </button>
+                  <span style={{ marginLeft: 'auto', display: 'inline-flex' }}>
+                    <Help title={label}>
+                      <p>{description}</p>
+                    </Help>
+                  </span>
                 </div>
                 <div style={{ height: 4, background: colors.surfaceHover, borderRadius: 2, overflow: 'hidden', marginBottom: 4 }}>
                   <div style={{
@@ -547,15 +594,6 @@ export default function CheckIn() {
                       : 'Available!'
                   }
                 </div>
-                {isExpanded && (
-                  <p style={{
-                    fontSize: 12, color: colors.textMuted, lineHeight: 1.5,
-                    marginTop: 10, paddingTop: 10,
-                    borderTop: `1px solid ${colors.borderSubtle}`,
-                  }}>
-                    {description}
-                  </p>
-                )}
               </div>
             )
           })}
