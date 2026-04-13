@@ -17,6 +17,7 @@ import NotFound from './pages/NotFound'
 // Lazy-load Progress (Recharts is ~600KB) and Admin (admin-only, rarely loaded)
 const Progress = lazy(() => import('./pages/Progress'))
 const Admin = lazy(() => import('./pages/Admin'))
+const Health = lazy(() => import('./pages/Health'))
 
 const PageFallback = () => (
   <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-dim)' }}>
@@ -43,6 +44,7 @@ function App() {
                     <Route path="/leaderboard" element={<Leaderboard />} />
                     <Route path="/info" element={<Info />} />
                     <Route path="/admin" element={<Admin />} />
+                    <Route path="/health" element={<Health />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>
