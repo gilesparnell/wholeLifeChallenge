@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { registerServiceWorker, unregisterServiceWorker } from './serviceWorker'
+import { registerServiceWorker, unregisterServiceWorker, UPDATE_CHECK_INTERVAL_MS } from './serviceWorker'
 
 describe('registerServiceWorker', () => {
   let originalNavigator
@@ -135,6 +135,81 @@ describe('registerServiceWorker', () => {
 
     // First install — the user shouldn't see "new version available"
     expect(onUpdateAvailable).not.toHaveBeenCalled()
+  })
+
+  // v0.10.3 fix: force the browser to check for a new SW on every relevant
+  // moment, not just rely on its own lazy heuristics.
+  describe('forced update checks', () => {
+    it('calls registration.update() immediately after registering', async () => {
+      await registerServiceWorker({ onUpdateAvailable })
+      expect(mockRegistration.update).toHaveBeenCalled()
+    })
+
+    it('calls registration.update() when the tab becomes visible', async () => {
+      const addEventListener = vi.fn()
+      global.document = {
+        addEventListener,
+        visibilityState: 'visible',
+      }
+
+      await registerServiceWorker({ onUpdateAvailable })
+      mockRegistration.update.mockClear()
+
+      // Find the visibilitychange handler and invoke it
+      const visibilityCall = addEventListener.mock.calls.find(
+        ([event]) => event === 'visibilitychange'
+      )
+      expect(visibilityCall).toBeDefined()
+      const visibilityHandler = visibilityCall[1]
+      visibilityHandler()
+
+      expect(mockRegistration.update).toHaveBeenCalled()
+    })
+
+    it('does NOT call update() on visibilitychange when tab is hidden', async () => {
+      const addEventListener = vi.fn()
+      global.document = {
+        addEventListener,
+        visibilityState: 'visible',
+      }
+
+      await registerServiceWorker({ onUpdateAvailable })
+      mockRegistration.update.mockClear()
+
+      global.document.visibilityState = 'hidden'
+      const visibilityHandler = addEventListener.mock.calls.find(
+        ([event]) => event === 'visibilitychange'
+      )[1]
+      visibilityHandler()
+
+      expect(mockRegistration.update).not.toHaveBeenCalled()
+    })
+
+    it('calls registration.update() on a periodic interval', async () => {
+      vi.useFakeTimers()
+      try {
+        await registerServiceWorker({ onUpdateAvailable })
+        mockRegistration.update.mockClear()
+
+        vi.advanceTimersByTime(UPDATE_CHECK_INTERVAL_MS)
+        expect(mockRegistration.update).toHaveBeenCalledTimes(1)
+
+        vi.advanceTimersByTime(UPDATE_CHECK_INTERVAL_MS)
+        expect(mockRegistration.update).toHaveBeenCalledTimes(2)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('exports UPDATE_CHECK_INTERVAL_MS as a reasonable interval (30s–120s)', () => {
+      expect(UPDATE_CHECK_INTERVAL_MS).toBeGreaterThanOrEqual(30000)
+      expect(UPDATE_CHECK_INTERVAL_MS).toBeLessThanOrEqual(120000)
+    })
+
+    it('swallows errors from update() so they don\'t crash the app', async () => {
+      mockRegistration.update.mockRejectedValue(new Error('update failed'))
+      await expect(registerServiceWorker({ onUpdateAvailable })).resolves.toBe(mockRegistration)
+    })
   })
 })
 

@@ -13,6 +13,18 @@
 // On an UPDATE (user already had a SW running, deploy ships new code):
 // we fire onUpdateAvailable so the UI can show a "Refresh for new
 // version" toast.
+//
+// Update check trigger points (v0.10.3 fix):
+// Browsers are lazy about checking for SW updates on their own — they
+// may only check once per 24h, or on specific lifecycle events. Without
+// explicit `registration.update()` calls, we miss updates for long
+// stretches. We force a check on:
+//   1. every call to registerServiceWorker (app mount / hard reload)
+//   2. every visibilitychange → visible (user returns to the tab)
+//   3. every UPDATE_CHECK_INTERVAL_MS while the app is loaded
+// This is the standard PWA update-detection pattern.
+
+export const UPDATE_CHECK_INTERVAL_MS = 60000
 
 export async function registerServiceWorker({ onUpdateAvailable } = {}) {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
@@ -40,6 +52,38 @@ export async function registerServiceWorker({ onUpdateAvailable } = {}) {
         }
       })
     })
+
+    // Helper: force an update check, swallowing errors so a failing
+    // update() call can never crash the app.
+    const checkForUpdate = () => {
+      try {
+        const result = registration.update()
+        if (result && typeof result.catch === 'function') {
+          result.catch(() => {})
+        }
+      } catch {
+        // ignore — progressive enhancement
+      }
+    }
+
+    // 1. Check immediately after registering.
+    checkForUpdate()
+
+    // 2. Check whenever the tab becomes visible again (user returns to
+    //    the app). Skipped when document is unavailable (SSR / tests).
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          checkForUpdate()
+        }
+      })
+    }
+
+    // 3. Poll every UPDATE_CHECK_INTERVAL_MS while the app is loaded.
+    //    Catches long-open sessions where the user never leaves the tab.
+    if (typeof setInterval === 'function') {
+      setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS)
+    }
 
     return registration
   } catch {
