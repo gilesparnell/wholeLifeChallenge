@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { isEmailAllowed, upsertProfile, getProfileById } from '../lib/profiles'
 import { identifyUser } from '../lib/sentry'
@@ -24,6 +24,13 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState(null)
+  const [sessionExpired, setSessionExpired] = useState(false)
+
+  // Distinguishes a user-clicked sign-out from an involuntary SIGNED_OUT
+  // event (token refresh failure, server-side revocation). Set true just
+  // before we call supabase.auth.signOut() so the auth-state listener can
+  // skip showing the "session expired" banner when the user asked to leave.
+  const userInitiatedSignOutRef = useRef(false)
 
   // Handle a fresh Supabase session: check whitelist, upsert profile.
   const handleSession = useCallback(async (newSession) => {
@@ -144,7 +151,19 @@ export function AuthProvider({ children }) {
     // subsequent supabase call in the tab (supabase-js #1594, #1620,
     // auth-js #762). Defer handleSession to a fresh task so the lock is
     // released before any query runs.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === 'SIGNED_OUT') {
+        if (userInitiatedSignOutRef.current) {
+          userInitiatedSignOutRef.current = false
+        } else {
+          // Involuntary sign-out — token refresh failed or session was
+          // revoked server-side. Surface this so AuthGate can tell the
+          // user why they're back on the login screen.
+          setSessionExpired(true)
+        }
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setSessionExpired(false)
+      }
       setTimeout(() => {
         handleSession(newSession).catch((e) => {
           console.error('[auth] onAuthStateChange handleSession threw:', e)
@@ -205,12 +224,16 @@ export function AuthProvider({ children }) {
     }
 
     if (supabase) {
+      // Mark this as user-initiated so the SIGNED_OUT listener doesn't
+      // misread it as an expired session.
+      userInitiatedSignOutRef.current = true
       await supabase.auth.signOut()
     }
     setSession(null)
     setUser(null)
     setProfile(null)
     setAuthError(null)
+    setSessionExpired(false)
     identifyUser(null)
   }, [])
 
@@ -218,7 +241,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      session, user, profile, loading, authError,
+      session, user, profile, loading, authError, sessionExpired,
       signIn, signInAsDev, signOut,
       isAdmin,
     }}>

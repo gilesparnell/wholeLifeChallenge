@@ -30,13 +30,14 @@ vi.mock('../lib/sentry', () => ({
 import { identifyUser } from '../lib/sentry'
 
 function TestConsumer() {
-  const { user, session, loading, signIn, signOut, signInAsDev } = useAuth()
+  const { user, session, loading, sessionExpired, signIn, signOut, signInAsDev } = useAuth()
   return (
     <div>
       <span data-testid="loading">{String(loading)}</span>
       <span data-testid="user">{user ? user.email : 'none'}</span>
       <span data-testid="user-name">{user?.user_metadata?.full_name || ''}</span>
       <span data-testid="session">{session ? 'active' : 'none'}</span>
+      <span data-testid="session-expired">{String(Boolean(sessionExpired))}</span>
       <button onClick={signIn}>Sign In</button>
       <button onClick={signOut}>Sign Out</button>
       <button onClick={() => signInAsDev('giles@parnellsystems.com')}>Dev Sign In</button>
@@ -170,6 +171,92 @@ describe('AuthContext', () => {
       fireEvent.click(screen.getByText('Sign Out'))
     })
     expect(identifyUser).toHaveBeenCalledWith(null)
+  })
+
+  describe('session expiry detection (#18)', () => {
+    // Captures the onAuthStateChange callback so tests can fire fake events.
+    const setupAndCapture = async () => {
+      const { supabase } = await import('../lib/supabase')
+      let captured = null
+      supabase.auth.onAuthStateChange.mockImplementation((cb) => {
+        captured = cb
+        return { data: { subscription: { unsubscribe: vi.fn() } } }
+      })
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestConsumer />
+          </AuthProvider>
+        )
+      })
+      return { captured, supabase }
+    }
+
+    it('initial sessionExpired is false', async () => {
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestConsumer />
+          </AuthProvider>
+        )
+      })
+      expect(screen.getByTestId('session-expired').textContent).toBe('false')
+    })
+
+    it('sets sessionExpired=true when SIGNED_OUT fires without a prior user-initiated signOut', async () => {
+      const { captured } = await setupAndCapture()
+      expect(captured).toBeTypeOf('function')
+      await act(async () => {
+        captured('SIGNED_OUT', null)
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(screen.getByTestId('session-expired').textContent).toBe('true')
+    })
+
+    it('does NOT set sessionExpired when the user calls signOut() and SIGNED_OUT fires', async () => {
+      const { captured } = await setupAndCapture()
+      await act(async () => {
+        fireEvent.click(screen.getByText('Sign Out'))
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      await act(async () => {
+        captured('SIGNED_OUT', null)
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(screen.getByTestId('session-expired').textContent).toBe('false')
+    })
+
+    it('clears sessionExpired when SIGNED_IN fires after expiry (recovery)', async () => {
+      const { captured } = await setupAndCapture()
+      await act(async () => {
+        captured('SIGNED_OUT', null)
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(screen.getByTestId('session-expired').textContent).toBe('true')
+      await act(async () => {
+        captured('SIGNED_IN', {
+          user: { id: 'u1', email: 'test@example.com', user_metadata: {} },
+        })
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(screen.getByTestId('session-expired').textContent).toBe('false')
+    })
+
+    it('clears sessionExpired when TOKEN_REFRESHED fires (recovery)', async () => {
+      const { captured } = await setupAndCapture()
+      await act(async () => {
+        captured('SIGNED_OUT', null)
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(screen.getByTestId('session-expired').textContent).toBe('true')
+      await act(async () => {
+        captured('TOKEN_REFRESHED', {
+          user: { id: 'u1', email: 'test@example.com', user_metadata: {} },
+        })
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(screen.getByTestId('session-expired').textContent).toBe('false')
+    })
   })
 
   // Regression for the auth-js navigatorLock re-entrancy deadlock

@@ -59,4 +59,26 @@ describe('AuthGate', () => {
     fireEvent.click(screen.getByText('Dev Login'))
     expect(signInAsDev).toHaveBeenCalledWith('giles@parnellsystems.com')
   })
+
+  it('shows a session-expired notice on the login screen when sessionExpired is true (#18)', () => {
+    useAuth.mockReturnValue({
+      loading: false, user: null, session: null,
+      sessionExpired: true,
+      signIn: vi.fn(),
+      signInAsDev: vi.fn(),
+    })
+    render(<AuthGate><div>Protected</div></AuthGate>)
+    expect(screen.getByText(/session expired/i)).toBeDefined()
+  })
+
+  it('does NOT show the expired notice when sessionExpired is false', () => {
+    useAuth.mockReturnValue({
+      loading: false, user: null, session: null,
+      sessionExpired: false,
+      signIn: vi.fn(),
+      signInAsDev: vi.fn(),
+    })
+    render(<AuthGate><div>Protected</div></AuthGate>)
+    expect(screen.queryByText(/session expired/i)).toBeNull()
+  })
 })
