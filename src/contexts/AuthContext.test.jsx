@@ -29,6 +29,19 @@ vi.mock('../lib/sentry', () => ({
 }))
 import { identifyUser } from '../lib/sentry'
 
+// Mock analytics module so we can assert PostHog wiring without sending
+// real events in tests.
+vi.mock('../lib/analytics', () => ({
+  identifyUser: vi.fn(),
+  resetUser: vi.fn(),
+  track: vi.fn(),
+}))
+import {
+  identifyUser as identifyAnalyticsUser,
+  resetUser as resetAnalyticsUser,
+  track as trackAnalytics,
+} from '../lib/analytics'
+
 function TestConsumer() {
   const { user, session, loading, sessionExpired, signIn, signOut, signInAsDev } = useAuth()
   return (
@@ -152,6 +165,64 @@ describe('AuthContext', () => {
     expect(identifyUser).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'giles@parnellsystems.com' })
     )
+  })
+
+  describe('PostHog analytics wiring (#10)', () => {
+    it('calls analytics.identifyUser with the dev user id and tracks signed_in', async () => {
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestConsumer />
+          </AuthProvider>
+        )
+      })
+      await act(async () => {
+        fireEvent.click(screen.getByText('Dev Sign In'))
+      })
+      expect(identifyAnalyticsUser).toHaveBeenCalledWith(
+        expect.objectContaining({ id: expect.any(String) })
+      )
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'signed_in',
+        expect.objectContaining({ provider: 'dev' })
+      )
+    })
+
+    it('calls analytics.resetUser and tracks signed_out on signOut', async () => {
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestConsumer />
+          </AuthProvider>
+        )
+      })
+      await act(async () => {
+        fireEvent.click(screen.getByText('Dev Sign In'))
+      })
+      trackAnalytics.mockClear()
+      resetAnalyticsUser.mockClear()
+      await act(async () => {
+        fireEvent.click(screen.getByText('Sign Out'))
+      })
+      expect(resetAnalyticsUser).toHaveBeenCalled()
+      expect(trackAnalytics).toHaveBeenCalledWith('signed_out')
+    })
+
+    it('never passes email to analytics.identifyUser even though authContext has it', async () => {
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <TestConsumer />
+          </AuthProvider>
+        )
+      })
+      await act(async () => {
+        fireEvent.click(screen.getByText('Dev Sign In'))
+      })
+      // identifyAnalyticsUser is called with an object — assert email is NOT in it
+      const callArg = identifyAnalyticsUser.mock.calls[0][0]
+      expect(callArg).not.toHaveProperty('email')
+    })
   })
 
   it('calls identifyUser(null) on signOut', async () => {

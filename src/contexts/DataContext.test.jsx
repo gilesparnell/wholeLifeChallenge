@@ -28,6 +28,14 @@ vi.mock('../lib/dataStore', () => ({
   DATA_KEY: 'wlc-data',
 }))
 
+// Mock analytics so we can assert track() is called on save
+const mockTrack = vi.fn()
+vi.mock('../lib/analytics', () => ({
+  track: (...args) => mockTrack(...args),
+  identifyUser: vi.fn(),
+  resetUser: vi.fn(),
+}))
+
 function wrapper({ children }) {
   return <DataProvider>{children}</DataProvider>
 }
@@ -129,6 +137,39 @@ describe('DataContext', () => {
       expect(result.current.saveStatus).toBeDefined()
       expect(result.current.saveStatus.status).toBe('idle')
       expect(result.current.saveStatus.pendingCount).toBe(0)
+    })
+
+    // #10 PostHog: emit a checkin_saved event each time saveDay completes
+    it('tracks a checkin_saved analytics event when saveDay is called', async () => {
+      mockFetchAll.mockResolvedValue({})
+
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      await act(async () => {
+        await result.current.saveDay('2026-04-11', { nutrition: 4 })
+      })
+
+      expect(mockTrack).toHaveBeenCalledWith('checkin_saved', expect.any(Object))
+    })
+
+    it('does not include the date or any habit text in the tracked event (PII guard)', async () => {
+      mockFetchAll.mockResolvedValue({})
+
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      await act(async () => {
+        await result.current.saveDay('2026-04-11', {
+          nutrition: 4,
+          reflect: { completed: true, reflection_text: 'a private thought' },
+        })
+      })
+
+      const props = mockTrack.mock.calls[0][1]
+      expect(props).not.toHaveProperty('date')
+      expect(props).not.toHaveProperty('reflection_text')
+      expect(props).not.toHaveProperty('reflect')
     })
 
     it('saveStatus moves to saving while a save is in flight, then idle on success', async () => {
