@@ -48,4 +48,14 @@ describe('Layout', () => {
     )
     expect(screen.getByText('Whole Life Challenge')).toBeDefined()
   })
+
+  it('renders the version footer as a link to /changelog', () => {
+    render(
+      <MemoryRouter>
+        <Layout><div>Content</div></Layout>
+      </MemoryRouter>
+    )
+    const link = screen.getByRole('link', { name: /view changelog/i })
+    expect(link).toHaveAttribute('href', '/changelog')
+  })
 })
