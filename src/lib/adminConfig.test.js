@@ -29,8 +29,8 @@ describe('DEFAULT_CONFIG', () => {
     expect(DEFAULT_CONFIG.hydrationIncrementMl).toBe(250)
   })
 
-  it('has a default challenge start date', () => {
-    expect(DEFAULT_CONFIG.challengeStart).toBe('2026-04-12')
+  it('has a default challenge start date of 2026-04-13', () => {
+    expect(DEFAULT_CONFIG.challengeStart).toBe('2026-04-13')
   })
 
   it('has a default challenge duration', () => {

@@ -30,19 +30,19 @@ export default function Journal() {
 
   return (
     <div style={{ animation: 'fadeUp 0.4s ease' }}>
-      <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, marginBottom: 20, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-        Reflections
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
+        <span aria-hidden="true" style={{ width: 24, flexShrink: 0 }} />
+        <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, margin: 0, textAlign: 'center' }}>
+          Reflections
+        </h2>
         <Help title="Why reflect?">
-          <p style={{ marginBottom: 10 }}>
+          <p>
             The Reflect habit is worth 5 points a day, but the real value is longer-term.
             Writing a sentence or two every evening pulls your day out of autopilot and
-            into focus &mdash; and gives you something to read back when a week has
-            blurred together.
+            gives you something to read back when a week has blurred together.
           </p>
-          <p style={{ marginBottom: 10 }}>
-            <strong>What to write about:</strong>
-          </p>
-          <ul style={{ marginBottom: 10, paddingLeft: 20, lineHeight: 1.6 }}>
+          <p><strong>What to write about:</strong></p>
+          <ul>
             <li>What went well today? One specific thing.</li>
             <li>What tripped you up? Was it avoidable?</li>
             <li>Energy, mood, sleep &mdash; how did your body feel?</li>
@@ -54,7 +54,7 @@ export default function Journal() {
             not writing an essay.
           </p>
         </Help>
-      </h2>
+      </div>
       {visibleDates.reverse().map((d) => {
         const entry = data[d]
         const text = getReflectionText(entry)

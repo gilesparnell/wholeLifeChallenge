@@ -290,14 +290,15 @@ export default function CheckIn() {
               <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 4 }}>
                 Nutrition
                 <Help title="Nutrition">
-                  <p style={{ marginBottom: 10 }}>
-                    Nutrition is scored out of 5. Start at 5 and deduct 1 point for each
-                    non-compliant food or drink you had today.
+                  <p>
+                    Nutrition is scored out of 5. Start the day at 5 and deduct 1 point
+                    for each non-compliant food or drink.
                   </p>
-                  <p style={{ marginBottom: 10 }}>
+                  <p>
                     What counts as non-compliant depends on the <strong>level you chose</strong>
-                    {' '}(Kickstart, Lifestyle or Performance). Each level has a different list
-                    of allowed foods — tap the level links below to see its rules.
+                    {' '}(Kickstart, Lifestyle or Performance). Each level has a different
+                    list of allowed foods &mdash; tap the level links below the score to
+                    see its rules.
                   </p>
                   <p>
                     Tap a number 5&ndash;0 to log your score for the day.
@@ -389,18 +390,18 @@ export default function CheckIn() {
             <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
               How Do You Feel?
               <Help title="How Do You Feel?">
-                <p style={{ marginBottom: 10 }}>
+                <p>
                   A quick daily check-in on recovery. Rate each metric on a 1&ndash;5
-                  scale &mdash; it powers your <strong>Recovery score</strong> (0&ndash;100)
+                  scale &mdash; it powers your <strong>Recovery score</strong> (0&ndash;100),
                   which helps you spot patterns over the challenge.
                 </p>
-                <p style={{ marginBottom: 10 }}>
+                <p>
                   <strong>Heads up:</strong> the scale direction differs per metric.
-                  For Sleep Quality, Energy and Mood higher is better.
-                  For Soreness and Stress <em>lower</em> is better.
+                  For Sleep, Energy and Mood, higher is better. For Soreness and Stress,
+                  lower is better.
                 </p>
                 <p>
-                  Tap the info icon next to each metric for specific 1 vs 5 meanings.
+                  Tap the info icon next to each metric for the specific 1 vs 5 meaning.
                 </p>
               </Help>
             </p>
@@ -423,23 +424,50 @@ export default function CheckIn() {
             {[
               {
                 key: 'sleepQuality', label: 'Sleep Quality', icon: '\u{1F634}',
-                help: <p>How well did you sleep last night?<br/><strong>1</strong> = poor, restless, unrefreshed. <strong>5</strong> = deep, solid, woke up great.</p>,
+                help: (
+                  <>
+                    <p>How well did you sleep last night?</p>
+                    <p><strong>1</strong> &mdash; poor, restless, unrefreshed.<br/><strong>5</strong> &mdash; deep, solid, woke up great.</p>
+                  </>
+                ),
               },
               {
                 key: 'energyLevel', label: 'Energy', icon: '\u26A1',
-                help: <p>How energised do you feel right now?<br/><strong>1</strong> = drained, struggling. <strong>5</strong> = firing on all cylinders.</p>,
+                help: (
+                  <>
+                    <p>How energised do you feel right now?</p>
+                    <p><strong>1</strong> &mdash; drained, struggling.<br/><strong>5</strong> &mdash; firing on all cylinders.</p>
+                  </>
+                ),
               },
               {
                 key: 'soreness', label: 'Soreness', icon: '\u{1F4AA}',
-                help: <p>How much muscle soreness do you have today?<br/><strong>1</strong> = none. <strong>5</strong> = very sore, hard to move. Lower is better for recovery.</p>,
+                help: (
+                  <>
+                    <p>How much muscle soreness do you have today?</p>
+                    <p><strong>1</strong> &mdash; none.<br/><strong>5</strong> &mdash; very sore, hard to move.</p>
+                    <p>Lower is better for recovery.</p>
+                  </>
+                ),
               },
               {
                 key: 'stressLevel', label: 'Stress', icon: '\u{1F9E0}',
-                help: <p>How stressed or mentally loaded do you feel?<br/><strong>1</strong> = calm and clear. <strong>5</strong> = maxed out, overwhelmed. Lower is better for recovery.</p>,
+                help: (
+                  <>
+                    <p>How stressed or mentally loaded do you feel?</p>
+                    <p><strong>1</strong> &mdash; calm and clear.<br/><strong>5</strong> &mdash; maxed out, overwhelmed.</p>
+                    <p>Lower is better for recovery.</p>
+                  </>
+                ),
               },
               {
                 key: 'mood', label: 'Mood', icon: '\u{1F60A}',
-                help: <p>How\u2019s your mood overall today?<br/><strong>1</strong> = low, flat, down. <strong>5</strong> = great, positive, upbeat.</p>,
+                help: (
+                  <>
+                    <p>How&rsquo;s your mood overall today?</p>
+                    <p><strong>1</strong> &mdash; low, flat, down.<br/><strong>5</strong> &mdash; great, positive, upbeat.</p>
+                  </>
+                ),
               },
             ].map(({ key, label, icon, help }) => {
               const sr = currentDay.selfReport || {}
@@ -538,16 +566,17 @@ export default function CheckIn() {
         }}>
           Bonus Tracker
           <Help title="Bonus Tracker">
-            <p style={{ marginBottom: 10 }}>
-              Bonuses reward consistency. Each bonus tracks a specific streak &mdash; hit the
-              threshold and you earn a bonus you can spend to cover a missed habit.
+            <p>
+              Bonuses reward consistency. Each bonus tracks a specific streak &mdash;
+              hit the threshold and you earn a bonus you can spend to cover a missed
+              habit.
             </p>
-            <p style={{ marginBottom: 10 }}>
-              The progress bar shows how close you are to earning the next one. A number
+            <p>
+              The progress bar shows how close you are to earning the next one. A small
               badge on a card means you already have unused bonuses banked.
             </p>
             <p>
-              Tap the info icon on any individual bonus card to see exactly what it tracks
+              Tap the info icon on any individual bonus to see exactly what it tracks
               and how to earn it.
             </p>
           </Help>
@@ -564,20 +593,21 @@ export default function CheckIn() {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <span style={{ fontSize: 14 }}>{icon}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: bonus.earned > 0 ? color : colors.textDim }}>{label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: bonus.earned > 0 ? color : colors.textDim }}>
+                    {label}
+                  </span>
+                  <Help title={label}>
+                    <p>{description}</p>
+                  </Help>
                   {bonus.earned > 0 && (
                     <span style={{
+                      marginLeft: 'auto',
                       fontSize: 11, fontWeight: 700, color: '#fff',
                       background: color, borderRadius: 6, padding: '1px 6px',
                     }}>
                       {bonus.earned}
                     </span>
                   )}
-                  <span style={{ marginLeft: 'auto', display: 'inline-flex' }}>
-                    <Help title={label}>
-                      <p>{description}</p>
-                    </Help>
-                  </span>
                 </div>
                 <div style={{ height: 4, background: colors.surfaceHover, borderRadius: 2, overflow: 'hidden', marginBottom: 4 }}>
                   <div style={{

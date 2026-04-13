@@ -56,18 +56,19 @@ export default function Leaderboard() {
 
   return (
     <div style={{ animation: 'fadeUp 0.4s ease' }}>
-      <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, marginBottom: 8, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-        Leaderboard
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
+        <span aria-hidden="true" style={{ width: 24, flexShrink: 0 }} />
+        <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, margin: 0, textAlign: 'center' }}>
+          Leaderboard
+        </h2>
         <Help title="Leaderboard">
-          <p style={{ marginBottom: 10 }}>
-            A friendly ranking of challengers who&rsquo;ve opted in to sharing their score.
-            Useful for light accountability and a bit of competitive nudge &mdash; not
-            for public shaming.
+          <p>
+            A friendly ranking of challengers who&rsquo;ve opted in to sharing their
+            score. Useful for light accountability and a bit of competitive nudge
+            &mdash; not for public shaming.
           </p>
-          <p style={{ marginBottom: 10 }}>
-            <strong>Who can see what:</strong>
-          </p>
-          <ul style={{ marginBottom: 10, paddingLeft: 20, lineHeight: 1.6 }}>
+          <p><strong>Who can see what:</strong></p>
+          <ul>
             <li>
               <strong>You&rsquo;re only listed if you opt in</strong> via the toggle at
               the bottom of this page. Off by default.
@@ -90,7 +91,7 @@ export default function Leaderboard() {
             account can see the board.
           </p>
         </Help>
-      </h2>
+      </div>
       <p style={{ fontSize: 12, color: colors.textDim, textAlign: 'center', marginBottom: 16 }}>
         {error
           ? 'Couldn\u2019t load leaderboard'

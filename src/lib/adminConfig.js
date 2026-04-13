@@ -5,7 +5,7 @@ export const DEFAULT_CONFIG = {
   mobilizeTypes: ['Stretching', 'Yoga', 'Foam Rolling', 'Massage', 'Pilates', 'Mobility Drills', 'Other'],
   hydrationTargetMl: 2000,
   hydrationIncrementMl: 250,
-  challengeStart: '2026-04-12',
+  challengeStart: '2026-04-13',
   challengeDays: 75,
 }
 

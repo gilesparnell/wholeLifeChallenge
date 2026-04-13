@@ -1,8 +1,10 @@
 import { getConfig } from './adminConfig'
 
-// These are read from admin config at call time, with hardcoded fallbacks
-// for non-browser contexts (tests) where localStorage may not be available.
-const FALLBACK_START = '2026-04-12'
+// Read from admin config at call time, with hardcoded fallbacks for
+// non-browser contexts (tests) and fresh installs where localStorage
+// has no saved admin config yet. Keep FALLBACK_START in sync with
+// adminConfig.js DEFAULT_CONFIG.challengeStart.
+const FALLBACK_START = '2026-04-13'
 const FALLBACK_DAYS = 75
 
 export const CHALLENGE_START = FALLBACK_START
