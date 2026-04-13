@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { colors, fonts } from '../styles/theme'
 import { getDayIndex, getToday, getChallengeDays, getChallengeStartFormatted, getChallengeEndDate } from '../lib/dates'
+import SaveStatusIndicator from './SaveStatusIndicator'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Check In' },
@@ -126,6 +127,9 @@ export default function Layout({ children }) {
             Day {Math.min(Math.max(dayIndex + 1, 1), getChallengeDays())} <span style={{ color: colors.textFaint }}>/ {getChallengeDays()}</span>
           </h1>
           <p style={{ fontSize: 12, color: colors.textDim, marginTop: 4 }}>{getChallengeStartFormatted()} — {getChallengeEndDate()}</p>
+          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
+            <SaveStatusIndicator />
+          </div>
         </div>
 
         {/* Nav */}
