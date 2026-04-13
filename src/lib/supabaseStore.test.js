@@ -139,6 +139,45 @@ describe('supabaseStore', () => {
       const result = await upsertEntry('user-123', '2026-04-11', { nutrition: 5 })
       expect(result).toEqual({ success: false, error: 'RLS denied' })
     })
+
+    // #17: client-side defence in depth — short-circuit before hitting
+    // Supabase if the data violates the same constraints the DB enforces.
+    it('rejects nutrition=99 without calling supabase', async () => {
+      const upsertMock = vi.fn()
+      supabase.from.mockReturnValue({ upsert: upsertMock })
+
+      const result = await upsertEntry('user-123', '2026-04-11', { nutrition: 99 })
+
+      expect(result.success).toBe(false)
+      expect(result.error).toMatch(/nutrition/i)
+      expect(upsertMock).not.toHaveBeenCalled()
+    })
+
+    it('rejects sleep.hours=30 without calling supabase', async () => {
+      const upsertMock = vi.fn()
+      supabase.from.mockReturnValue({ upsert: upsertMock })
+
+      const result = await upsertEntry('user-123', '2026-04-11', {
+        sleep: { completed: true, hours: 30 },
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.error).toMatch(/sleep/i)
+      expect(upsertMock).not.toHaveBeenCalled()
+    })
+
+    it('rejects negative hydrate.current_ml without calling supabase', async () => {
+      const upsertMock = vi.fn()
+      supabase.from.mockReturnValue({ upsert: upsertMock })
+
+      const result = await upsertEntry('user-123', '2026-04-11', {
+        hydrate: { completed: false, current_ml: -10, target_ml: 2000 },
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.error).toMatch(/hydrate/i)
+      expect(upsertMock).not.toHaveBeenCalled()
+    })
   })
 
   // --- clearAllEntries ---
