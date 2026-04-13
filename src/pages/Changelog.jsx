@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { CHANGELOG_TEXT } from '../lib/changelogContent'
 import { parseChangelog } from '../lib/parseChangelog'
+import { annotateChangelogBlocks } from '../lib/annotateChangelogBlocks'
 import { colors, fonts } from '../styles/theme'
 
 export default function Changelog() {
   const navigate = useNavigate()
-  const blocks = parseChangelog(CHANGELOG_TEXT)
+  const blocks = annotateChangelogBlocks(parseChangelog(CHANGELOG_TEXT))
 
   const handleClose = () => navigate(-1)
 
@@ -86,7 +87,7 @@ function Block({ block }) {
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: 1.2,
-          color: colors.textDim,
+          color: block.dim ? colors.textFaint : colors.textDim,
           margin: '16px 0 6px 0',
         }}
       >
@@ -103,7 +104,7 @@ function Block({ block }) {
           paddingLeft: 18,
           fontSize: 14,
           lineHeight: 1.5,
-          color: colors.text,
+          color: block.dim ? colors.textDim : colors.text,
         }}
       >
         {block.items.map((item, i) => (
