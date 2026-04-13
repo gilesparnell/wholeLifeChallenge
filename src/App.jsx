@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { DataProvider } from './contexts/DataContext'
@@ -7,7 +7,9 @@ import AuthGate from './components/AuthGate'
 import OnboardingGate from './components/OnboardingGate'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
+import UpdateToast from './components/UpdateToast'
 import { reportError } from './lib/sentry'
+import { registerServiceWorker } from './lib/serviceWorker'
 import CheckIn from './pages/CheckIn'
 import Journal from './pages/Journal'
 import Info from './pages/Info'
@@ -26,8 +28,21 @@ const PageFallback = () => (
 )
 
 function App() {
+  const [updateAvailable, setUpdateAvailable] = useState(false)
+
+  useEffect(() => {
+    registerServiceWorker({
+      onUpdateAvailable: () => setUpdateAvailable(true),
+    })
+  }, [])
+
+  const handleRefresh = () => {
+    window.location.reload()
+  }
+
   return (
     <ErrorBoundary onError={reportError}>
+      <UpdateToast visible={updateAvailable} onRefresh={handleRefresh} />
       <BrowserRouter>
         <ThemeProvider>
         <AuthProvider>

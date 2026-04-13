@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { getDisplayVersion, getBuildTime } from '../lib/version'
 
 const Health = () => {
   const [status, setStatus] = useState('checking')
@@ -46,6 +47,10 @@ const Health = () => {
     >
       <p style={{ fontSize: 24, margin: 0 }}>{status}</p>
       {error ? <p style={{ marginTop: 8, opacity: 0.7 }}>{error}</p> : null}
+      <p style={{ marginTop: 16, opacity: 0.5 }}>version: {getDisplayVersion()}</p>
+      {getBuildTime() ? (
+        <p style={{ marginTop: 4, opacity: 0.5 }}>built: {getBuildTime()}</p>
+      ) : null}
     </div>
   )
 }

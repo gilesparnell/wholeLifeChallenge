@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import { colors, fonts } from '../styles/theme'
 import { getDayIndex, getToday, getChallengeDays, getChallengeStartFormatted, getChallengeEndDate } from '../lib/dates'
 import SaveStatusIndicator from './SaveStatusIndicator'
+import { getDisplayVersion } from '../lib/version'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Check In' },
@@ -160,6 +161,19 @@ export default function Layout({ children }) {
 
         {/* Page content */}
         {children}
+
+        <div style={{
+          marginTop: 32,
+          paddingTop: 16,
+          borderTop: `1px solid ${colors.borderSubtle}`,
+          textAlign: 'center',
+          fontSize: 10,
+          color: colors.textFaint,
+          letterSpacing: 0.5,
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+        }}>
+          {getDisplayVersion()}
+        </div>
       </div>
     </>
   )

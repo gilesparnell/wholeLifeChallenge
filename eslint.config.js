@@ -15,7 +15,13 @@ export default defineConfig([
     ],
     languageOptions: {
       ecmaVersion: 2020,
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        // Build-time constants injected by vite.config.js via `define`.
+        __APP_VERSION__: 'readonly',
+        __APP_SEMVER__: 'readonly',
+        __BUILD_TIME__: 'readonly',
+      },
       parserOptions: {
         ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },
@@ -43,6 +49,19 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/immutability': 'warn',
       'react-refresh/only-export-components': 'warn',
+    },
+  },
+  // Node-context files: vite.config.js and any *.test.js using node globals.
+  {
+    files: ['vite.config.js', '**/*.test.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        __APP_VERSION__: 'readonly',
+        __APP_SEMVER__: 'readonly',
+        __BUILD_TIME__: 'readonly',
+      },
     },
   },
 ])
