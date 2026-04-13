@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { colors, fonts } from '../styles/theme'
 
-const InfoIcon = ({ size = 16 }) => (
+const InfoIcon = ({ size = 14 }) => (
   <svg
     width={size}
     height={size}
@@ -26,9 +26,7 @@ export default function Help({ title, children, learnMoreHref }) {
 
   useEffect(() => {
     if (!isOpen) return
-    const onKey = (e) => {
-      if (e.key === 'Escape') setIsOpen(false)
-    }
+    const onKey = (e) => { if (e.key === 'Escape') setIsOpen(false) }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen])
@@ -42,7 +40,6 @@ export default function Help({ title, children, learnMoreHref }) {
 
   const close = () => {
     setIsOpen(false)
-    // Restore focus to the trigger so keyboard users don't lose their place
     requestAnimationFrame(() => triggerRef.current?.focus())
   }
 
@@ -58,12 +55,11 @@ export default function Help({ title, children, learnMoreHref }) {
           e.stopPropagation()
           setIsOpen(true)
         }}
+        className="wlc-help-trigger"
         style={{
-          // 44x44 hit area per Apple HIG, 20x20 visual
-          width: 44,
-          height: 44,
+          width: 24,
+          height: 24,
           padding: 0,
-          margin: -12, // cancel the hit-area expansion so it visually sits like a 20px icon
           background: 'transparent',
           border: 'none',
           borderRadius: '50%',
@@ -71,14 +67,13 @@ export default function Help({ title, children, learnMoreHref }) {
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: colors.textDim,
+          color: colors.textFaint,
           flexShrink: 0,
-          transition: 'color 0.15s ease',
+          verticalAlign: 'middle',
+          transition: 'color 0.15s ease, background 0.15s ease',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = colors.accent }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = colors.textDim }}
       >
-        <InfoIcon size={16} />
+        <InfoIcon size={14} />
       </button>
 
       {isOpen && (
@@ -89,7 +84,6 @@ export default function Help({ title, children, learnMoreHref }) {
             position: 'fixed',
             inset: 0,
             background: 'rgba(0, 0, 0, 0.72)',
-            backdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'center',
@@ -106,25 +100,25 @@ export default function Help({ title, children, learnMoreHref }) {
               background: colors.surface,
               color: colors.text,
               borderRadius: '20px 20px 0 0',
-              padding: '10px 20px max(24px, env(safe-area-inset-bottom)) 20px',
+              padding: '8px 24px max(28px, env(safe-area-inset-bottom)) 24px',
               width: '100%',
-              maxWidth: 520,
-              boxShadow: '0 -12px 48px rgba(0, 0, 0, 0.4)',
+              maxWidth: 440,
+              boxShadow: '0 -12px 48px rgba(0, 0, 0, 0.45)',
               borderTop: `1px solid ${colors.borderSubtle}`,
               animation: 'helpSlide 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
               maxHeight: '85vh',
               overflowY: 'auto',
+              fontFamily: fonts.body,
             }}
           >
-            {/* Grab handle */}
             <div
               aria-hidden="true"
               style={{
-                width: 40,
+                width: 36,
                 height: 4,
                 background: colors.border,
                 borderRadius: 2,
-                margin: '6px auto 18px',
+                margin: '6px auto 16px',
               }}
             />
             <div
@@ -133,18 +127,19 @@ export default function Help({ title, children, learnMoreHref }) {
                 alignItems: 'flex-start',
                 justifyContent: 'space-between',
                 gap: 12,
-                marginBottom: 12,
+                marginBottom: 10,
               }}
             >
               <h3
                 id="help-title"
                 style={{
                   fontFamily: fonts.display,
-                  fontSize: 22,
-                  fontWeight: 600,
+                  fontSize: 20,
+                  fontWeight: 400,
                   color: colors.text,
                   lineHeight: 1.2,
                   margin: 0,
+                  letterSpacing: '-0.01em',
                 }}
               >
                 {title}
@@ -157,29 +152,23 @@ export default function Help({ title, children, learnMoreHref }) {
                   background: colors.surfaceHover,
                   border: 'none',
                   borderRadius: '50%',
-                  width: 36,
-                  height: 36,
+                  width: 30,
+                  height: 30,
                   cursor: 'pointer',
                   color: colors.textDim,
-                  fontSize: 20,
+                  fontSize: 18,
                   lineHeight: 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
+                  padding: 0,
                 }}
               >
                 {'\u00D7'}
               </button>
             </div>
-            <div
-              style={{
-                fontSize: 15,
-                lineHeight: 1.55,
-                color: colors.textMuted,
-                fontFamily: fonts.body,
-              }}
-            >
+            <div className="wlc-help-body">
               {children}
             </div>
             {learnMoreHref && (
@@ -188,8 +177,8 @@ export default function Help({ title, children, learnMoreHref }) {
                 onClick={close}
                 style={{
                   display: 'inline-block',
-                  marginTop: 16,
-                  fontSize: 14,
+                  marginTop: 14,
+                  fontSize: 13,
                   fontWeight: 600,
                   color: colors.accent,
                   textDecoration: 'none',
@@ -202,6 +191,22 @@ export default function Help({ title, children, learnMoreHref }) {
           <style>{`
             @keyframes helpFade { from { opacity: 0; } to { opacity: 1; } }
             @keyframes helpSlide { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+            .wlc-help-trigger:hover, .wlc-help-trigger:focus-visible {
+              color: ${colors.accent};
+              background: ${colors.surfaceHover};
+              outline: none;
+            }
+            .wlc-help-body {
+              font-size: 13px;
+              line-height: 1.6;
+              color: ${colors.textMuted};
+              font-family: ${fonts.body};
+            }
+            .wlc-help-body p { margin: 0 0 10px; }
+            .wlc-help-body p:last-child { margin-bottom: 0; }
+            .wlc-help-body ul { margin: 0 0 10px; padding-left: 18px; }
+            .wlc-help-body li { margin-bottom: 4px; }
+            .wlc-help-body strong { color: ${colors.text}; font-weight: 600; }
           `}</style>
         </div>
       )}

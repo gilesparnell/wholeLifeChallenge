@@ -139,7 +139,7 @@ export default function Progress() {
         <p style={chartHeadingStyle}>
           Daily Score
           <Help title="Daily Score">
-            <p style={{ marginBottom: 10 }}>
+            <p>
               Your score for each day of the challenge, out of a possible 35. A perfect
               day is 35/35 &mdash; full nutrition score (5) plus all 6 habits completed
               (5 points each).
@@ -175,12 +175,12 @@ export default function Progress() {
         <p style={chartHeadingStyle}>
           Cumulative Score{otherUsers.length > 0 ? ` (vs ${otherUsers.length} ${otherUsers.length === 1 ? 'other' : 'others'})` : ''}
           <Help title="Cumulative Score">
-            <p style={{ marginBottom: 10 }}>
+            <p>
               Your running total across the whole challenge. The dashed line is
               &ldquo;perfect pace&rdquo; &mdash; where you&rsquo;d be if you scored
               35/35 every single day.
             </p>
-            <p style={{ marginBottom: 10 }}>
+            <p>
               Staying above the dashed line means you&rsquo;re on a perfect run. Falling
               below just means there&rsquo;s ground to make up &mdash; not that the
               challenge is lost.
@@ -246,7 +246,7 @@ export default function Progress() {
         <p style={chartHeadingStyle}>
           Habit Breakdown (Weekly)
           <Help title="Habit Breakdown (Weekly)">
-            <p style={{ marginBottom: 10 }}>
+            <p>
               A week-by-week look at which habits you&rsquo;re nailing and which you&rsquo;re
               dropping. Each bar is one week, split by habit.
             </p>
@@ -369,13 +369,13 @@ export default function Progress() {
           <p style={chartHeadingStyle}>
           Recovery &amp; Strain
           <Help title="Recovery & Strain">
-            <p style={{ marginBottom: 10 }}>
+            <p>
               Two lines, two stories. <strong>Recovery</strong> (0&ndash;100) is
               calculated from your How Do You Feel? ratings &mdash; sleep, energy, mood,
               soreness and stress. <strong>Strain</strong> (0&ndash;21) is how physically
               taxing your exercise and mobility work was.
             </p>
-            <p style={{ marginBottom: 10 }}>
+            <p>
               The goal isn&rsquo;t to max one and ignore the other. High strain with
               climbing recovery = adapting well. High strain with falling recovery =
               pump the brakes before you burn out or get injured.
@@ -414,7 +414,7 @@ export default function Progress() {
         <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
           Habit Heatmap
           <Help title="Habit Heatmap">
-            <p style={{ marginBottom: 10 }}>
+            <p>
               A day-by-day grid for each habit across the full challenge. Filled squares
               mean the habit was completed that day; empty squares mean a miss.
             </p>

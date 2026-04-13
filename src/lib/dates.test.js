@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { getDayIndex, formatDate, getToday, getAllDates, CHALLENGE_START, CHALLENGE_DAYS } from './dates'
 
 describe('CHALLENGE_START', () => {
-  it('is 2026-04-12', () => {
-    expect(CHALLENGE_START).toBe('2026-04-12')
+  it('is 2026-04-13 (the real challenge start date)', () => {
+    expect(CHALLENGE_START).toBe('2026-04-13')
   })
 })
 
@@ -14,33 +14,33 @@ describe('CHALLENGE_DAYS', () => {
 })
 
 describe('getDayIndex', () => {
-  it('returns 0 for the challenge start date', () => {
-    expect(getDayIndex('2026-04-12')).toBe(0)
+  it('returns 0 for the challenge start date (2026-04-13)', () => {
+    expect(getDayIndex('2026-04-13')).toBe(0)
   })
 
   it('returns 1 for the day after start', () => {
-    expect(getDayIndex('2026-04-13')).toBe(1)
+    expect(getDayIndex('2026-04-14')).toBe(1)
   })
 
-  it('returns 74 for the last day of the challenge', () => {
-    expect(getDayIndex('2026-06-25')).toBe(74)
+  it('returns 74 for the last day of the 75-day challenge (2026-06-26)', () => {
+    expect(getDayIndex('2026-06-26')).toBe(74)
   })
 
   it('returns negative for dates before the challenge', () => {
-    expect(getDayIndex('2026-04-11')).toBe(-1)
+    expect(getDayIndex('2026-04-12')).toBe(-1)
   })
 
   it('returns > 74 for dates after the challenge', () => {
-    expect(getDayIndex('2026-06-26')).toBe(75)
+    expect(getDayIndex('2026-06-27')).toBe(75)
   })
 })
 
 describe('formatDate', () => {
   it('formats a date as readable string', () => {
-    const result = formatDate('2026-04-12')
-    expect(result).toMatch(/Sun/)
+    const result = formatDate('2026-04-13')
+    expect(result).toMatch(/Mon/)
     expect(result).toMatch(/Apr/)
-    expect(result).toMatch(/12/)
+    expect(result).toMatch(/13/)
   })
 })
 
@@ -57,14 +57,14 @@ describe('getAllDates', () => {
     expect(dates).toHaveLength(75)
   })
 
-  it('starts with the challenge start date', () => {
+  it('starts with the challenge start date (2026-04-13)', () => {
     const dates = getAllDates()
-    expect(dates[0]).toBe('2026-04-12')
+    expect(dates[0]).toBe('2026-04-13')
   })
 
-  it('ends with the challenge end date', () => {
+  it('ends 74 days later (2026-06-26)', () => {
     const dates = getAllDates()
-    expect(dates[74]).toBe('2026-06-25')
+    expect(dates[74]).toBe('2026-06-26')
   })
 
   it('has consecutive dates with no gaps', () => {

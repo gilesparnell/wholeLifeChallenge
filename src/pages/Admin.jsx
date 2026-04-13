@@ -254,7 +254,7 @@ export default function Admin() {
             <div style={{ fontSize: 12, color: colors.textMuted, marginBottom: 4 }}>Start Date</div>
             <input
               type="date"
-              value={config.challengeStart || '2026-04-12'}
+              value={config.challengeStart || DEFAULT_CONFIG.challengeStart}
               onChange={(e) => saveAll({ ...config, challengeStart: e.target.value })}
               style={inputStyle}
             />
