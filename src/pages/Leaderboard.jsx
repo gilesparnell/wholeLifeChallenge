@@ -6,7 +6,7 @@ import { colors, fonts } from '../styles/theme'
 import Help from '../components/Help'
 
 export default function Leaderboard() {
-  const { profile, user } = useAuth()
+  const { profile } = useAuth()
   const [board, setBoard] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)

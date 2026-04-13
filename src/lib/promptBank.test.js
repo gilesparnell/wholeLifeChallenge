@@ -7,7 +7,7 @@ describe('PROMPT_BANK', () => {
   })
 
   it('each prompt has text, source, and tags', () => {
-    PROMPT_BANK.forEach((p, i) => {
+    PROMPT_BANK.forEach((p) => {
       expect(p).toHaveProperty('text', expect.any(String))
       expect(p).toHaveProperty('source', expect.any(String))
       expect(p).toHaveProperty('tags', expect.any(Array))
@@ -77,9 +77,10 @@ describe('getContextAwarePrompt', () => {
   })
 
   it('falls back to day-based prompt when no context tags match', () => {
-    const dayPrompt = getPromptForDay(5)
+    // Baseline: getPromptForDay returns something for day 5
+    expect(getPromptForDay(5)).toHaveProperty('text')
+    // Context-aware should return something too — either matched or fallback
     const contextPrompt = getContextAwarePrompt(5, { nutrition: 5 })
-    // Should return something — either context-matched or fallback
     expect(contextPrompt).toHaveProperty('text')
   })
 })

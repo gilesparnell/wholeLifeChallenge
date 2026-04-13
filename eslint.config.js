@@ -24,6 +24,25 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // These React 19 preview rules are over-cautious for this codebase:
+      //
+      // - set-state-in-effect: fires on any "load from localStorage / fetch
+      //   on mount" pattern, which is normal React. The suggested
+      //   alternative (lazy initial state) can't be used when the value
+      //   depends on async data. Downgrade to warn so CI still fires on
+      //   genuinely bad patterns during dev.
+      //
+      // - react-hooks/immutability: fires on `let x = 0; arr.map(() => x += …)`
+      //   patterns inside render, even when x is declared AFTER any hooks
+      //   and used purely as a scratch accumulator. Downgrade to warn.
+      //
+      // - react-refresh/only-export-components: fires whenever a file
+      //   exports both a component and a hook (every Context file in React).
+      //   Would require splitting Provider / Hook into separate files —
+      //   worth a dedicated refactor, not a blocker. Downgrade to warn.
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-refresh/only-export-components': 'warn',
     },
   },
 ])

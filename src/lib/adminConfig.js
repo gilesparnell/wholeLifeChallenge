@@ -16,12 +16,16 @@ export const getConfig = () => {
       const parsed = JSON.parse(stored)
       return { ...DEFAULT_CONFIG, ...parsed }
     }
-  } catch {}
+  } catch {
+    // localStorage may be unavailable (privacy mode, quota full) — fall back to defaults
+  }
   return { ...DEFAULT_CONFIG }
 }
 
 export const setConfig = (config) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
-  } catch {}
+  } catch {
+    // localStorage may be unavailable — config change is lost but app still works
+  }
 }
