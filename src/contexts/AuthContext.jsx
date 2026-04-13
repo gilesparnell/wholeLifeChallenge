@@ -2,6 +2,11 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import { supabase } from '../lib/supabase'
 import { isEmailAllowed, upsertProfile, getProfileById } from '../lib/profiles'
 import { identifyUser } from '../lib/sentry'
+import {
+  identifyUser as identifyAnalyticsUser,
+  resetUser as resetAnalyticsUser,
+  track as trackAnalytics,
+} from '../lib/analytics'
 
 const AuthContext = createContext(null)
 
@@ -77,6 +82,8 @@ export function AuthProvider({ children }) {
     setUser(authUser)
     setProfile(fullProfile)
     identifyUser({ id: authUser.id, email: authUser.email })
+    identifyAnalyticsUser({ id: authUser.id })
+    trackAnalytics('signed_in', { provider: 'google' })
   }, [])
 
   useEffect(() => {
@@ -214,6 +221,8 @@ export function AuthProvider({ children }) {
     setSession(null)
     setAuthError(null)
     identifyUser({ id: devUser.id, email })
+    identifyAnalyticsUser({ id: devUser.id })
+    trackAnalytics('signed_in', { provider: 'dev' })
   }, [])
 
   const signOut = useCallback(async () => {
@@ -235,6 +244,8 @@ export function AuthProvider({ children }) {
     setAuthError(null)
     setSessionExpired(false)
     identifyUser(null)
+    trackAnalytics('signed_out')
+    resetAnalyticsUser()
   }, [])
 
   const isAdmin = profile?.role === 'admin' && profile?.status === 'active'

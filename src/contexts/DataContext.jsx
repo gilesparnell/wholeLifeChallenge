@@ -4,6 +4,7 @@ import { fetchAllEntries, upsertEntry, clearAllEntries } from '../lib/supabaseSt
 import { updateProfileStats } from '../lib/profiles'
 import { loadAll as localLoadAll, saveDay as localSaveDay, clearAll as localClearAll } from '../lib/dataStore'
 import { createSaveQueue } from '../lib/saveQueue'
+import { track as trackAnalytics } from '../lib/analytics'
 
 const DataContext = createContext(null)
 
@@ -53,6 +54,13 @@ export function DataProvider({ children }) {
     // failed Supabase upsert can't lose the user's edit on tab close.
     localSaveDay(date, dayData)
     setData((prev) => ({ ...prev, [date]: dayData }))
+
+    // Tally how many habit slots were touched so we have something to
+    // analyse without sending the user's content. No date, no text fields.
+    const habitCount = dayData && typeof dayData === 'object'
+      ? Object.keys(dayData).length
+      : 0
+    trackAnalytics('checkin_saved', { habit_count: habitCount, mode: isLocal ? 'local' : 'cloud' })
 
     if (isLocal) {
       return Promise.resolve({ success: true })
