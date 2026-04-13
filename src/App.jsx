@@ -20,6 +20,7 @@ import NotFound from './pages/NotFound'
 const Progress = lazy(() => import('./pages/Progress'))
 const Admin = lazy(() => import('./pages/Admin'))
 const Health = lazy(() => import('./pages/Health'))
+const Changelog = lazy(() => import('./pages/Changelog'))
 
 const PageFallback = () => (
   <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-dim)' }}>
@@ -60,6 +61,7 @@ function App() {
                     <Route path="/info" element={<Info />} />
                     <Route path="/admin" element={<Admin />} />
                     <Route path="/health" element={<Health />} />
+                    <Route path="/changelog" element={<Changelog />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>

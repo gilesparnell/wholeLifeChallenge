@@ -14,6 +14,15 @@ Bump in `package.json` and add a new entry below **before merging the PR**. The 
 
 ---
 
+## [0.10.0] — 2026-04-13
+
+### Added
+- `/changelog` page that renders this file's contents, with h1/h2/h3/bullet list/hr rendering via a tiny custom markdown parser (no new deps)
+- Version footer in the Layout is now a clickable link to `/changelog` — tap the `vX.Y.Z (sha)` string at the bottom of any page to see what's new
+- `X` close button on the changelog page uses `useNavigate(-1)` so it returns to whichever page you came from
+
+---
+
 ## [0.9.6] — 2026-04-13
 
 ### Fixed

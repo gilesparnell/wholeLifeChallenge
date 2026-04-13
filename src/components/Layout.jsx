@@ -189,12 +189,20 @@ export default function Layout({ children }) {
           paddingTop: 16,
           borderTop: `1px solid ${colors.borderSubtle}`,
           textAlign: 'center',
-          fontSize: 10,
-          color: colors.textFaint,
-          letterSpacing: 0.5,
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
         }}>
-          {getDisplayVersion()}
+          <Link
+            to="/changelog"
+            aria-label="View changelog"
+            style={{
+              fontSize: 10,
+              color: colors.textFaint,
+              letterSpacing: 0.5,
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              textDecoration: 'none',
+            }}
+          >
+            {getDisplayVersion()}
+          </Link>
         </div>
       </div>
     </>

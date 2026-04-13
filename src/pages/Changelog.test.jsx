@@ -1,0 +1,95 @@
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  }
+})
+
+// Provide a stub changelog so the page has something deterministic to render.
+vi.mock('../lib/changelogContent', () => ({
+  CHANGELOG_TEXT: `# Changelog
+
+All notable changes.
+
+---
+
+## [0.10.0] — 2026-04-13
+
+### Added
+- A brand new thing
+- Another brand new thing
+
+### Fixed
+- A sneaky bug
+
+---
+
+## [0.9.6] — 2026-04-13
+
+### Fixed
+- iOS safe-area padding
+`,
+}))
+
+import Changelog from './Changelog'
+
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <Changelog />
+    </MemoryRouter>
+  )
+
+describe('Changelog page', () => {
+  it('renders the Changelog h1 heading', () => {
+    renderPage()
+    expect(screen.getByRole('heading', { level: 1, name: /changelog/i })).toBeDefined()
+  })
+
+  it('renders the latest version heading', () => {
+    renderPage()
+    expect(screen.getByText(/\[0\.10\.0\]/)).toBeDefined()
+  })
+
+  it('renders the previous version heading below the latest one', () => {
+    renderPage()
+    const headings = screen.getAllByRole('heading', { level: 2 })
+    const texts = headings.map((h) => h.textContent)
+    const latestIndex = texts.findIndex((t) => t.includes('0.10.0'))
+    const previousIndex = texts.findIndex((t) => t.includes('0.9.6'))
+    expect(latestIndex).toBeGreaterThanOrEqual(0)
+    expect(previousIndex).toBeGreaterThan(latestIndex)
+  })
+
+  it('renders section headings (Added, Fixed) for the latest version', () => {
+    renderPage()
+    const headings = screen.getAllByRole('heading', { level: 3 })
+    const texts = headings.map((h) => h.textContent)
+    expect(texts).toContain('Added')
+    expect(texts).toContain('Fixed')
+  })
+
+  it('renders the bullet list items', () => {
+    renderPage()
+    expect(screen.getByText('A brand new thing')).toBeDefined()
+    expect(screen.getByText('Another brand new thing')).toBeDefined()
+    expect(screen.getByText('A sneaky bug')).toBeDefined()
+  })
+
+  it('renders a close button', () => {
+    renderPage()
+    expect(screen.getByRole('button', { name: /close|back/i })).toBeDefined()
+  })
+
+  it('navigates back when the close button is clicked', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /close|back/i }))
+    expect(mockNavigate).toHaveBeenCalledWith(-1)
+  })
+})
