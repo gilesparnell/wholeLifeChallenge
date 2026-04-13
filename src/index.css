@@ -1,3 +1,13 @@
+/*
+  Palette is WCAG AA compliant for body text (4.5:1) against page bg and
+  surface unless otherwise noted. Contrast ratios verified 2026-04-12 —
+  see docs/audits/2026-04-12-wcag-contrast-audit.md.
+
+  --colour-text-invisible is decorative only (below AA) — never use for text.
+  --colour-accent on light bg is ~3:1 — OK for large text (18pt+) and non-text
+  UI only. For body/helper text use --colour-text or --colour-text-dim.
+*/
+
 /* Theme: Light (default) */
 :root,
 [data-theme='light'] {
@@ -6,18 +16,18 @@
   --color-surface-hover: #f0eee9;
   --color-border: #e0dcd6;
   --color-border-subtle: #d5d0c9;
-  --color-text: #1a1a1a;
-  --color-text-muted: #555555;
-  --color-text-dim: #666666;
-  --color-text-faint: #777777;
-  --color-text-ghost: #999999;
-  --color-text-invisible: #bbbbbb;
-  --color-accent: #E8634A;
-  --color-blue: #2E8BC0;
-  --color-green: #2E9E5A;
-  --color-orange: #C87F2A;
-  --color-purple: #6B5CE7;
-  --color-pink: #D14A7A;
+  --color-text: #1a1a1a;          /* 15.7:1 */
+  --color-text-muted: #555555;    /* 6.7:1  */
+  --color-text-dim: #666666;      /* 5.2:1  */
+  --color-text-faint: #6a6a6a;    /* 4.9:1  — AA floor for small text */
+  --color-text-ghost: #6a6a6a;    /* collapsed with faint — was 2.6:1 (fail) */
+  --color-text-invisible: #bbbbbb;/* decorative only — NOT for text */
+  --color-accent: #E8634A;        /* 3.0:1 — large/UI only */
+  --color-blue: #1e6f9e;          /* 5.0:1 */
+  --color-green: #1f7a43;         /* 5.2:1 */
+  --color-orange: #9e5a00;        /* 4.8:1 — was #C87F2A (2.9:1) */
+  --color-purple: #5d4dd4;        /* 5.5:1 — was #6B5CE7 (4.4:1) */
+  --color-pink: #b03a64;          /* 5.2:1 — was #D14A7A (3.8:1) */
   --color-nutrition-good: #d4edda;
   --color-nutrition-mid: #fff3cd;
   --color-nutrition-bad: #f8d7da;
@@ -33,18 +43,18 @@
   --color-surface-hover: #1e1e22;
   --color-border: #1e1e22;
   --color-border-subtle: #2a2a2e;
-  --color-text: #f0ebe3;
-  --color-text-muted: #999999;
-  --color-text-dim: #888888;
-  --color-text-faint: #555555;
-  --color-text-ghost: #444444;
-  --color-text-invisible: #333333;
-  --color-accent: #E8634A;
-  --color-blue: #4AAFE8;
-  --color-green: #4AE88A;
-  --color-orange: #E8A34A;
-  --color-purple: #6B5CE7;
-  --color-pink: #E84A8A;
+  --color-text: #f0ebe3;          /* 16.4:1 */
+  --color-text-muted: #999999;    /* 6.8:1  */
+  --color-text-dim: #888888;      /* 5.5:1  */
+  --color-text-faint: #7a7a7a;    /* 4.5:1  — was #555555 (2.6:1) */
+  --color-text-ghost: #7a7a7a;    /* collapsed — was #444444 (2.0:1) */
+  --color-text-invisible: #333333;/* decorative only — NOT for text */
+  --color-accent: #E8634A;        /* 5.8:1 */
+  --color-blue: #4AAFE8;          /* 7.9:1 */
+  --color-green: #4AE88A;         /* 12.2:1 */
+  --color-orange: #E8A34A;        /* 9.0:1 */
+  --color-purple: #8978ff;        /* 5.7:1 — was #6B5CE7 (4.0:1) */
+  --color-pink: #E84A8A;          /* 5.3:1 */
   --color-nutrition-good: #2a4a2a;
   --color-nutrition-mid: #4a3a1a;
   --color-nutrition-bad: #3a1a1a;
