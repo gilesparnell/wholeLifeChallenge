@@ -21,18 +21,18 @@ All notable changes.
 
 ## [0.10.0] — 2026-04-13
 
-### Added
+### What's new
 - A brand new thing
 - Another brand new thing
 
-### Fixed
-- A sneaky bug
+### Under the hood
+- A technical detail
 
 ---
 
 ## [0.9.6] — 2026-04-13
 
-### Fixed
+### What's new
 - iOS safe-area padding
 `,
 }))
@@ -67,19 +67,19 @@ describe('Changelog page', () => {
     expect(previousIndex).toBeGreaterThan(latestIndex)
   })
 
-  it('renders section headings (Added, Fixed) for the latest version', () => {
+  it("renders section headings (What's new, Under the hood) for the latest version", () => {
     renderPage()
     const headings = screen.getAllByRole('heading', { level: 3 })
     const texts = headings.map((h) => h.textContent)
-    expect(texts).toContain('Added')
-    expect(texts).toContain('Fixed')
+    expect(texts).toContain("What's new")
+    expect(texts).toContain('Under the hood')
   })
 
   it('renders the bullet list items', () => {
     renderPage()
     expect(screen.getByText('A brand new thing')).toBeDefined()
     expect(screen.getByText('Another brand new thing')).toBeDefined()
-    expect(screen.getByText('A sneaky bug')).toBeDefined()
+    expect(screen.getByText('A technical detail')).toBeDefined()
   })
 
   it('renders a close button', () => {
