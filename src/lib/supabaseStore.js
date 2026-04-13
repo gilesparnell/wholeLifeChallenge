@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { validateDayData } from './dayDataValidator'
 
 const DEFAULTS = {
   nutrition: 5,
@@ -58,6 +59,14 @@ export async function fetchAllEntries(userId) {
 
 /** Upsert a single day entry */
 export async function upsertEntry(userId, date, dayData) {
+  // Defence in depth: catch out-of-range values here so the user gets a
+  // clear error instead of a generic 400 from PostgREST. The DB still
+  // enforces the same rules via CHECK constraints.
+  const validation = validateDayData(dayData)
+  if (!validation.valid) {
+    return { success: false, error: validation.errors.join('; ') }
+  }
+
   const row = entryToRow(userId, date, dayData)
   const { error } = await supabase
     .from('daily_entries')
