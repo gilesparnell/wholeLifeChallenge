@@ -12,6 +12,7 @@ import CheckIn from './pages/CheckIn'
 import Journal from './pages/Journal'
 import Info from './pages/Info'
 import Leaderboard from './pages/Leaderboard'
+import NotFound from './pages/NotFound'
 
 // Lazy-load Progress (Recharts is ~600KB) and Admin (admin-only, rarely loaded)
 const Progress = lazy(() => import('./pages/Progress'))
@@ -42,6 +43,7 @@ function App() {
                     <Route path="/leaderboard" element={<Leaderboard />} />
                     <Route path="/info" element={<Info />} />
                     <Route path="/admin" element={<Admin />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>
               </ErrorBoundary>
