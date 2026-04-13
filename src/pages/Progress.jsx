@@ -9,6 +9,19 @@ import { fetchLeaderboard, subscribeLeaderboard } from '../lib/leaderboard'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
 import { colors, fonts } from '../styles/theme'
+import Help from '../components/Help'
+
+const chartHeadingStyle = {
+  fontSize: 12,
+  color: colors.textDim,
+  textTransform: 'uppercase',
+  letterSpacing: 2,
+  marginBottom: 12,
+  paddingLeft: 8,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 4,
+}
 
 // Palette for overlay user lines on the cumulative chart.
 const OVERLAY_COLORS = [
@@ -123,7 +136,20 @@ export default function Progress() {
       <div className="wlc-charts-grid">
       {/* Daily Score Chart */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
-        <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingLeft: 8 }}>Daily Score</p>
+        <p style={chartHeadingStyle}>
+          Daily Score
+          <Help title="Daily Score">
+            <p style={{ marginBottom: 10 }}>
+              Your score for each day of the challenge, out of a possible 35. A perfect
+              day is 35/35 &mdash; full nutrition score (5) plus all 6 habits completed
+              (5 points each).
+            </p>
+            <p>
+              Use this chart to spot patterns: are weekends weaker than weekdays? Did
+              travel wreck a particular week? Where are the wins?
+            </p>
+          </Help>
+        </p>
         <ResponsiveContainer width="100%" height={180}>
           <AreaChart data={chartData}>
             <defs>
@@ -146,8 +172,24 @@ export default function Progress() {
 
       {/* Cumulative Score Chart with comparison overlay */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
-        <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingLeft: 8 }}>
+        <p style={chartHeadingStyle}>
           Cumulative Score{otherUsers.length > 0 ? ` (vs ${otherUsers.length} ${otherUsers.length === 1 ? 'other' : 'others'})` : ''}
+          <Help title="Cumulative Score">
+            <p style={{ marginBottom: 10 }}>
+              Your running total across the whole challenge. The dashed line is
+              &ldquo;perfect pace&rdquo; &mdash; where you&rsquo;d be if you scored
+              35/35 every single day.
+            </p>
+            <p style={{ marginBottom: 10 }}>
+              Staying above the dashed line means you&rsquo;re on a perfect run. Falling
+              below just means there&rsquo;s ground to make up &mdash; not that the
+              challenge is lost.
+            </p>
+            <p>
+              If other players are visible, their lines are faded so you can compare
+              without the chart turning into spaghetti. Your line is always the solid one.
+            </p>
+          </Help>
         </p>
         <ResponsiveContainer width="100%" height={200}>
           <ComposedChart data={cumulativeData}>
@@ -201,7 +243,19 @@ export default function Progress() {
 
       {/* Per-Habit Bar Chart (NEW) */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
-        <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingLeft: 8 }}>Habit Breakdown (Weekly)</p>
+        <p style={chartHeadingStyle}>
+          Habit Breakdown (Weekly)
+          <Help title="Habit Breakdown (Weekly)">
+            <p style={{ marginBottom: 10 }}>
+              A week-by-week look at which habits you&rsquo;re nailing and which you&rsquo;re
+              dropping. Each bar is one week, split by habit.
+            </p>
+            <p>
+              Good for spotting your weak link. If the same habit keeps coming up short
+              week after week, that&rsquo;s where the easy points are hiding.
+            </p>
+          </Help>
+        </p>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={weeklyHabitData}>
             <XAxis dataKey="week" tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -224,7 +278,16 @@ export default function Progress() {
         <div className="wlc-charts-grid" style={{ marginTop: 16 }}>
           {/* Weekly Exercise Minutes */}
           <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
-            <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingLeft: 8 }}>Weekly Active Minutes</p>
+            <p style={chartHeadingStyle}>
+              Weekly Active Minutes
+              <Help title="Weekly Active Minutes">
+                <p>
+                  Total minutes of exercise + mobility logged per week. Includes everything
+                  you recorded on the Exercise and Mobilize habit cards. Good sanity-check
+                  that you&rsquo;re not just ticking the box with 5-minute walks.
+                </p>
+              </Help>
+            </p>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={weeklyExercise}>
                 <XAxis dataKey="week" tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -241,7 +304,17 @@ export default function Progress() {
 
           {/* Daily Duration Trend */}
           <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
-            <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingLeft: 8 }}>Duration Trend</p>
+            <p style={chartHeadingStyle}>
+              Duration Trend
+              <Help title="Duration Trend">
+                <p>
+                  Daily session length across the challenge. Use it to check whether
+                  you&rsquo;re building capacity (sessions getting longer) or just holding
+                  steady. A flat line at your minimum is still a win &mdash; consistency
+                  beats heroic one-offs.
+                </p>
+              </Help>
+            </p>
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={durationTrend}>
                 <XAxis dataKey="day" tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -262,7 +335,16 @@ export default function Progress() {
       {/* Activity Type Breakdown */}
       {activityBreakdown.length > 0 && (
         <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
-          <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>Activity Breakdown</p>
+          <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
+            Activity Breakdown
+            <Help title="Activity Breakdown">
+              <p>
+                Which types of exercise you&rsquo;re doing, as a share of total active minutes.
+                Helpful for balancing training &mdash; if it&rsquo;s 95% running, your hips
+                and shoulders are probably screaming for a yoga or mobility session.
+              </p>
+            </Help>
+          </p>
           {activityBreakdown.map(({ type, minutes }) => {
             const maxMin = activityBreakdown[0].minutes
             const pct = Math.round((minutes / maxMin) * 100)
@@ -284,7 +366,25 @@ export default function Progress() {
       {/* Recovery & Strain Chart — only shown when self-report data exists */}
       {hasRecoveryData && (
         <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
-          <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12, paddingLeft: 8 }}>Recovery & Strain</p>
+          <p style={chartHeadingStyle}>
+          Recovery &amp; Strain
+          <Help title="Recovery & Strain">
+            <p style={{ marginBottom: 10 }}>
+              Two lines, two stories. <strong>Recovery</strong> (0&ndash;100) is
+              calculated from your How Do You Feel? ratings &mdash; sleep, energy, mood,
+              soreness and stress. <strong>Strain</strong> (0&ndash;21) is how physically
+              taxing your exercise and mobility work was.
+            </p>
+            <p style={{ marginBottom: 10 }}>
+              The goal isn&rsquo;t to max one and ignore the other. High strain with
+              climbing recovery = adapting well. High strain with falling recovery =
+              pump the brakes before you burn out or get injured.
+            </p>
+            <p>
+              Inspired by the WHOOP model but calculated locally from your own data.
+            </p>
+          </Help>
+        </p>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={recoveryTrend}>
               <XAxis dataKey="day" tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -311,7 +411,20 @@ export default function Progress() {
 
       {/* Habit Heatmap */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
-        <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>Habit Heatmap</p>
+        <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
+          Habit Heatmap
+          <Help title="Habit Heatmap">
+            <p style={{ marginBottom: 10 }}>
+              A day-by-day grid for each habit across the full challenge. Filled squares
+              mean the habit was completed that day; empty squares mean a miss.
+            </p>
+            <p>
+              Patterns jump out fast here &mdash; long streaks look solid, broken streaks
+              look patchy, and missed days cluster around specific weekdays if that&rsquo;s
+              a pattern for you.
+            </p>
+          </Help>
+        </p>
         <div style={{ overflowX: 'auto' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 500 }}>
             {/* Nutrition row */}
@@ -343,7 +456,16 @@ export default function Progress() {
 
       {/* Weekly Totals */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: 16, border: `1px solid ${colors.border}` }}>
-        <p style={{ fontSize: 12, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>Weekly Totals</p>
+        <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
+          Weekly Totals
+          <Help title="Weekly Totals">
+            <p>
+              Your score rolled up by challenge week. Useful when the daily chart gets
+              noisy &mdash; weekly totals smooth out a bad Tuesday and show you the real
+              trajectory.
+            </p>
+          </Help>
+        </p>
         {Array.from({ length: totalWeeks }, (_, i) => i).map((week) => {
           const weekDates = allDates.slice(week * 7, (week + 1) * 7)
           const weekScore = weekDates.reduce((s, d) => s + scoreDay(data[d]), 0)
