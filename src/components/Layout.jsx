@@ -37,13 +37,35 @@ export default function Layout({ children }) {
         .nav-btn { transition: all 0.15s ease; }
         .nav-btn:hover { background: var(--color-surface-hover) !important; }
         textarea:focus, input:focus, select:focus { outline: none; border-color: var(--color-accent) !important; }
-        .wlc-container { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+        /*
+         * Safe-area insets push the app content below the iOS status bar
+         * (clock/signal/wifi/battery) when running as an installed PWA in
+         * standalone mode with apple-mobile-web-app-status-bar-style set
+         * to black-translucent. Without this padding, the iOS status bar
+         * overlays the top of the page and obscures the header buttons.
+         * env(safe-area-inset-*) returns 0 in regular Safari and on
+         * desktop, so it's safe to apply universally.
+         */
+        .wlc-container {
+          max-width: 480px;
+          margin: 0 auto;
+          padding-top: calc(20px + env(safe-area-inset-top));
+          padding-right: calc(16px + env(safe-area-inset-right));
+          padding-bottom: calc(40px + env(safe-area-inset-bottom));
+          padding-left: calc(16px + env(safe-area-inset-left));
+        }
         .wlc-selfreport-grid { display: flex; flex-direction: column; gap: 10px; }
         .wlc-selfreport-row { display: flex; align-items: center; gap: 8px; }
         .wlc-selfreport-label { font-size: 12px; color: var(--color-text-dim); flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
         .wlc-selfreport-scale { display: flex; gap: 4px; flex-shrink: 0; }
         @media (min-width: 768px) {
-          .wlc-container { max-width: 720px; padding: 32px 24px 48px; }
+          .wlc-container {
+            max-width: 720px;
+            padding-top: calc(32px + env(safe-area-inset-top));
+            padding-right: calc(24px + env(safe-area-inset-right));
+            padding-bottom: calc(48px + env(safe-area-inset-bottom));
+            padding-left: calc(24px + env(safe-area-inset-left));
+          }
           .wlc-stats-row { gap: 12px !important; }
           .wlc-habits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
           .wlc-habits-grid > * { margin-bottom: 0 !important; }
