@@ -6,7 +6,7 @@ import { getChallengeDays, getChallengeStartFormatted, getChallengeEndDate } fro
 const IS_DEV = import.meta.env.DEV
 
 export default function AuthGate({ children }) {
-  const { user, loading, signIn, signInAsDev } = useAuth()
+  const { user, loading, sessionExpired, signIn, signInAsDev } = useAuth()
   const [devEmail, setDevEmail] = useState('giles@parnellsystems.com')
 
   if (loading) {
@@ -44,6 +44,25 @@ export default function AuthGate({ children }) {
             {getChallengeStartFormatted()} — {getChallengeEndDate()}
           </p>
         </div>
+
+        {sessionExpired && (
+          <div
+            role="status"
+            style={{
+              maxWidth: 320,
+              padding: '12px 16px',
+              borderRadius: 10,
+              background: 'rgba(232, 163, 74, 0.12)',
+              border: `1px solid rgba(232, 163, 74, 0.35)`,
+              color: colors.orange,
+              fontSize: 13,
+              lineHeight: 1.4,
+              textAlign: 'center',
+            }}
+          >
+            Your session expired. Sign in again to keep saving your check-ins.
+          </div>
+        )}
 
         <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <button
