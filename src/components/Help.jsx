@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { colors, fonts } from '../styles/theme'
 
 const InfoIcon = ({ size = 14 }) => (
@@ -76,7 +77,7 @@ export default function Help({ title, children, learnMoreHref }) {
         <InfoIcon size={14} />
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div
           data-testid="help-backdrop"
           onClick={close}
@@ -89,6 +90,13 @@ export default function Help({ title, children, learnMoreHref }) {
             justifyContent: 'center',
             zIndex: 2000,
             animation: 'helpFade 0.2s ease',
+            // Explicit resets so the portal target's inherited styles
+            // cannot leak into the dialogue even though we're portalled.
+            textTransform: 'none',
+            letterSpacing: 'normal',
+            fontFamily: fonts.body,
+            fontWeight: 400,
+            textAlign: 'left',
           }}
         >
           <div
@@ -208,7 +216,8 @@ export default function Help({ title, children, learnMoreHref }) {
             .wlc-help-body li { margin-bottom: 4px; }
             .wlc-help-body strong { color: ${colors.text}; font-weight: 600; }
           `}</style>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
