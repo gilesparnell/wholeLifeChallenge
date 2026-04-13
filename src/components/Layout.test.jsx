@@ -14,6 +14,10 @@ vi.mock('../contexts/ThemeContext', () => ({
   useTheme: () => ({ theme: 'dark', resolvedTheme: 'dark', toggleTheme: vi.fn() }),
 }))
 
+vi.mock('../contexts/DataContext', () => ({
+  useData: () => ({ saveStatus: { status: 'idle', pendingCount: 0, lastError: null } }),
+}))
+
 describe('Layout', () => {
   it('renders navigation tabs', () => {
     render(

@@ -3,13 +3,26 @@ import { useAuth } from './AuthContext'
 import { fetchAllEntries, upsertEntry, clearAllEntries } from '../lib/supabaseStore'
 import { updateProfileStats } from '../lib/profiles'
 import { loadAll as localLoadAll, saveDay as localSaveDay, clearAll as localClearAll } from '../lib/dataStore'
+import { createSaveQueue } from '../lib/saveQueue'
 
 const DataContext = createContext(null)
+
+const IDLE_STATUS = { status: 'idle', pendingCount: 0, lastError: null }
 
 export function DataProvider({ children }) {
   const { user } = useAuth()
   const [data, setData] = useState({})
   const [loading, setLoading] = useState(true)
+  const [saveStatus, setSaveStatus] = useState(IDLE_STATUS)
+
+  // One queue per provider instance, created lazily on first render.
+  // The lazy useState initialiser runs exactly once per provider lifetime,
+  // so we don't recreate the queue on every render.
+  const [saveQueue] = useState(() => createSaveQueue())
+
+  useEffect(() => {
+    return saveQueue.subscribe(setSaveStatus)
+  }, [saveQueue])
 
   const isLocal = !user?.id || user?.email === 'local'
 
@@ -34,15 +47,19 @@ export function DataProvider({ children }) {
     }
   }, [user, isLocal])
 
-  const saveDay = useCallback(async (date, dayData) => {
+  const saveDay = useCallback((date, dayData) => {
+    // Optimistic update first — UI never blocks on the network.
+    // Always write through to localStorage as a defensive backup so a
+    // failed Supabase upsert can't lose the user's edit on tab close.
+    localSaveDay(date, dayData)
+    setData((prev) => ({ ...prev, [date]: dayData }))
+
     if (isLocal) {
-      const updated = localSaveDay(date, dayData)
-      setData(updated)
-    } else {
-      await upsertEntry(user.id, date, dayData)
-      setData((prev) => ({ ...prev, [date]: dayData }))
+      return Promise.resolve({ success: true })
     }
-  }, [isLocal, user])
+
+    return saveQueue.enqueue(() => upsertEntry(user.id, date, dayData))
+  }, [isLocal, user, saveQueue])
 
   const clearAll = useCallback(async () => {
     // Always wipe local cache (harmless if empty)
@@ -64,7 +81,7 @@ export function DataProvider({ children }) {
   }, [isLocal, user])
 
   return (
-    <DataContext.Provider value={{ data, loading, saveDay, clearAll }}>
+    <DataContext.Provider value={{ data, loading, saveDay, clearAll, saveStatus }}>
       {children}
     </DataContext.Provider>
   )
