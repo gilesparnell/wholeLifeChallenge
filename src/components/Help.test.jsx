@@ -71,4 +71,27 @@ describe('Help', () => {
     const link = screen.getByRole('link', { name: /learn more/i })
     expect(link.getAttribute('href')).toBe('/info#leaderboard')
   })
+
+  it('portals the opened sheet to document.body so it cannot inherit text-transform from its parent', () => {
+    // Reproduces the Progress-page bug: chart heading had
+    // text-transform: uppercase and letter-spacing: 2 which the sheet
+    // inherited because it rendered inside that parent.
+    render(
+      <div data-testid="uppercase-parent" style={{ textTransform: 'uppercase', letterSpacing: '2px' }}>
+        <Help title="Daily Score">Your score for each day.</Help>
+      </div>
+    )
+    fireEvent.click(screen.getByRole('button', { name: /about daily score/i }))
+    const dialog = screen.getByRole('dialog')
+    const parent = screen.getByTestId('uppercase-parent')
+    // The dialogue must not be a descendant of the uppercase parent.
+    expect(parent.contains(dialog)).toBe(false)
+    // Every ancestor of the dialogue up to document.body must be free of
+    // the inherited text-transform.
+    let node = dialog.parentElement
+    while (node && node !== document.body) {
+      expect(node.style.textTransform).not.toBe('uppercase')
+      node = node.parentElement
+    }
+  })
 })
