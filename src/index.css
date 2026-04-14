@@ -63,6 +63,16 @@
   --color-nutrition-bad-text: #E8634A;
 }
 
+/*
+  Disable iOS PWA rubber-band overscroll so the whole app can't be dragged
+  around inside the standalone window. Supported on iOS 16+ Safari and every
+  modern desktop browser; older iOS degrades to the previous behaviour.
+*/
+html,
+body {
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   padding: 0;
