@@ -13,6 +13,7 @@ import {
   calculatePersonalBest,
   projectCumulative,
   calculateWellnessTrends,
+  calculateHeatmapData,
 } from '../lib/progressMetrics'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -25,6 +26,9 @@ import BonusProgress from '../components/progress/BonusProgress'
 import SleepHoursChart from '../components/progress/SleepHoursChart'
 import WellnessSparklines from '../components/progress/WellnessSparklines'
 import HydrationProgressChart from '../components/progress/HydrationProgressChart'
+import CalendarHeatmap from '../components/progress/CalendarHeatmap'
+import RadarWeek from '../components/progress/RadarWeek'
+import RecoveryStrainScatter from '../components/progress/RecoveryStrainScatter'
 
 const chartHeadingStyle = {
   fontSize: 12,
@@ -155,6 +159,8 @@ export default function Progress() {
       return { day: i + 1, ml, hit: ml >= target }
     })
     .filter(Boolean)
+  const heatmapData = calculateHeatmapData(data, allDates, dayIndex, CHALLENGE_DAYS)
+  const currentWeekIndex = Math.max(0, Math.floor(dayIndex / 7))
 
   // Fold the projection line into the cumulative chart data. Every logged
   // day gets projected = null so the line doesn't overlap the real "total"
@@ -526,6 +532,16 @@ export default function Progress() {
           </div>
         </div>
       )}
+
+      {/* Deep dives section — calendar heatmap, week radar, recovery-strain scatter */}
+      <CalendarHeatmap data={heatmapData} />
+      <RadarWeek
+        data={data}
+        allDates={allDates}
+        totalWeeks={totalWeeks}
+        currentWeekIndex={currentWeekIndex}
+      />
+      {hasRecoveryData && <RecoveryStrainScatter trend={recoveryTrend} />}
 
       {/* Habit Heatmap */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
