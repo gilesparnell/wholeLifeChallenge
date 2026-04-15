@@ -1,15 +1,38 @@
 import { useState, useEffect } from 'react'
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, LineChart, Line, ComposedChart } from 'recharts'
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, ReferenceDot, LineChart, Line, ComposedChart } from 'recharts'
 import { HABITS } from '../lib/habits'
 import { scoreDay } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, CHALLENGE_DAYS } from '../lib/dates'
 import { getWeeklyExerciseMinutes, getActivityTypeBreakdown, getDailyDurationTrend } from '../lib/exerciseStats'
 import { getRecoveryTrend } from '../lib/recovery'
 import { fetchLeaderboard, subscribeLeaderboard } from '../lib/leaderboard'
+import { computeBonuses } from '../lib/bonuses'
+import {
+  calculateStatCards,
+  calculateHabitStreaks,
+  calculatePersonalBest,
+  projectCumulative,
+  calculateWellnessTrends,
+  calculateHeatmapData,
+  calculatePeerDelta,
+  calculateCorrelations,
+} from '../lib/progressMetrics'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
+import { getEffectiveConfig } from '../lib/adminConfig'
 import { colors, fonts } from '../styles/theme'
 import Help from '../components/Help'
+import StatCards from '../components/progress/StatCards'
+import StreaksStrip from '../components/progress/StreaksStrip'
+import BonusProgress from '../components/progress/BonusProgress'
+import SleepHoursChart from '../components/progress/SleepHoursChart'
+import WellnessSparklines from '../components/progress/WellnessSparklines'
+import HydrationProgressChart from '../components/progress/HydrationProgressChart'
+import CalendarHeatmap from '../components/progress/CalendarHeatmap'
+import RadarWeek from '../components/progress/RadarWeek'
+import RecoveryStrainScatter from '../components/progress/RecoveryStrainScatter'
+import PeerDeltaChart from '../components/progress/PeerDeltaChart'
+import CorrelationInsights from '../components/progress/CorrelationInsights'
 
 const chartHeadingStyle = {
   fontSize: 12,
@@ -123,6 +146,76 @@ export default function Progress() {
   const recoveryTrend = getRecoveryTrend(data, allDates, dayIndex)
   const hasRecoveryData = recoveryTrend.some((d) => d.recovery != null)
 
+  // --- Progress v2 metrics ---
+  const statCardsData = calculateStatCards(data, allDates, dayIndex, CHALLENGE_DAYS)
+  const habitStreaks = calculateHabitStreaks(data, allDates, dayIndex)
+  const bonuses = computeBonuses(data, allDates, dayIndex)
+  const { bestDay: personalBestDay } = calculatePersonalBest(data, allDates, dayIndex)
+  const projection = projectCumulative(data, allDates, dayIndex, CHALLENGE_DAYS)
+  const wellnessTrends = calculateWellnessTrends(data, allDates, dayIndex)
+  const effectiveConfig = getEffectiveConfig(profile)
+  const hydrationSeries = visibleDates
+    .map((d, i) => {
+      const h = data[d]?.hydrate
+      if (!h || h.current_ml == null) return null
+      const ml = h.current_ml || 0
+      const target = h.target_ml || effectiveConfig.hydrationTargetMl
+      return { day: i + 1, ml, hit: ml >= target }
+    })
+    .filter(Boolean)
+  const heatmapData = calculateHeatmapData(data, allDates, dayIndex, CHALLENGE_DAYS)
+  const currentWeekIndex = Math.max(0, Math.floor(dayIndex / 7))
+
+  // User cumulative derived from the same visibleDates the cumulative chart uses
+  const userCumulative = []
+  {
+    let running = 0
+    for (const d of visibleDates) {
+      running += scoreDay(data[d])
+      userCumulative.push(running)
+    }
+  }
+  const peerDelta = calculatePeerDelta(
+    userCumulative,
+    otherUsers.map((u) => (Array.isArray(u.cumulative_by_day) ? u.cumulative_by_day : []))
+  )
+  const correlations = calculateCorrelations(data, allDates, dayIndex)
+  const enoughDataForCorrelations = dayIndex >= 6
+
+  // Fold the projection line into the cumulative chart data. Every logged
+  // day gets projected = null so the line doesn't overlap the real "total"
+  // line; every future day gets projected = running projection and total
+  // = null so Recharts stops drawing the real total there.
+  const projectedByDay = new Map(projection.projectedSeries.map((p) => [p.day, p.projected]))
+  const cumulativeMaxDay = Math.max(
+    cumulativeData.length,
+    projection.projectedSeries.length > 0
+      ? projection.projectedSeries[projection.projectedSeries.length - 1].day
+      : 0
+  )
+  const cumulativeWithProjection = []
+  for (let day = 1; day <= cumulativeMaxDay; day++) {
+    const existing = cumulativeData[day - 1]
+    if (existing) {
+      cumulativeWithProjection.push({ ...existing, projected: null })
+    } else if (projectedByDay.has(day)) {
+      cumulativeWithProjection.push({
+        day,
+        total: null,
+        perfectPace: day * 35,
+        projected: projectedByDay.get(day),
+      })
+    }
+  }
+  // Anchor the projection line to the last real cumulative point so it
+  // visually starts from where the user actually is right now.
+  if (cumulativeData.length > 0 && projection.projectedSeries.length > 0) {
+    const anchorIdx = cumulativeData.length - 1
+    if (cumulativeWithProjection[anchorIdx]) {
+      cumulativeWithProjection[anchorIdx].projected = cumulativeData[anchorIdx].total
+    }
+  }
+
   if (loading) {
     return <div style={{ textAlign: 'center', padding: 40, color: colors.textDim }}>Loading...</div>
   }
@@ -132,6 +225,10 @@ export default function Progress() {
       <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, marginBottom: 20, textAlign: 'center' }}>
         Your Journey
       </h2>
+
+      <StatCards stats={statCardsData} />
+      <StreaksStrip streaks={habitStreaks} />
+      <BonusProgress bonuses={bonuses} />
 
       <div className="wlc-charts-grid">
       {/* Daily Score Chart */}
@@ -166,8 +263,31 @@ export default function Progress() {
               labelFormatter={(l) => `Day ${l}`}
             />
             <Area type="monotone" dataKey="score" stroke={colors.accent} strokeWidth={2} fill="url(#scoreGrad)" dot={false} />
+            {personalBestDay && personalBestDay.score > 0 && (
+              <ReferenceDot
+                x={personalBestDay.dayNumber}
+                y={personalBestDay.score}
+                r={5}
+                fill={colors.orange}
+                stroke={colors.surface}
+                strokeWidth={2}
+                isFront
+                ifOverflow="extendDomain"
+                label={{
+                  value: '\u2605',
+                  position: 'top',
+                  fill: colors.orange,
+                  fontSize: 14,
+                }}
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
+        {personalBestDay && personalBestDay.score > 0 && (
+          <p style={{ fontSize: 11, color: colors.textFaint, textAlign: 'center', marginTop: 6, paddingBottom: 4 }}>
+            <span style={{ color: colors.orange }}>{'\u2605'}</span> Personal best: day {personalBestDay.dayNumber} &middot; {personalBestDay.score}/35
+          </p>
+        )}
       </div>
 
       {/* Cumulative Score Chart with comparison overlay */}
@@ -192,7 +312,7 @@ export default function Progress() {
           </Help>
         </p>
         <ResponsiveContainer width="100%" height={200}>
-          <ComposedChart data={cumulativeData}>
+          <ComposedChart data={cumulativeWithProjection}>
             <defs>
               <linearGradient id="cumulGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={colors.blue} stopOpacity={0.4} />
@@ -206,6 +326,7 @@ export default function Progress() {
               formatter={(v, name) => {
                 if (name === 'total') return [v, 'You']
                 if (name === 'perfectPace') return [v, 'Perfect pace']
+                if (name === 'projected') return [v, 'At current pace']
                 const userId = name.replace('user_', '')
                 const u = otherUsers.find((x) => x.id === userId)
                 return [v, u?.display_name || 'Player']
@@ -226,9 +347,27 @@ export default function Progress() {
               />
             ))}
             {/* Your line on top */}
-            <Area type="monotone" dataKey="total" stroke={colors.blue} strokeWidth={2.5} fill="url(#cumulGrad)" dot={false} />
+            <Area type="monotone" dataKey="total" stroke={colors.blue} strokeWidth={2.5} fill="url(#cumulGrad)" dot={false} connectNulls={false} />
+            {/* "At current pace" projection — dotted, reads as a forecast */}
+            {projection.projectedSeries.length > 0 && (
+              <Line
+                type="monotone"
+                dataKey="projected"
+                stroke={colors.blue}
+                strokeWidth={1.5}
+                strokeDasharray="3 3"
+                strokeOpacity={0.5}
+                dot={false}
+                connectNulls={true}
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
+        {projection.projectedSeries.length > 0 && (
+          <p style={{ fontSize: 11, color: colors.textFaint, textAlign: 'center', marginTop: 6, paddingBottom: 4 }}>
+            At current pace, finishing on <strong style={{ color: colors.text }}>{projection.projectedTotal}</strong> / {CHALLENGE_DAYS * 35}
+          </p>
+        )}
         {otherUsers.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '4px 8px 4px', justifyContent: 'center' }}>
             <span style={{ fontSize: 11, color: colors.blue, fontWeight: 600 }}>{'\u25CF'} You</span>
@@ -240,6 +379,11 @@ export default function Progress() {
           </div>
         )}
       </div>
+
+      {/* Wellness section — sleep, wellness sparklines, hydration */}
+      <SleepHoursChart trend={wellnessTrends.sleepHours} targetHours={effectiveConfig.sleepTargetHours} />
+      <WellnessSparklines trends={wellnessTrends} />
+      <HydrationProgressChart data={hydrationSeries} effectiveTargetMl={effectiveConfig.hydrationTargetMl} />
 
       {/* Per-Habit Bar Chart (NEW) */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
@@ -409,6 +553,16 @@ export default function Progress() {
         </div>
       )}
 
+      {/* Deep dives section — calendar heatmap, week radar, recovery-strain scatter */}
+      <CalendarHeatmap data={heatmapData} />
+      <RadarWeek
+        data={data}
+        allDates={allDates}
+        totalWeeks={totalWeeks}
+        currentWeekIndex={currentWeekIndex}
+      />
+      {hasRecoveryData && <RecoveryStrainScatter trend={recoveryTrend} />}
+
       {/* Habit Heatmap */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
         <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
@@ -486,6 +640,13 @@ export default function Progress() {
           )
         })}
       </div>
+
+      {/* Insights — peer delta + correlation patterns */}
+      <PeerDeltaChart delta={peerDelta} peerCount={otherUsers.length} />
+      <CorrelationInsights
+        correlations={correlations}
+        enoughData={enoughDataForCorrelations}
+      />
     </div>
   )
 }
