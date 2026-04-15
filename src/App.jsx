@@ -21,6 +21,7 @@ const Progress = lazy(() => import('./pages/Progress'))
 const Admin = lazy(() => import('./pages/Admin'))
 const Health = lazy(() => import('./pages/Health'))
 const Changelog = lazy(() => import('./pages/Changelog'))
+const MyPreferences = lazy(() => import('./pages/MyPreferences'))
 
 const PageFallback = () => (
   <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-dim)' }}>
@@ -60,6 +61,7 @@ function App() {
                     <Route path="/leaderboard" element={<Leaderboard />} />
                     <Route path="/info" element={<Info />} />
                     <Route path="/admin" element={<Admin />} />
+                    <Route path="/preferences" element={<MyPreferences />} />
                     <Route path="/health" element={<Health />} />
                     <Route path="/changelog" element={<Changelog />} />
                     <Route path="*" element={<NotFound />} />

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { HABITS, emptyDay } from '../lib/habits'
 import { scoreDay, calculateStreak, calculateHabitStreak } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
-import { getConfig } from '../lib/adminConfig'
+import { getEffectiveConfig } from '../lib/adminConfig'
 import { computeBonuses, applyAutoBonuses, BONUS_INFO } from '../lib/bonuses'
 import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePreview, computeCumulativeByDay } from '../lib/stats'
 import { calculateRecoveryScore, calculateStrainScore } from '../lib/recovery'
@@ -22,7 +22,9 @@ export default function CheckIn() {
   const { profile } = useAuth()
   const [selectedDate, setSelectedDate] = useState(getToday())
   const [modalOpen, setModalOpen] = useState(null) // 'wellbeing' | 'reflect' | null
-  const config = getConfig()
+  // Effective config layers the user's own preferences over the admin config
+  // so Barney's custom water target flows through to HydrateCard below.
+  const config = getEffectiveConfig(profile)
 
   const today = getToday()
   const dayIndex = getDayIndex(today)

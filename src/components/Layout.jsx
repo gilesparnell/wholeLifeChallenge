@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import { colors, fonts } from '../styles/theme'
 import { getDayIndex, getToday, getChallengeDays, getChallengeStartFormatted, getChallengeEndDate } from '../lib/dates'
 import SaveStatusIndicator from './SaveStatusIndicator'
+import HeaderMenu from './HeaderMenu'
 import { getDisplayVersion } from '../lib/version'
 
 const NAV_ITEMS = [
@@ -86,56 +87,13 @@ export default function Layout({ children }) {
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 28, animation: 'fadeUp 0.5s ease' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            {isAdmin && (
-              <Link
-                to="/admin"
-                aria-label="Admin"
-                title="Admin"
-                style={{
-                  background: 'none', border: 'none', color: colors.purple,
-                  fontSize: 18, cursor: 'pointer', padding: '2px 4px',
-                  textDecoration: 'none', lineHeight: 1,
-                }}
-              >
-                {'\u{1F6E1}\uFE0F'}
-              </Link>
-            )}
-            <a
-              href="https://gilesparnell.github.io/wholeLifeChallenge/user-guide.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="User Guide"
-              title="User Guide"
-              style={{
-                background: 'none', border: 'none', color: colors.textGhost,
-                fontSize: 18, cursor: 'pointer', padding: '2px 4px',
-                textDecoration: 'none', lineHeight: 1,
-              }}
-            >
-              {'\u2139\uFE0F'}
-            </a>
-            <button
-              onClick={toggleTheme}
-              aria-label="Toggle theme"
-              style={{
-                background: 'none', border: 'none', color: colors.textGhost,
-                fontSize: 18, cursor: 'pointer', padding: '2px 4px',
-                transition: 'color 0.2s',
-              }}
-            >
-              {resolvedTheme === 'dark' ? '\u2600\uFE0F' : '\u{1F319}'}
-            </button>
-            {user && (
-              <button
-                onClick={signOut}
-                style={{
-                  background: 'none', border: 'none', color: colors.textGhost,
-                  fontSize: 12, cursor: 'pointer', fontFamily: fonts.body,
-                }}
-              >
-                Sign out
-              </button>
-            )}
+            <HeaderMenu
+              isAdmin={isAdmin}
+              theme={resolvedTheme}
+              onToggleTheme={toggleTheme}
+              onSignOut={signOut}
+              signedIn={!!user}
+            />
           </div>
           <p style={{
             fontSize: 12, letterSpacing: 4, textTransform: 'uppercase',
