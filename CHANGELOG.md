@@ -26,6 +26,35 @@ Each entry is split into:
 
 ---
 
+## [0.11.0] — 16 Apr 2026 — My Preferences + Progress v2
+
+### What's new
+
+- **New "My Preferences" screen.** Tap the new hamburger menu in the top-right of any page and choose "My Preferences" to set your own water target, water tap increment, and sleep target. You don't have to live with the admin default any more — Barney can set his water goal to 2 L even though the admin default is 3 L. The daily check-in automatically uses your values, and the sleep chart draws its target band around your own number.
+- **Header hamburger menu.** The three separate icons in the top-right (admin shield, theme toggle, sign out) have been consolidated into a single hamburger menu. Tap it to get My Preferences, Admin (if you're an admin), User Guide, Toggle theme, and Sign out in one list.
+- **Progress page — redesigned with 13 new visualisations.** The Progress page now opens with a row of headline stat cards (total score, best day, best week, consistency %, longest streak) followed by a per-habit streaks strip with fire emojis, and progress bars toward your next bonus of each type. Then the existing score and cumulative charts — now with a ⭐ on your personal-best day and a dotted "at current pace" projection line to the challenge end date.
+- **Sleep hours, mood / energy / stress / soreness, and hydration** each get their own chart in a new Wellness section — all driven by data the app was already collecting but wasn't showing.
+- **A whole-challenge calendar heatmap**, a **six-axis radar chart** of your week-by-week balance (with a week selector), and a **Recovery × Strain scatter plot** colour-coded by week, all sit in a new Deep Dives section.
+- **You vs Group Average** — a new line chart showing your delta to the rest of the leaderboard over time, with a small info tooltip explaining exactly what data is shared (the same public data that already shows on the leaderboard — nothing new). Positive = you're ahead, negative = there's ground to make up.
+- **Patterns we're seeing** — the Progress page now surfaces correlations it finds in your data ("Days with higher sleep hours had higher nutrition score"). Only shows patterns that are statistically meaningful (|r| > 0.3 over at least 7 days). When there's not enough data yet, it shows a friendly "come back in a week" card instead of an empty void.
+
+### Under the hood
+
+- **`preferences jsonb` column on `profiles`** (migration `20260415000011_add_preferences_to_profiles.sql`, idempotent `DO $$ ... EXCEPTION` block, default `'{}'`). Non-destructive, zero downtime, no backfill. **Must be applied manually in Supabase Dashboard → SQL Editor after merge** — see the PR body for the exact paste-and-run steps.
+- **`src/lib/adminConfig.js`** gains `PERSONALISABLE_KEYS` (the user-overridable whitelist — `hydrationTargetMl`, `hydrationIncrementMl`, `sleepTargetHours`), `sanitisePreferences(input)` (strips non-whitelisted keys, coerces to number, drops out-of-range values), and `getEffectiveConfig(profile)` (merges global + sanitised user prefs). Prevents users from overriding things like `challengeDays` or `exerciseTypes` by hand-crafting a preferences blob.
+- **`src/pages/MyPreferences.jsx`** — form seeded from `profile.preferences` with fallback to the global admin config. Saves via `updateProfile(id, { preferences })` and then calls a new `updateLocalProfile` on the auth context for an optimistic UI update (also used by dev mode which has no DB). Only persists values that differ from the global default — no duplicate storage.
+- **`src/components/HeaderMenu.jsx`** — portal-rendered dropdown with escape-to-close, backdrop click-to-close, and auto-close-on-item-click. 15 unit tests. Replaces the three individual header buttons in `Layout.jsx`.
+- **`src/pages/CheckIn.jsx`** now calls `getEffectiveConfig(profile)` instead of `getConfig()`, so the hydration card's target reflects the user's own preference. The stored `target_ml` on `daily_entries.hydrate` is stamped with the effective target at save time so each daily record honestly reflects what the user was aiming for that day.
+- **`src/lib/progressMetrics.js`** — a brand new pure-function library. `pearson(xs, ys)`, `calculateHabitStreaks`, `calculatePersonalBest`, `calculateConsistency`, `projectCumulative`, `calculateCorrelations`, `calculatePeerDelta`, `calculateRadarWeek`, `calculateHeatmapData`, `calculateStatCards`, `calculateWellnessTrends`. 42 unit tests covering happy / sad / edge cases for every function. No new dependencies — all stats hand-rolled.
+- **Thirteen new Progress components** in `src/components/progress/` — `StatCards`, `StreaksStrip`, `BonusProgress`, `SleepHoursChart`, `WellnessSparklines`, `HydrationProgressChart`, `CalendarHeatmap` (hand-rolled SVG, ~80 lines), `RadarWeek` (Recharts `RadarChart` with week selector), `RecoveryStrainScatter`, `PeerDeltaChart`, `CorrelationInsights`, plus the existing daily score chart augmented with a `ReferenceDot` for the personal best and the cumulative chart augmented with a dashed projection line merged into one data array. 38 new component smoke-render tests covering empty states, insufficient-data branches, and full-render paths.
+- **`src/pages/Progress.jsx`** reorganised into the section order agreed on the plan: stat cards → streaks strip → bonus progress → existing daily/cumulative (now with PB marker + projection) → Wellness → existing habit group → Deep Dives → existing habit heatmap + weekly totals → Insights (peer delta + correlations). Lazy-loaded as before; Recharts tree-shakes the new chart types into the same chunk.
+- **`src/contexts/AuthContext.jsx`** exposes `updateLocalProfile(patch)` as a cheap in-memory optimistic updater. Used by My Preferences and available for any other surface that wants to write to the profile without waiting for a full round-trip.
+- **Test suite growth** — 528 tests before this work, **653 tests after** (+125 tests across 10 new test files).
+- **Bundle impact** — `Progress.js` chunk grew from ~382 kB → 463 kB gzipped 128 kB, reflecting the three new Recharts types (Radar / Scatter / additional Line overlays) and the ~12 new components. Well within reason given the surface area added.
+- **Plan** — the full design / phase / acceptance-criteria doc is in `docs/plans/2026-04-15-001-feat-user-preferences-and-progress-v2-plan.md`.
+
+---
+
 ## [0.10.5] — 15 Apr 2026 — Backfill the /changelog history
 
 ### What's new
