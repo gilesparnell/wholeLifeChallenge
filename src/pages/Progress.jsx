@@ -14,6 +14,8 @@ import {
   projectCumulative,
   calculateWellnessTrends,
   calculateHeatmapData,
+  calculatePeerDelta,
+  calculateCorrelations,
 } from '../lib/progressMetrics'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -29,6 +31,8 @@ import HydrationProgressChart from '../components/progress/HydrationProgressChar
 import CalendarHeatmap from '../components/progress/CalendarHeatmap'
 import RadarWeek from '../components/progress/RadarWeek'
 import RecoveryStrainScatter from '../components/progress/RecoveryStrainScatter'
+import PeerDeltaChart from '../components/progress/PeerDeltaChart'
+import CorrelationInsights from '../components/progress/CorrelationInsights'
 
 const chartHeadingStyle = {
   fontSize: 12,
@@ -161,6 +165,22 @@ export default function Progress() {
     .filter(Boolean)
   const heatmapData = calculateHeatmapData(data, allDates, dayIndex, CHALLENGE_DAYS)
   const currentWeekIndex = Math.max(0, Math.floor(dayIndex / 7))
+
+  // User cumulative derived from the same visibleDates the cumulative chart uses
+  const userCumulative = []
+  {
+    let running = 0
+    for (const d of visibleDates) {
+      running += scoreDay(data[d])
+      userCumulative.push(running)
+    }
+  }
+  const peerDelta = calculatePeerDelta(
+    userCumulative,
+    otherUsers.map((u) => (Array.isArray(u.cumulative_by_day) ? u.cumulative_by_day : []))
+  )
+  const correlations = calculateCorrelations(data, allDates, dayIndex)
+  const enoughDataForCorrelations = dayIndex >= 6
 
   // Fold the projection line into the cumulative chart data. Every logged
   // day gets projected = null so the line doesn't overlap the real "total"
@@ -620,6 +640,13 @@ export default function Progress() {
           )
         })}
       </div>
+
+      {/* Insights — peer delta + correlation patterns */}
+      <PeerDeltaChart delta={peerDelta} peerCount={otherUsers.length} />
+      <CorrelationInsights
+        correlations={correlations}
+        enoughData={enoughDataForCorrelations}
+      />
     </div>
   )
 }
