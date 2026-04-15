@@ -12,14 +12,19 @@ import {
   calculateHabitStreaks,
   calculatePersonalBest,
   projectCumulative,
+  calculateWellnessTrends,
 } from '../lib/progressMetrics'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
+import { getEffectiveConfig } from '../lib/adminConfig'
 import { colors, fonts } from '../styles/theme'
 import Help from '../components/Help'
 import StatCards from '../components/progress/StatCards'
 import StreaksStrip from '../components/progress/StreaksStrip'
 import BonusProgress from '../components/progress/BonusProgress'
+import SleepHoursChart from '../components/progress/SleepHoursChart'
+import WellnessSparklines from '../components/progress/WellnessSparklines'
+import HydrationProgressChart from '../components/progress/HydrationProgressChart'
 
 const chartHeadingStyle = {
   fontSize: 12,
@@ -139,6 +144,17 @@ export default function Progress() {
   const bonuses = computeBonuses(data, allDates, dayIndex)
   const { bestDay: personalBestDay } = calculatePersonalBest(data, allDates, dayIndex)
   const projection = projectCumulative(data, allDates, dayIndex, CHALLENGE_DAYS)
+  const wellnessTrends = calculateWellnessTrends(data, allDates, dayIndex)
+  const effectiveConfig = getEffectiveConfig(profile)
+  const hydrationSeries = visibleDates
+    .map((d, i) => {
+      const h = data[d]?.hydrate
+      if (!h || h.current_ml == null) return null
+      const ml = h.current_ml || 0
+      const target = h.target_ml || effectiveConfig.hydrationTargetMl
+      return { day: i + 1, ml, hit: ml >= target }
+    })
+    .filter(Boolean)
 
   // Fold the projection line into the cumulative chart data. Every logged
   // day gets projected = null so the line doesn't overlap the real "total"
@@ -337,6 +353,11 @@ export default function Progress() {
           </div>
         )}
       </div>
+
+      {/* Wellness section — sleep, wellness sparklines, hydration */}
+      <SleepHoursChart trend={wellnessTrends.sleepHours} targetHours={effectiveConfig.sleepTargetHours} />
+      <WellnessSparklines trends={wellnessTrends} />
+      <HydrationProgressChart data={hydrationSeries} effectiveTargetMl={effectiveConfig.hydrationTargetMl} />
 
       {/* Per-Habit Bar Chart (NEW) */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
