@@ -250,11 +250,19 @@ export function AuthProvider({ children }) {
 
   const isAdmin = profile?.role === 'admin' && profile?.status === 'active'
 
+  // Shallow-merge patch into the in-memory profile. Used by My Preferences
+  // after a successful remote update, and by dev mode where there's no DB.
+  const updateLocalProfile = useCallback((patch) => {
+    if (!patch || typeof patch !== 'object') return
+    setProfile((prev) => (prev ? { ...prev, ...patch } : prev))
+  }, [])
+
   return (
     <AuthContext.Provider value={{
       session, user, profile, loading, authError, sessionExpired,
       signIn, signInAsDev, signOut,
       isAdmin,
+      updateLocalProfile,
     }}>
       {children}
     </AuthContext.Provider>
