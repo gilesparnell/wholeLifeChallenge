@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, LineChart, Line, ComposedChart } from 'recharts'
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, ReferenceDot, LineChart, Line, ComposedChart } from 'recharts'
 import { HABITS } from '../lib/habits'
 import { scoreDay } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, CHALLENGE_DAYS } from '../lib/dates'
@@ -7,7 +7,12 @@ import { getWeeklyExerciseMinutes, getActivityTypeBreakdown, getDailyDurationTre
 import { getRecoveryTrend } from '../lib/recovery'
 import { fetchLeaderboard, subscribeLeaderboard } from '../lib/leaderboard'
 import { computeBonuses } from '../lib/bonuses'
-import { calculateStatCards, calculateHabitStreaks } from '../lib/progressMetrics'
+import {
+  calculateStatCards,
+  calculateHabitStreaks,
+  calculatePersonalBest,
+  projectCumulative,
+} from '../lib/progressMetrics'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
 import { colors, fonts } from '../styles/theme'
@@ -128,10 +133,46 @@ export default function Progress() {
   const recoveryTrend = getRecoveryTrend(data, allDates, dayIndex)
   const hasRecoveryData = recoveryTrend.some((d) => d.recovery != null)
 
-  // --- Progress v2 metrics (phase 4: top-of-page only) ---
+  // --- Progress v2 metrics ---
   const statCardsData = calculateStatCards(data, allDates, dayIndex, CHALLENGE_DAYS)
   const habitStreaks = calculateHabitStreaks(data, allDates, dayIndex)
   const bonuses = computeBonuses(data, allDates, dayIndex)
+  const { bestDay: personalBestDay } = calculatePersonalBest(data, allDates, dayIndex)
+  const projection = projectCumulative(data, allDates, dayIndex, CHALLENGE_DAYS)
+
+  // Fold the projection line into the cumulative chart data. Every logged
+  // day gets projected = null so the line doesn't overlap the real "total"
+  // line; every future day gets projected = running projection and total
+  // = null so Recharts stops drawing the real total there.
+  const projectedByDay = new Map(projection.projectedSeries.map((p) => [p.day, p.projected]))
+  const cumulativeMaxDay = Math.max(
+    cumulativeData.length,
+    projection.projectedSeries.length > 0
+      ? projection.projectedSeries[projection.projectedSeries.length - 1].day
+      : 0
+  )
+  const cumulativeWithProjection = []
+  for (let day = 1; day <= cumulativeMaxDay; day++) {
+    const existing = cumulativeData[day - 1]
+    if (existing) {
+      cumulativeWithProjection.push({ ...existing, projected: null })
+    } else if (projectedByDay.has(day)) {
+      cumulativeWithProjection.push({
+        day,
+        total: null,
+        perfectPace: day * 35,
+        projected: projectedByDay.get(day),
+      })
+    }
+  }
+  // Anchor the projection line to the last real cumulative point so it
+  // visually starts from where the user actually is right now.
+  if (cumulativeData.length > 0 && projection.projectedSeries.length > 0) {
+    const anchorIdx = cumulativeData.length - 1
+    if (cumulativeWithProjection[anchorIdx]) {
+      cumulativeWithProjection[anchorIdx].projected = cumulativeData[anchorIdx].total
+    }
+  }
 
   if (loading) {
     return <div style={{ textAlign: 'center', padding: 40, color: colors.textDim }}>Loading...</div>
@@ -180,8 +221,31 @@ export default function Progress() {
               labelFormatter={(l) => `Day ${l}`}
             />
             <Area type="monotone" dataKey="score" stroke={colors.accent} strokeWidth={2} fill="url(#scoreGrad)" dot={false} />
+            {personalBestDay && personalBestDay.score > 0 && (
+              <ReferenceDot
+                x={personalBestDay.dayNumber}
+                y={personalBestDay.score}
+                r={5}
+                fill={colors.orange}
+                stroke={colors.surface}
+                strokeWidth={2}
+                isFront
+                ifOverflow="extendDomain"
+                label={{
+                  value: '\u2605',
+                  position: 'top',
+                  fill: colors.orange,
+                  fontSize: 14,
+                }}
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
+        {personalBestDay && personalBestDay.score > 0 && (
+          <p style={{ fontSize: 11, color: colors.textFaint, textAlign: 'center', marginTop: 6, paddingBottom: 4 }}>
+            <span style={{ color: colors.orange }}>{'\u2605'}</span> Personal best: day {personalBestDay.dayNumber} &middot; {personalBestDay.score}/35
+          </p>
+        )}
       </div>
 
       {/* Cumulative Score Chart with comparison overlay */}
@@ -206,7 +270,7 @@ export default function Progress() {
           </Help>
         </p>
         <ResponsiveContainer width="100%" height={200}>
-          <ComposedChart data={cumulativeData}>
+          <ComposedChart data={cumulativeWithProjection}>
             <defs>
               <linearGradient id="cumulGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={colors.blue} stopOpacity={0.4} />
@@ -220,6 +284,7 @@ export default function Progress() {
               formatter={(v, name) => {
                 if (name === 'total') return [v, 'You']
                 if (name === 'perfectPace') return [v, 'Perfect pace']
+                if (name === 'projected') return [v, 'At current pace']
                 const userId = name.replace('user_', '')
                 const u = otherUsers.find((x) => x.id === userId)
                 return [v, u?.display_name || 'Player']
@@ -240,9 +305,27 @@ export default function Progress() {
               />
             ))}
             {/* Your line on top */}
-            <Area type="monotone" dataKey="total" stroke={colors.blue} strokeWidth={2.5} fill="url(#cumulGrad)" dot={false} />
+            <Area type="monotone" dataKey="total" stroke={colors.blue} strokeWidth={2.5} fill="url(#cumulGrad)" dot={false} connectNulls={false} />
+            {/* "At current pace" projection — dotted, reads as a forecast */}
+            {projection.projectedSeries.length > 0 && (
+              <Line
+                type="monotone"
+                dataKey="projected"
+                stroke={colors.blue}
+                strokeWidth={1.5}
+                strokeDasharray="3 3"
+                strokeOpacity={0.5}
+                dot={false}
+                connectNulls={true}
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
+        {projection.projectedSeries.length > 0 && (
+          <p style={{ fontSize: 11, color: colors.textFaint, textAlign: 'center', marginTop: 6, paddingBottom: 4 }}>
+            At current pace, finishing on <strong style={{ color: colors.text }}>{projection.projectedTotal}</strong> / {CHALLENGE_DAYS * 35}
+          </p>
+        )}
         {otherUsers.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '4px 8px 4px', justifyContent: 'center' }}>
             <span style={{ fontSize: 11, color: colors.blue, fontWeight: 600 }}>{'\u25CF'} You</span>
