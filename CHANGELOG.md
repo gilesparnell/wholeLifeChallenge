@@ -26,6 +26,20 @@ Each entry is split into:
 
 ---
 
+## [0.10.5] — 15 Apr 2026 — Backfill the /changelog history
+
+### What's new
+
+- The /changelog page now tells the whole story of the app, not just the last couple of weeks. Scroll down past the recent entries and you'll see how the tracker grew from a single-user localStorage prototype on 11 April into the multi-user, leaderboard-backed, production-hardened thing it is now — split into eight coarse phases from `v0.1.0` through `v0.8.0`, each with its own "What's new" and "Under the hood" sections.
+
+### Under the hood
+
+- `CHANGELOG.md` gained eight retroactive entries reconstructed from git history (commits `655dddd` through `c24881d`). Version numbers are synthetic — the project only started tracking semver at `0.9.5` — but the dates and commit SHAs are real, and each entry references the commits it was built from so the mapping back to the git log stays honest.
+- The "pre-existing production hardening baseline" one-liner in the `[0.9.5 → 0.9.6]` entry was trimmed to a pointer at the new `[0.5.0]`, `[0.7.0]`, and `[0.8.0]` entries so the same work isn't documented twice.
+- No code change — but `CHANGELOG.md` is bundled into the JS via Vite's `?raw` import (see `src/lib/changelogContent.js`), so this ships as a real production deploy and earns a patch bump.
+
+---
+
 ## [0.10.4] — 14 Apr 2026 — Stop the iOS PWA rubber-band
 
 ### What's new
@@ -62,7 +76,7 @@ Each entry is split into:
 
 ## [0.9.5 → 0.9.6] — 13 Apr 2026 — First tracked release
 
-First version that was production-hardened end-to-end. Reflects "almost at a stable 1.0", with the remaining gap being the optional GDPR / privacy / cookie items (only relevant if the app opens beyond its current 4-user whitelist).
+First version that was actually embedded in the app, displayed in the footer, and tagged as a release. Reflects "almost at a stable 1.0" — the production-hardening work in the entries below had all landed, and what remained was the optional GDPR / privacy / cookie items (only relevant if the app opens beyond its current 4-user whitelist).
 
 ### What's new
 
@@ -78,4 +92,138 @@ First version that was production-hardened end-to-end. Reflects "almost at a sta
 - `src/lib/version.js` exposes `getVersion`, `getShortVersion`, `getSemver`, `getBuildTime`, `getDisplayVersion` — all reading from build-time globals.
 - `env(safe-area-inset-*)` padding added to `.wlc-container` on all four sides (both mobile and desktop media queries) so iOS Dynamic Island / notch / home-indicator regions don't overlap app content. Root cause: `index.html` sets `apple-mobile-web-app-status-bar-style="black-translucent"` + `viewport-fit=cover`, which tells iOS the app draws under the status bar — and the app is expected to add the inset padding itself.
 - First service worker shipped (`public/sw.js`) with stale-while-revalidate for HTML/JS/CSS/fonts/icons and bypass for Supabase/PostHog/Sentry. Update detection was broken in this initial version — fully fixed in the `[0.10.0 → 0.10.3]` range above.
-- Pre-existing production hardening baseline rolled into this release: Sentry error tracking with `ignoreErrors` filter, daily Supabase backup GitHub Action, RLS security audit + cascade-delete trigger, React ErrorBoundary with two layers (app-wide + per-route), CI workflow (lint + test + build) on every push/PR, branch protection on master, WCAG AA contrast across both themes, 404 NotFound page, `/health` endpoint, auth expiry banner on the login screen, optimistic save + retry queue + `SaveStatusIndicator`, defensive localStorage backup on every save, CHECK constraints + client validator on `daily_entries`, PostHog product analytics with PII-stripping wrapper.
+- All the production-hardening baseline work (error tracking, backups, RLS, CI, a11y, health, save queue, analytics, …) was already live when this release shipped — see the `[0.5.0]`, `[0.7.0]`, and `[0.8.0]` entries below for the breakdown.
+
+---
+
+## [0.8.0] — 13 Apr 2026 — Reliability and insight
+
+### What's new
+
+- A small save indicator in the corner tells you whether your latest change has synced to the cloud, is still pending, or failed. If you lose signal mid-edit, your changes queue up and flush automatically when you're back online.
+- The login screen now shows a friendly notice when your session has expired, instead of silently bouncing you back to sign-in with no explanation.
+- Basic product analytics so we can see which features actually get used — without any of your personal detail ever leaving the app.
+
+### Under the hood
+
+- Session-expiry banner on the login screen (`329f6d0`, Phase 3 #18) reading `?session=expired` query param from the redirector.
+- Retry queue + `SaveStatusIndicator` (`2561443`, Phase 3 #19) — each daily-entry save goes through an optimistic write, a localStorage backup, and a retry queue that drains on reconnect. Status indicator in the header reflects the queue state.
+- CHECK constraints on `daily_entries` in a new Supabase migration + a matching client-side validator (`2b5cf3b`, Phase 3 #17) so bad values (negative durations, out-of-range scores) can't land in the database from either side.
+- PostHog product analytics wired through `src/lib/analytics.js` — a thin PII-stripping wrapper that drops `email`, `name`, `*_text`, `display_name`, and anything free-text before the event hits the network. `autocapture: false`, `disable_session_recording: true`. User identified by Supabase UUID only (`a7a061b`, Phase 2 #10).
+
+---
+
+## [0.7.0] — 13 Apr 2026 — Production hardening, part 2
+
+### What's new
+
+- Every code change now runs through automated checks (lint, tests, build) before it's allowed to merge, so broken builds can't reach production.
+- Text contrast pass across both light and dark themes so everything meets accessibility guidelines.
+- A proper 404 page when you hit a URL that doesn't exist, instead of a blank screen.
+- A `/health` page that tells you whether the app can reach its backend at a glance.
+
+### Under the hood
+
+- GitHub Actions CI workflow (`466a939`, Phase 2 #9) running `npm ci`, lint, `vitest run`, and `vite build` on every push and PR. Branch protection on master requires the `Lint · Test · Build` check to be green before merge.
+- WCAG AA contrast audit + fixes across both themes (`b433d84`) — Lighthouse-style pass covering text on all surface colours, button states, and disabled controls.
+- 404 NotFound page on unknown routes (`22ad5ab`, Phase 2 #20).
+- `/health` endpoint (`64cff50`, Phase 2 #21) rendering version, build timestamp, and an OK / DOWN status pinged from Supabase.
+
+---
+
+## [0.6.0] — 13 Apr 2026 — Auth deadlock fix and the Help system
+
+### What's new
+
+- Tap any "?" icon to pop up a bottom-sheet explaining what a given metric means and how it's calculated. No more guessing what a number is asking for.
+- The 1–5 self-report scales now say plainly what each number means, instead of just showing a bare slider.
+- A sneaky login deadlock that could leave you stuck on "signing in…" forever is fixed.
+- The challenge start date is correct again after a stray copy-paste moved it.
+
+### Under the hood
+
+- `f7e2222` — two fixes bundled. (1) Broke a re-entrancy deadlock in supabase-js's `navigator.locks`-based auth lock that could wedge `getSession()` forever on some browser/tab-switching patterns. (2) Gated the `handle_new_user` Supabase trigger on the `allowed_emails` whitelist so the whitelist is enforced at the database layer as well as at the app layer.
+- `<Help>` bottom-sheet component + content (`6fb88aa`) and the 1–5 scale clarifications (`e9aa490`).
+- Challenge start date correction + Help component polish (`ce04d9f`).
+- `b4550cc` — the Help dialogue now portals to `document.body` so it doesn't inherit uppercase text transforms from its parent container (the button group that triggers it).
+
+---
+
+## [0.5.0] — 12 Apr 2026 — Production hardening, part 1
+
+### What's new
+
+- When something goes wrong, you'll see a friendly "something went wrong" screen with a reload option, instead of a blank page — and the error gets reported privately so it can be fixed.
+- Your data is backed up automatically every day. If the database ever has a bad day, nothing is lost.
+- A security pass on who can see what in the database so nobody can read another player's data by poking at the API directly.
+
+### Under the hood
+
+- React `ErrorBoundary` wrapping the app and each route (`d36471f`) with two layers — a top-level fallback and per-route fallbacks — so a broken page doesn't take the whole app down.
+- Sentry wired into both the error boundary and the auth flow (`a07c3d1`) with `sendDefaultPii: false` and user identified by Supabase UUID. Later refined with an `ignoreErrors` filter (`8ad515b`) to drop known-benign browser noise so the free-tier quota isn't burned on junk.
+- Daily Supabase backup as a GitHub Actions workflow (`2b88880`) — scheduled job, artefacts uploaded to the workflow run, tested end-to-end with a temporary push trigger that was then removed (`ac5e77f` → `c8e6ad5`).
+- Row-Level Security audit + fixes (`b4b8128`) — RLS policies tightened so `daily_entries`, `profiles`, and related tables can only be read/written by their owner.
+- Profile-delete cascade trigger (`5591db3`) so removing a profile cleans up every table that references it, instead of leaving orphans.
+
+---
+
+## [0.4.0] — 12 Apr 2026 — Onboarding, docs, and first-run polish
+
+### What's new
+
+- A proper onboarding flow for new players — guided setup for your first entry instead of being dropped straight into an empty tracker.
+- A full user guide accessible from a new info icon in the header, plus a project homepage linked from the app title.
+- Info icons with plain-English explanations on each bonus tracker card so you know what each metric is actually asking for.
+- "Board" renamed to "Leader Board" to match how people actually talked about it.
+- Fixed a handful of "stuck on loading" screens that could wedge you if the backend was slow or unreachable.
+- On mobile, the "How do you feel?" section now stacks vertically instead of cramming everything into one row.
+- Spreadsheet links for the three WLC levels (Kickstart / Lifestyle / Performance) so players can check the official rules.
+
+### Under the hood
+
+- Commits `cb488b5` (onboarding flow) through `5873910` (docs links to `wholelifechallenge.parnellsystems.com`).
+- Two important resilience fixes: `b301c8a` added a 6-second timeout safety net to `AuthContext.getSession` so a hanging Supabase call can't wedge the login flow forever, and `23a6aaf` + `8baecb3` added fallback paths so a failed data fetch renders an error state instead of spinning indefinitely.
+- `9adbbaf` fixed `clearAll` so it actually deletes the server-side data via Supabase rather than just clearing localStorage, and hid the sample-data seed in production builds.
+- Header info icon (`4aec7e7`), bonus tracker info icons (`e6e7257`), mobile layout fix (`058a869`), nav rename + Reset removal (`d7809d9`), level spreadsheet links (`b9a7414`).
+
+---
+
+## [0.3.0] — 12 Apr 2026 — Multi-user, leaderboard, and admin
+
+### What's new
+
+- The tracker becomes a group challenge. Invite other players, see who's doing what on a live leaderboard that updates in real-time as entries land.
+- Overlay your progress against another player's to compare week-by-week.
+- New admin screen for managing the group — who's in, who's out, and day-to-day bonus auto-apply rules.
+
+### Under the hood
+
+- `5176c45` — Phase 4 drop: multi-user auth, admin surfaces, leaderboard, and bonus auto-apply rules.
+- `77807e8` — Phase 4 Tier 3: realtime leaderboard via Supabase Realtime subscriptions + a comparison overlay that lets you stack one player's curve on top of another's.
+
+---
+
+## [0.2.0] — 12 Apr 2026 — Cloud sync, themes, and the full v3 metric set
+
+### What's new
+
+- Sign in with your account and your data follows you between devices — no more living inside a single browser.
+- Light and dark theme toggle.
+- Exercise duration tracking, bonus metrics, recovery metrics, and AI-written reflections on how your week has gone.
+
+### Under the hood
+
+- Rolled up from two big drops: `90b9bab` (v2+v3 Phase 1 — Supabase auth, theme system, UX polish) and `b397db1` (v3 Phase 2+3 — exercise duration, bonuses, recovery metrics, AI reflections).
+- Everything moved from localStorage-only to Supabase-backed with localStorage as a fallback cache — the groundwork that made every later feature (leaderboard, retry queue, multi-device) possible.
+
+---
+
+## [0.1.0] — 11 Apr 2026 — Initial build
+
+### What's new
+
+- First version of the tracker. Daily check-in form covering the core Whole Life Challenge metrics, a progress view, and a local-only single-user experience.
+
+### Under the hood
+
+- Vite + React + Tailwind scaffold. No backend yet — state persisted to localStorage. Initial commit: `655dddd`.
