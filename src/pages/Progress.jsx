@@ -6,10 +6,15 @@ import { getDayIndex, getToday, getAllDates, CHALLENGE_DAYS } from '../lib/dates
 import { getWeeklyExerciseMinutes, getActivityTypeBreakdown, getDailyDurationTrend } from '../lib/exerciseStats'
 import { getRecoveryTrend } from '../lib/recovery'
 import { fetchLeaderboard, subscribeLeaderboard } from '../lib/leaderboard'
+import { computeBonuses } from '../lib/bonuses'
+import { calculateStatCards, calculateHabitStreaks } from '../lib/progressMetrics'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
 import { colors, fonts } from '../styles/theme'
 import Help from '../components/Help'
+import StatCards from '../components/progress/StatCards'
+import StreaksStrip from '../components/progress/StreaksStrip'
+import BonusProgress from '../components/progress/BonusProgress'
 
 const chartHeadingStyle = {
   fontSize: 12,
@@ -123,6 +128,11 @@ export default function Progress() {
   const recoveryTrend = getRecoveryTrend(data, allDates, dayIndex)
   const hasRecoveryData = recoveryTrend.some((d) => d.recovery != null)
 
+  // --- Progress v2 metrics (phase 4: top-of-page only) ---
+  const statCardsData = calculateStatCards(data, allDates, dayIndex, CHALLENGE_DAYS)
+  const habitStreaks = calculateHabitStreaks(data, allDates, dayIndex)
+  const bonuses = computeBonuses(data, allDates, dayIndex)
+
   if (loading) {
     return <div style={{ textAlign: 'center', padding: 40, color: colors.textDim }}>Loading...</div>
   }
@@ -132,6 +142,10 @@ export default function Progress() {
       <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, marginBottom: 20, textAlign: 'center' }}>
         Your Journey
       </h2>
+
+      <StatCards stats={statCardsData} />
+      <StreaksStrip streaks={habitStreaks} />
+      <BonusProgress bonuses={bonuses} />
 
       <div className="wlc-charts-grid">
       {/* Daily Score Chart */}
