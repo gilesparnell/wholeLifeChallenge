@@ -26,6 +26,19 @@ Each entry is split into:
 
 ---
 
+## [0.10.4] — 14 Apr 2026 — Stop the iOS PWA rubber-band
+
+### What's new
+
+- On iPhone, opening the app from the home-screen icon no longer lets you drag the whole app around inside the window. The page sits still where it should, the way a native app does.
+
+### Under the hood
+
+- `html, body { overscroll-behavior: none; }` added to `src/index.css`. That's the entire fix — iOS Safari 16+ (standalone PWA mode included) respects the standard `overscroll-behavior` property and disables rubber-band at the root scroller when it's set to `none`. No layout restructuring, no new scroll container, no `position: fixed` body trickery — which keeps keyboard-focus-scroll and document-level scroll working exactly as they did before.
+- The more invasive "lock body and make `#root` the scroller" pattern was considered and rejected: it would change scroll container semantics (with knock-on effects for input focus behaviour on mobile keyboards, back-button scroll restoration, etc.) for no additional benefit in the common case. If a future device surfaces a case the minimal fix doesn't cover, the escalation path is documented in the `src/index.css` comment.
+
+---
+
 ## [0.10.0 → 0.10.3] — 13 Apr 2026 — Changelog page + PWA update flow
 
 ### What's new
