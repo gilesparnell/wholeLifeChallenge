@@ -1,12 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useData, DataProvider } from './DataContext'
+import { getToday } from '../lib/dates'
 
 // Mock AuthContext
 const mockUser = { id: 'user-123', email: 'test@example.com', user_metadata: { full_name: 'Test' } }
 let currentUser = mockUser
+let currentProfile = { id: 'user-123', preferences: {} }
 vi.mock('./AuthContext', () => ({
-  useAuth: () => ({ user: currentUser }),
+  useAuth: () => ({ user: currentUser, profile: currentProfile }),
+}))
+
+// Mock the broadcast sender so we can assert on it
+const sendActivityMock = vi.fn()
+vi.mock('../lib/activityBroadcaster', () => ({
+  sendActivity: (...args) => sendActivityMock(...args),
+  teardown: vi.fn(),
+  getChannel: vi.fn(),
+  ACTIVITY_CHANNEL_NAME: 'activity-celebrations',
+  ACTIVITY_BROADCAST_EVENT: 'activity',
+}))
+
+// Mock the supabase client — non-null truthy value is enough for the
+// broadcast path; sendActivity is mocked anyway.
+vi.mock('../lib/supabase', () => ({
+  supabase: { fake: true },
 }))
 
 // Mock supabaseStore
@@ -44,6 +62,7 @@ describe('DataContext', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     currentUser = mockUser
+    currentProfile = { id: 'user-123', preferences: {} }
     mockFetchAll.mockResolvedValue({})
     mockUpsert.mockResolvedValue({ success: true })
     mockLoadAll.mockReturnValue({})
@@ -256,6 +275,144 @@ describe('DataContext', () => {
 
       expect(mockClearAll).toHaveBeenCalled()
       expect(result.current.data).toEqual({})
+    })
+  })
+
+  describe('activity broadcast on save', () => {
+    const makeDay = (overrides = {}) => ({
+      nutrition: 5,
+      exercise: { completed: false, type: '', duration_minutes: null },
+      mobilize: { completed: false, type: '', duration_minutes: null },
+      sleep: { completed: false, hours: null },
+      hydrate: { completed: false, current_ml: 0, target_ml: 2000 },
+      wellbeing: { completed: false, activity_text: '' },
+      reflect: { completed: false, reflection_text: '' },
+      ...overrides,
+    })
+
+    it('sends an exercise flip when saving today with completed=true', async () => {
+      const today = getToday()
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const day = makeDay({
+        exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+      })
+      await act(async () => {
+        await result.current.saveDay(today, day)
+      })
+
+      expect(sendActivityMock).toHaveBeenCalledTimes(1)
+      const [payload] = sendActivityMock.mock.calls[0]
+      expect(payload).toEqual({
+        activity: 'exercise',
+        exerciseType: 'Running',
+        durationMinutes: 30,
+      })
+    })
+
+    it('sends multiple flips in stable order when several activities complete at once', async () => {
+      const today = getToday()
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const day = makeDay({
+        exercise: { completed: true, type: 'Cycling', duration_minutes: 45 },
+        wellbeing: { completed: true, activity_text: 'yoga' },
+        reflect: { completed: true, reflection_text: 'x' },
+      })
+      await act(async () => {
+        await result.current.saveDay(today, day)
+      })
+
+      expect(sendActivityMock).toHaveBeenCalledTimes(3)
+      const activities = sendActivityMock.mock.calls.map((c) => c[0].activity)
+      expect(activities).toEqual(['exercise', 'wellbeing', 'reflect'])
+    })
+
+    it('does NOT send when saving a past date (back-dated edit)', async () => {
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const day = makeDay({
+        exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+      })
+      await act(async () => {
+        await result.current.saveDay('2020-01-01', day)
+      })
+
+      expect(sendActivityMock).not.toHaveBeenCalled()
+    })
+
+    it('does NOT send in local mode', async () => {
+      currentUser = { email: 'local', user_metadata: { full_name: 'Local User' } }
+      const today = getToday()
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const day = makeDay({
+        exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+      })
+      await act(async () => {
+        await result.current.saveDay(today, day)
+      })
+
+      expect(sendActivityMock).not.toHaveBeenCalled()
+    })
+
+    it('does NOT send when the user has opted out', async () => {
+      currentProfile = { id: 'user-123', preferences: { notificationsEnabled: false } }
+      const today = getToday()
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const day = makeDay({
+        exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+      })
+      await act(async () => {
+        await result.current.saveDay(today, day)
+      })
+
+      expect(sendActivityMock).not.toHaveBeenCalled()
+    })
+
+    it('sends when preferences are the default (no explicit opt-out)', async () => {
+      currentProfile = { id: 'user-123', preferences: {} }
+      const today = getToday()
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const day = makeDay({
+        reflect: { completed: true, reflection_text: 'private' },
+      })
+      await act(async () => {
+        await result.current.saveDay(today, day)
+      })
+
+      expect(sendActivityMock).toHaveBeenCalledTimes(1)
+      expect(sendActivityMock.mock.calls[0][0]).toEqual({ activity: 'reflect' })
+    })
+
+    it('does NOT send when the activity did not flip (already completed)', async () => {
+      const today = getToday()
+      // Seed existing data so prev == next in the second save
+      mockFetchAll.mockResolvedValue({
+        [today]: makeDay({
+          exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+        }),
+      })
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const day = makeDay({
+        exercise: { completed: true, type: 'Running', duration_minutes: 45 },
+      })
+      await act(async () => {
+        await result.current.saveDay(today, day)
+      })
+
+      // duration_minutes changed but completed stayed true — no new flip
+      expect(sendActivityMock).not.toHaveBeenCalled()
     })
   })
 

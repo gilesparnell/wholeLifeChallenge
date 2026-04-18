@@ -47,6 +47,10 @@ describe('DEFAULT_CONFIG', () => {
   it('has a default sleep target in hours', () => {
     expect(DEFAULT_CONFIG.sleepTargetHours).toBe(8)
   })
+
+  it('defaults notifications to ON (opt-out model)', () => {
+    expect(DEFAULT_CONFIG.notificationsEnabled).toBe(true)
+  })
 })
 
 describe('PERSONALISABLE_KEYS', () => {
@@ -55,6 +59,7 @@ describe('PERSONALISABLE_KEYS', () => {
       'hydrationTargetMl',
       'hydrationIncrementMl',
       'sleepTargetHours',
+      'notificationsEnabled',
     ])
   })
 
@@ -123,6 +128,39 @@ describe('sanitisePreferences', () => {
   it('drops NaN values silently', () => {
     expect(sanitisePreferences({ hydrationTargetMl: 'banana' })).toEqual({})
   })
+
+  it('persists an explicit true for boolean preferences', () => {
+    expect(sanitisePreferences({ notificationsEnabled: true })).toEqual({
+      notificationsEnabled: true,
+    })
+  })
+
+  it('persists an explicit false for boolean preferences', () => {
+    expect(sanitisePreferences({ notificationsEnabled: false })).toEqual({
+      notificationsEnabled: false,
+    })
+  })
+
+  it('coerces truthy non-booleans to true for boolean preferences', () => {
+    expect(sanitisePreferences({ notificationsEnabled: 'yes' })).toEqual({
+      notificationsEnabled: true,
+    })
+    expect(sanitisePreferences({ notificationsEnabled: 1 })).toEqual({
+      notificationsEnabled: true,
+    })
+  })
+
+  it('coerces falsy non-booleans to false for boolean preferences', () => {
+    expect(sanitisePreferences({ notificationsEnabled: '' })).toEqual({
+      notificationsEnabled: false,
+    })
+    expect(sanitisePreferences({ notificationsEnabled: 0 })).toEqual({
+      notificationsEnabled: false,
+    })
+    expect(sanitisePreferences({ notificationsEnabled: null })).toEqual({
+      notificationsEnabled: false,
+    })
+  })
 })
 
 describe('getEffectiveConfig', () => {
@@ -188,6 +226,23 @@ describe('getEffectiveConfig', () => {
   it('tolerates garbage preferences without throwing', () => {
     expect(() => getEffectiveConfig({ preferences: 'nope' })).not.toThrow()
     expect(getEffectiveConfig({ preferences: 'nope' })).toEqual(DEFAULT_CONFIG)
+  })
+
+  it('keeps notifications on by default when profile has not overridden', () => {
+    expect(getEffectiveConfig(null).notificationsEnabled).toBe(true)
+    expect(getEffectiveConfig({ preferences: {} }).notificationsEnabled).toBe(
+      true,
+    )
+  })
+
+  it('honours an explicit opt-out on the profile', () => {
+    const profile = { preferences: { notificationsEnabled: false } }
+    expect(getEffectiveConfig(profile).notificationsEnabled).toBe(false)
+  })
+
+  it('honours an explicit opt-in that matches the default', () => {
+    const profile = { preferences: { notificationsEnabled: true } }
+    expect(getEffectiveConfig(profile).notificationsEnabled).toBe(true)
   })
 })
 

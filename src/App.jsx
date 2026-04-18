@@ -8,6 +8,7 @@ import OnboardingGate from './components/OnboardingGate'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import UpdateToast from './components/UpdateToast'
+import ActivityNotifier from './components/ActivityNotifier'
 import { reportError } from './lib/sentry'
 import { registerServiceWorker } from './lib/serviceWorker'
 import CheckIn from './pages/CheckIn'
@@ -50,6 +51,7 @@ function App() {
         <AuthProvider>
           <AuthGate>
             <DataProvider>
+            <ActivityNotifier />
             <OnboardingGate>
             <Layout>
               <ErrorBoundary onError={reportError}>
