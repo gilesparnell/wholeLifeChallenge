@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { substituteBuildId, BUILD_ID_PLACEHOLDER } from './substituteBuildId'
 

@@ -1,3 +1,4 @@
+// @vitest-environment node
 // Regression guard for the PWA viewport meta tag.
 //
 // The installed PWA must not allow pinch-zoom or drag-to-scroll of
