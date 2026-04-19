@@ -8,6 +8,7 @@ import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePrevi
 import { calculateRecoveryScore, calculateStrainScore } from '../lib/recovery'
 import { getContextAwarePrompt } from '../lib/promptBank'
 import { updateProfileStats } from '../lib/profiles'
+import { detectSwipe } from '../lib/swipe'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
 import { colors, fonts } from '../styles/theme'
@@ -71,6 +72,42 @@ export default function CheckIn() {
     if (typeof val === 'boolean') return val
     if (val && typeof val === 'object') return !!val.completed
     return false
+  }
+
+  const shiftDate = (dateStr, days) => {
+    const d = new Date(dateStr + 'T00:00:00')
+    d.setDate(d.getDate() + days)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
+  const goToPrevDay = () => {
+    const prev = shiftDate(selectedDate, -1)
+    if (getDayIndex(prev) >= 0) setSelectedDate(prev)
+  }
+
+  const goToNextDay = () => {
+    const next = shiftDate(selectedDate, 1)
+    if (getDayIndex(next) <= dayIndex && getDayIndex(next) < CHALLENGE_DAYS) setSelectedDate(next)
+  }
+
+  // Horizontal swipe → day navigation (mobile). Vertical / small drags are
+  // ignored so page scroll still works. Logic lives in src/lib/swipe.js;
+  // here we just capture start + end coords and despatch.
+  const touchStartRef = useRef(null)
+  const handleTouchStart = (e) => {
+    const t = e.touches?.[0]
+    if (!t) return
+    touchStartRef.current = { x: t.clientX, y: t.clientY }
+  }
+  const handleTouchEnd = (e) => {
+    const start = touchStartRef.current
+    touchStartRef.current = null
+    if (!start) return
+    const t = e.changedTouches?.[0]
+    if (!t) return
+    const dir = detectSwipe(start.x, start.y, t.clientX, t.clientY)
+    if (dir === 'left') goToNextDay()
+    else if (dir === 'right') goToPrevDay()
   }
 
   const totalScore = calculateTotalScore(data, allDates, dayIndex)
@@ -222,7 +259,11 @@ export default function CheckIn() {
   const modalHabit = modalOpen ? HABITS.find((h) => h.id === modalOpen) : null
 
   return (
-    <div style={{ animation: 'fadeUp 0.4s ease' }}>
+    <div
+      style={{ animation: 'fadeUp 0.4s ease' }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Stats Row */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {[
@@ -263,21 +304,19 @@ export default function CheckIn() {
 
       {/* Date selector */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <button onClick={() => {
-          const d = new Date(selectedDate + 'T00:00:00')
-          d.setDate(d.getDate() - 1)
-          const prev = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-          if (getDayIndex(prev) >= 0) setSelectedDate(prev)
-        }} style={{ background: 'none', border: 'none', color: colors.textDim, fontSize: 20, cursor: 'pointer', padding: '4px 12px' }}>{'\u2190'}</button>
+        <button
+          onClick={goToPrevDay}
+          aria-label="Previous day"
+          style={{ background: 'none', border: 'none', color: colors.textDim, fontSize: 20, cursor: 'pointer', padding: '4px 12px' }}
+        >{'\u2190'}</button>
         <span style={{ fontSize: 14, fontWeight: 600, color: selectedDate === today ? colors.accent : colors.textMuted }}>
           {selectedDate === today ? 'Today' : formatDate(selectedDate)}
         </span>
-        <button onClick={() => {
-          const d = new Date(selectedDate + 'T00:00:00')
-          d.setDate(d.getDate() + 1)
-          const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-          if (getDayIndex(next) <= dayIndex && getDayIndex(next) < CHALLENGE_DAYS) setSelectedDate(next)
-        }} style={{ background: 'none', border: 'none', color: colors.textDim, fontSize: 20, cursor: 'pointer', padding: '4px 12px' }}>{'\u2192'}</button>
+        <button
+          onClick={goToNextDay}
+          aria-label="Next day"
+          style={{ background: 'none', border: 'none', color: colors.textDim, fontSize: 20, cursor: 'pointer', padding: '4px 12px' }}
+        >{'\u2192'}</button>
       </div>
 
       {/* Nutrition */}
