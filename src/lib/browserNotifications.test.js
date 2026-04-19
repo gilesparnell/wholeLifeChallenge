@@ -163,6 +163,7 @@ describe('browserNotifications', () => {
         body: 'Someone special has just completed 30 min of Running',
         tag: 'wlc-activity-exercise-20260419',
         icon: '/icon-192.svg',
+        renotify: true,
       })
     })
 
@@ -308,6 +309,19 @@ describe('browserNotifications', () => {
       expect(ok).toBe(false)
       expect(showSpy).not.toHaveBeenCalled()
       expect(FakeNotification).not.toHaveBeenCalled()
+    })
+
+    it('passes renotify: true through to registration.showNotification (iOS re-alert workaround)', async () => {
+      const FakeNotification = vi.fn()
+      FakeNotification.permission = 'granted'
+      FakeNotification.requestPermission = vi.fn()
+      globalThis.Notification = FakeNotification
+      const { showSpy } = installFakeServiceWorker()
+
+      const mod = await loadModule()
+      await mod.showNotification({ title: 'T', body: 'B', tag: 'a' })
+      const [, optsArg] = showSpy.mock.calls[0]
+      expect(optsArg.renotify).toBe(true)
     })
 
     it('iOS-PWA scenario: constructor missing-ish, SW present → still delivers via SW', async () => {
