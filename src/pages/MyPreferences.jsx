@@ -10,6 +10,7 @@ import {
   getPermission,
   requestPermission,
   isNotificationSupported,
+  showNotification,
 } from '../lib/browserNotifications'
 import { colors, fonts } from '../styles/theme'
 import { track } from '../lib/analytics'
@@ -134,6 +135,26 @@ export default function MyPreferences() {
       updateLocalProfile({ preferences: diff })
       track('self_notify_toggled', { enabled: next })
     }
+
+    // Toggling ON is a user gesture — prompt for browser permission if
+    // it's still default, otherwise showNotification will silently
+    // no-op and the user won't see their own test notifications.
+    if (next && isNotificationSupported() && getPermission() === 'default') {
+      const res = await requestPermission()
+      setPermission(res)
+    }
+  }
+
+  const [testState, setTestState] = useState('idle') // idle | sending | sent | failed
+
+  const handleTestNotification = async () => {
+    setTestState('sending')
+    const ok = await showNotification({
+      title: 'Whole Life Challenge',
+      body: 'Test notification \u2014 if you can see this, notifications are working.',
+      tag: `wlc-test-${Date.now()}`,
+    })
+    setTestState(ok ? 'sent' : 'failed')
   }
 
   const handleGrantPermission = async () => {
@@ -149,6 +170,10 @@ export default function MyPreferences() {
     isNotificationSupported() &&
     permission === 'default'
   const showDeniedHelper = notificationsOn && permission === 'denied'
+  const showTestButton =
+    notificationsOn &&
+    isNotificationSupported() &&
+    permission === 'granted'
 
   return (
     <div>
@@ -255,6 +280,56 @@ export default function MyPreferences() {
             Your browser has blocked notifications for this site. Enable them
             via your browser settings to start receiving celebrations.
           </p>
+        )}
+        {showTestButton && (
+          <div style={{ marginTop: showGrantButton ? 10 : 0 }}>
+            <button
+              type="button"
+              onClick={handleTestNotification}
+              disabled={testState === 'sending'}
+              style={{
+                padding: '8px 12px',
+                background: 'transparent',
+                color: colors.accent,
+                border: `1px solid ${colors.accent}`,
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                fontFamily: fonts.body,
+                cursor: testState === 'sending' ? 'not-allowed' : 'pointer',
+                opacity: testState === 'sending' ? 0.6 : 1,
+              }}
+            >
+              {testState === 'sending' ? 'Sending\u2026' : 'Send test notification'}
+            </button>
+            {testState === 'sent' && (
+              <p
+                role="status"
+                style={{
+                  fontSize: 11,
+                  color: colors.accent,
+                  marginTop: 6,
+                  marginBottom: 0,
+                }}
+              >
+                Sent &mdash; check your device.
+              </p>
+            )}
+            {testState === 'failed' && (
+              <p
+                role="alert"
+                style={{
+                  fontSize: 11,
+                  color: colors.danger || '#dc2626',
+                  marginTop: 6,
+                  marginBottom: 0,
+                }}
+              >
+                Couldn&rsquo;t send the test notification. Permission may have
+                been blocked.
+              </p>
+            )}
+          </div>
         )}
 
         {/* Self-notify (test mode) — shown whenever the top toggle is on */}

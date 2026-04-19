@@ -11,10 +11,12 @@ vi.mock('../lib/profiles', () => ({
 
 const requestPermissionMock = vi.fn()
 const getPermissionMock = vi.fn()
+const showNotificationMock = vi.fn()
 vi.mock('../lib/browserNotifications', () => ({
   isNotificationSupported: () => true,
   getPermission: (...args) => getPermissionMock(...args),
   requestPermission: (...args) => requestPermissionMock(...args),
+  showNotification: (...args) => showNotificationMock(...args),
 }))
 
 const updateLocalProfileMock = vi.fn()
@@ -39,6 +41,8 @@ beforeEach(() => {
   updateLocalProfileMock.mockReset()
   requestPermissionMock.mockReset()
   getPermissionMock.mockReset()
+  showNotificationMock.mockReset()
+  showNotificationMock.mockResolvedValue(true)
   getPermissionMock.mockReturnValue('granted')
   mockProfile = {
     id: 'user-barney',
@@ -266,6 +270,90 @@ describe('MyPreferences', () => {
       const [, patch] = updateProfileMock.mock.calls[0]
       // false matches the global default, so diff drops the key entirely
       expect(patch.preferences.notifyOnOwnActivity).toBeUndefined()
+    })
+
+    it('requests browser permission when toggled ON and permission is default', async () => {
+      getPermissionMock.mockReturnValue('default')
+      requestPermissionMock.mockResolvedValue('granted')
+      updateProfileMock.mockResolvedValue({ ...mockProfile })
+      renderPage()
+      fireEvent.click(screen.getByRole('checkbox', { name: /notify me of my own/i }))
+      await waitFor(() => expect(requestPermissionMock).toHaveBeenCalledOnce())
+    })
+
+    it('does NOT request permission when toggled OFF', async () => {
+      mockProfile = {
+        ...mockProfile,
+        preferences: { notifyOnOwnActivity: true },
+      }
+      getPermissionMock.mockReturnValue('default')
+      updateProfileMock.mockResolvedValue({ ...mockProfile })
+      renderPage()
+      fireEvent.click(screen.getByRole('checkbox', { name: /notify me of my own/i }))
+      await waitFor(() => expect(updateProfileMock).toHaveBeenCalledOnce())
+      expect(requestPermissionMock).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('test notification button', () => {
+    it('is visible when notifications are on and permission is granted', () => {
+      getPermissionMock.mockReturnValue('granted')
+      renderPage()
+      expect(
+        screen.getByRole('button', { name: /send test notification/i }),
+      ).toBeDefined()
+    })
+
+    it('is hidden when permission is default (Grant button shows instead)', () => {
+      getPermissionMock.mockReturnValue('default')
+      renderPage()
+      expect(
+        screen.queryByRole('button', { name: /send test notification/i }),
+      ).toBeNull()
+    })
+
+    it('is hidden when permission is denied', () => {
+      getPermissionMock.mockReturnValue('denied')
+      renderPage()
+      expect(
+        screen.queryByRole('button', { name: /send test notification/i }),
+      ).toBeNull()
+    })
+
+    it('calls showNotification with a test payload when clicked', async () => {
+      getPermissionMock.mockReturnValue('granted')
+      renderPage()
+      fireEvent.click(
+        screen.getByRole('button', { name: /send test notification/i }),
+      )
+      await waitFor(() => expect(showNotificationMock).toHaveBeenCalledOnce())
+      const arg = showNotificationMock.mock.calls[0][0]
+      expect(arg.title).toBeTypeOf('string')
+      expect(arg.body).toMatch(/test|check|working/i)
+    })
+
+    it('shows a confirmation after the test notification is sent successfully', async () => {
+      getPermissionMock.mockReturnValue('granted')
+      showNotificationMock.mockResolvedValue(true)
+      renderPage()
+      fireEvent.click(
+        screen.getByRole('button', { name: /send test notification/i }),
+      )
+      await waitFor(() =>
+        expect(screen.getByText(/sent|check.+device|look at your/i)).toBeDefined(),
+      )
+    })
+
+    it('shows a failure hint when showNotification resolves false', async () => {
+      getPermissionMock.mockReturnValue('granted')
+      showNotificationMock.mockResolvedValue(false)
+      renderPage()
+      fireEvent.click(
+        screen.getByRole('button', { name: /send test notification/i }),
+      )
+      await waitFor(() =>
+        expect(screen.getByText(/couldn.t send|blocked|failed/i)).toBeDefined(),
+      )
     })
   })
 

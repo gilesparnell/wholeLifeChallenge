@@ -26,7 +26,7 @@ Each entry is split into:
 
 ---
 
-## [0.12.0 → 0.13.0] — 19 Apr 2026 — "Someone special" activity notifications
+## [0.12.0 → 0.13.1] — 19 Apr 2026 — "Someone special" activity notifications
 
 ### What's new
 
@@ -36,6 +36,7 @@ Each entry is split into:
 - **Foreground only for now.** Notifications only land when you've got the app open in a tab or installed as a PWA. A follow-up release will layer on true background delivery via the service worker.
 - **New "Also notify me of my own activity" toggle (0.13.0).** A second switch inside the Notifications card on My Preferences echoes your own completions back to your own device. Off by default — this is a solo-QA helper so you can verify the feature works without needing a second person signed in on another browser.
 - **Auto-recovery after app updates (0.13.0).** When a new deploy shipped and an old tab still held the previous `index.html` with stale chunk filenames, the app used to crash with a cryptic "'text/html' is not a valid JavaScript MIME type" error. It now detects that failure mode, unregisters the stale service worker, and reloads itself once so the fresh build takes over. Only falls back to the manual error screen if the reload also fails, preventing loops.
+- **Self-notify fixes + "Send test notification" button (0.13.1).** Flipping the "Also notify me of my own activity" toggle on now requests browser permission in the same click when permission was still `default` (previously the toggle silently persisted but nothing fired because showNotification no-ops without granted permission). A new "Send test notification" button on the Notifications card fires a one-shot test ping whenever permission is granted — no activity required, so you can verify your browser/permission setup in one tap. Shows a "Sent — check your device" confirmation or a "Couldn't send" hint if the browser blocked the call.
 
 ### Under the hood
 
@@ -50,6 +51,7 @@ Each entry is split into:
 - **Test suite growth** — 653 tests after 0.11.0, **739 tests after 0.12.0**, **752 tests after 0.13.0** (+99 tests overall across 6 new test files and several extended).
 - **0.13.0 — self-notify echo.** `src/lib/adminConfig.js` gains a `notifyOnOwnActivity` boolean preference in `PERSONALISABLE_KEYS` + `PREFERENCE_TYPES`. `src/contexts/DataContext.jsx` echoes each flip to `showNotification` locally when the preference is true (gated by browser permission). `src/pages/MyPreferences.jsx` renders a secondary toggle nested inside the Notifications card. New analytics event: `self_notify_toggled`.
 - **0.13.0 — ErrorBoundary chunk-failure auto-recovery.** `src/components/ErrorBoundary.jsx` detects `ChunkLoadError`, the Safari MIME-type error, and the Vite/Webpack "Failed to fetch dynamically imported module" / "Loading chunk X failed" / "Importing a module script failed" messages. On match it unregisters any active service worker and force-reloads the page exactly once per session (sessionStorage marker guards against loops). Repeat crashes fall through to the existing manual UI. 4 new regression tests exercising each failure signature.
+- **0.13.1 — self-notify permission fix + test button.** `handleToggleSelfNotify` in `src/pages/MyPreferences.jsx` now calls `requestPermission()` when the toggle is flipped ON and `getPermission() === 'default'` — mirroring the main `notificationsEnabled` toggle. A new `handleTestNotification` handler + "Send test notification" button calls `showNotification` with a fixed test payload whenever notifications are on and permission is granted. `testState` drives three UI states: idle / sending / sent / failed, with role=status and role=alert feedback lines. 8 new tests across the self-notify permission flow and the test-button lifecycle.
 - **No new dependencies.** Honours the CLAUDE.md "don't add deps without a reason" rule — everything uses `@supabase/supabase-js` (already installed) and browser-native APIs.
 - **Plan** — `docs/plans/2026-04-19-001-feat-activity-push-notifications-beta-plan.md`.
 
