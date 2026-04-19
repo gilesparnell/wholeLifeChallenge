@@ -26,6 +26,23 @@ Each entry is split into:
 
 ---
 
+## [0.15.0] — 19 Apr 2026 — Edit past reflexions + swipe day navigation
+
+### What's new
+
+- **Edit any past reflexion.** The Reflections page now shows a small **Edit** button on every reflexion card for a day you've already lived through. Tap it to re-open the same writing sheet you used on Check In, with the existing text pre-filled — tweak, add, or rewrite, tap Save, and it's persisted straight away. Future-dated days (if any creep into view) stay read-only.
+- **Swipe between days on Check In.** On mobile, drag horizontally across the Check In page to move backwards or forwards through days — swipe from right-to-left for the next day, left-to-right for the previous. The arrow buttons still work; swipe is just a faster gesture for one-handed use. Vertical scrolling is unaffected — the swipe detector only fires when the motion is clearly sideways.
+
+### Under the hood
+
+- **`src/pages/Journal.jsx`** — adds `editDate` state + `<ActivityModal>` reuse. Each past-reflexion card renders an Edit button gated by the same `canEdit` rule CheckIn uses (`getDayIndex(d) >= 0 && getDayIndex(d) <= dayIndex && getDayIndex(d) < CHALLENGE_DAYS`). On save, `saveDay(date, { ...currentDay, reflect: { completed, reflection_text }, reflection })` matches CheckIn's handleModalSave payload exactly so the Supabase round-trip + in-memory shape stay identical. `visibleDates.reverse()` was also switched to `visibleDates.slice().reverse()` to stop mutating the memoised array from `getAllDates()`.
+- **`src/lib/swipe.js` + test** — pure classifier: `detectSwipe(startX, startY, endX, endY)` returns `'left' | 'right' | null`. Minimum horizontal distance is 50px; horizontal must be ≥ 1.5× vertical or we treat the motion as a scroll and bail. 7 unit tests pin the truth table (clean swipes, under-threshold, diagonal-but-horizontal-dominant, mostly-vertical scroll, zero motion, exact-boundary).
+- **`src/pages/CheckIn.jsx`** — extracts `shiftDate`, `goToPrevDay`, `goToNextDay` (identical arithmetic to the previous inline arrow-button handlers), wires them to both the arrows and the new `onTouchStart` / `onTouchEnd` on the page-root `<div>`. `useRef` holds the start coords so no re-render fires on every touchmove. Arrow buttons now carry `aria-label="Previous day" / "Next day"` while we were in there. No dependencies added.
+- **`src/pages/Journal.test.jsx`** — 4 new tests: Edit button renders per editable reflexion, modal opens pre-filled, save dispatches the right `saveDay` payload, overlay click cancels without saving. Existing empty-state + heading tests preserved.
+- Test suite growth on top of 0.14.4's 821 → **832 tests, all passing** (+11 across the swipe helper + Journal edit flow). Bundle impact is negligible — `swipe.js` is a single exported function with no state.
+
+---
+
 ## [0.14.0 → 0.14.4] — 19 Apr 2026 — Multi-activity exercise logging
 
 ### What's new

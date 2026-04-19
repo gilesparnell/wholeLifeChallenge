@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { scoreDay } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
 import { useData } from '../contexts/DataContext'
 import { colors, fonts } from '../styles/theme'
 import Help from '../components/Help'
+import ActivityModal from '../components/modals/ActivityModal'
 
 export default function Journal() {
-  const { data, loading } = useData()
+  const { data, loading, saveDay } = useData()
+  const [editDate, setEditDate] = useState(null)
 
   const today = getToday()
   const dayIndex = getDayIndex(today)
@@ -20,6 +23,23 @@ export default function Journal() {
     if (entry.reflect?.reflection_text) return entry.reflect.reflection_text
     if (entry.reflection) return entry.reflection
     return null
+  }
+
+  // Same edit window as CheckIn: past days that have happened but are
+  // still inside the challenge window are editable. Future days are not.
+  const isDateEditable = (dateStr) => {
+    const i = getDayIndex(dateStr)
+    return i >= 0 && i <= dayIndex && i < CHALLENGE_DAYS
+  }
+
+  const handleSaveReflection = (text) => {
+    if (!editDate) return
+    const currentDay = data[editDate] || {}
+    saveDay(editDate, {
+      ...currentDay,
+      reflect: { completed: text.length > 0, reflection_text: text },
+      reflection: text,
+    })
   }
 
   if (loading) {
@@ -55,18 +75,35 @@ export default function Journal() {
           </p>
         </Help>
       </div>
-      {visibleDates.reverse().map((d) => {
+      {visibleDates.slice().reverse().map((d) => {
         const entry = data[d]
         const text = getReflectionText(entry)
         if (!text) return null
+        const editable = isDateEditable(d)
         return (
           <div key={d} style={{
             background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 10,
             border: `1px solid ${colors.border}`,
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: '#E84A8A' }}>Day {getDayIndex(d) + 1}</span>
-              <span style={{ fontSize: 12, color: colors.textFaint }}>{formatDate(d)}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 12, color: colors.textFaint }}>{formatDate(d)}</span>
+                {editable && (
+                  <button
+                    onClick={() => setEditDate(d)}
+                    aria-label={`Edit reflection for ${formatDate(d)}`}
+                    style={{
+                      background: colors.surfaceHover, border: 'none', borderRadius: 6,
+                      padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                      color: colors.textDim, cursor: 'pointer', fontFamily: fonts.body,
+                      letterSpacing: 0.3,
+                    }}
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
             </div>
             <p style={{ fontSize: 13, color: colors.textMuted, lineHeight: 1.6 }}>{text}</p>
             <div style={{ marginTop: 8, fontSize: 12, color: colors.textGhost }}>Score: {scoreDay(entry)}/35</div>
@@ -78,6 +115,15 @@ export default function Journal() {
           No reflections yet. Write your first one in today's check-in!
         </p>
       )}
+
+      <ActivityModal
+        isOpen={editDate !== null}
+        onClose={() => setEditDate(null)}
+        onSave={handleSaveReflection}
+        title="Edit reflection"
+        placeholder="How did that day go?"
+        initialText={editDate ? getReflectionText(data[editDate]) || '' : ''}
+      />
     </div>
   )
 }
