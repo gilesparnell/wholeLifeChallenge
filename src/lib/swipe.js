@@ -24,3 +24,29 @@ export function detectSwipe(startX, startY, endX, endY) {
   if (absDx < absDy * HORIZONTAL_DOMINANCE_RATIO) return null
   return dx > 0 ? 'right' : 'left'
 }
+
+// Wheel events (trackpad two-finger swipe, horizontal mouse-wheel) arrive
+// as a rapid burst of small deltas rather than a single start/end pair.
+// createWheelSwipeDetector coalesces a burst: every delta resets a quiet
+// timer, and when the user stops wheeling we hand the total delta to
+// detectSwipe. `quietMs` is how long of a pause counts as "gesture over".
+export function createWheelSwipeDetector({ onSwipe, quietMs = 120 }) {
+  let accX = 0
+  let accY = 0
+  let timer = null
+
+  const flush = () => {
+    const dir = detectSwipe(0, 0, accX, accY)
+    accX = 0
+    accY = 0
+    timer = null
+    if (dir) onSwipe(dir)
+  }
+
+  return function push(deltaX, deltaY) {
+    accX += deltaX
+    accY += deltaY
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(flush, quietMs)
+  }
+}

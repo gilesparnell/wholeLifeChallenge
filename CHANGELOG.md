@@ -26,12 +26,14 @@ Each entry is split into:
 
 ---
 
-## [0.15.0] — 19 Apr 2026 — Edit past reflexions + swipe day navigation
+## [0.15.0 → 0.15.1] — 19 Apr 2026 — Edit past reflexions + swipe day navigation
 
 ### What's new
 
 - **Edit any past reflexion.** The Reflections page now shows a small **Edit** button on every reflexion card for a day you've already lived through. Tap it to re-open the same writing sheet you used on Check In, with the existing text pre-filled — tweak, add, or rewrite, tap Save, and it's persisted straight away. Future-dated days (if any creep into view) stay read-only.
 - **Swipe between days on Check In.** On mobile, drag horizontally across the Check In page to move backwards or forwards through days — swipe from right-to-left for the next day, left-to-right for the previous. The arrow buttons still work; swipe is just a faster gesture for one-handed use. Vertical scrolling is unaffected — the swipe detector only fires when the motion is clearly sideways.
+- **Trackpad swipe now works on Mac (0.15.1).** Two-finger horizontal swipe on a Mac trackpad navigates days the same way a touch swipe does on mobile — swipe right on the trackpad to go back, left to go forward. Horizontal mouse-wheel scroll works too. Vertical scrolling still scrolls the page as expected.
+- **Tap the date to jump back to today (0.15.1).** The date label in the middle of the Check In page header is now a button. Whichever day you're looking at, tap/click the label once and you're back on today without having to page through day-by-day.
 
 ### Under the hood
 
@@ -40,6 +42,7 @@ Each entry is split into:
 - **`src/pages/CheckIn.jsx`** — extracts `shiftDate`, `goToPrevDay`, `goToNextDay` (identical arithmetic to the previous inline arrow-button handlers), wires them to both the arrows and the new `onTouchStart` / `onTouchEnd` on the page-root `<div>`. `useRef` holds the start coords so no re-render fires on every touchmove. Arrow buttons now carry `aria-label="Previous day" / "Next day"` while we were in there. No dependencies added.
 - **`src/pages/Journal.test.jsx`** — 4 new tests: Edit button renders per editable reflexion, modal opens pre-filled, save dispatches the right `saveDay` payload, overlay click cancels without saving. Existing empty-state + heading tests preserved.
 - Test suite growth on top of 0.14.4's 821 → **832 tests, all passing** (+11 across the swipe helper + Journal edit flow). Bundle impact is negligible — `swipe.js` is a single exported function with no state.
+- **0.15.1 — trackpad swipe + date-to-today.** New `createWheelSwipeDetector({ onSwipe, quietMs })` factory in `src/lib/swipe.js` coalesces a burst of `wheel` events (one gesture on a Mac trackpad fires dozens) by accumulating deltas and flushing to `detectSwipe(0, 0, accX, accY)` after `quietMs` of inactivity — so a single two-finger swipe registers as one day-nav, not N. `CheckIn.jsx` attaches `onWheel` to the page root, skips the event when `|deltaY| ≥ |deltaX|` so vertical scroll stays untouched, and holds the detector in a `useRef` (initialised inside a mount-only `useEffect` to satisfy React 19's `react-hooks/refs` rule). Navigation handlers route through a `navRef` updated every render so the detector's once-captured `onSwipe` closure always sees the current `selectedDate`. The date label in the date-selector row is now a `<button>` that resets `selectedDate` to today — `aria-label="Jump to today"`, same visual styling. 6 new unit tests with `vi.useFakeTimers()` pin the burst-accumulation truth table (single burst fires once, direction correctness, vertical-dominated ignored, under-threshold ignored, debounce extends on mid-gesture deltas, re-arm after fire). Suite 832 → **838 tests, all passing**. Bundle +~200 bytes gzipped.
 
 ---
 

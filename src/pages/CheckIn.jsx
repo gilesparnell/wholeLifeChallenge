@@ -8,7 +8,7 @@ import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePrevi
 import { calculateRecoveryScore, calculateStrainScore } from '../lib/recovery'
 import { getContextAwarePrompt } from '../lib/promptBank'
 import { updateProfileStats } from '../lib/profiles'
-import { detectSwipe } from '../lib/swipe'
+import { detectSwipe, createWheelSwipeDetector } from '../lib/swipe'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
 import { colors, fonts } from '../styles/theme'
@@ -108,6 +108,31 @@ export default function CheckIn() {
     const dir = detectSwipe(start.x, start.y, t.clientX, t.clientY)
     if (dir === 'left') goToNextDay()
     else if (dir === 'right') goToPrevDay()
+  }
+
+  // Trackpad two-finger horizontal swipe (macOS) + horizontal mouse-wheel
+  // arrive as a burst of wheel events. createWheelSwipeDetector coalesces
+  // them so one gesture navigates one day. The detector is created once
+  // via the lazy useState initialiser so its debounce state survives
+  // re-renders; nav handlers go through navRef so the once-captured
+  // onSwipe closure always sees the latest selectedDate / dayIndex.
+  const navRef = useRef({ goToPrevDay, goToNextDay })
+  useEffect(() => {
+    navRef.current = { goToPrevDay, goToNextDay }
+  })
+  const wheelDetectorRef = useRef(null)
+  useEffect(() => {
+    wheelDetectorRef.current = createWheelSwipeDetector({
+      onSwipe: (dir) => {
+        if (dir === 'left') navRef.current.goToNextDay()
+        else if (dir === 'right') navRef.current.goToPrevDay()
+      },
+    })
+  }, [])
+  const handleWheel = (e) => {
+    // Skip pure vertical scrolls — let the browser handle page scroll.
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return
+    wheelDetectorRef.current?.(e.deltaX, e.deltaY)
   }
 
   const totalScore = calculateTotalScore(data, allDates, dayIndex)
@@ -263,6 +288,7 @@ export default function CheckIn() {
       style={{ animation: 'fadeUp 0.4s ease' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onWheel={handleWheel}
     >
       {/* Stats Row */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
@@ -309,9 +335,18 @@ export default function CheckIn() {
           aria-label="Previous day"
           style={{ background: 'none', border: 'none', color: colors.textDim, fontSize: 20, cursor: 'pointer', padding: '4px 12px' }}
         >{'\u2190'}</button>
-        <span style={{ fontSize: 14, fontWeight: 600, color: selectedDate === today ? colors.accent : colors.textMuted }}>
+        <button
+          onClick={() => setSelectedDate(today)}
+          aria-label="Jump to today"
+          title="Jump to today"
+          style={{
+            background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer',
+            fontSize: 14, fontWeight: 600, fontFamily: fonts.body,
+            color: selectedDate === today ? colors.accent : colors.textMuted,
+          }}
+        >
           {selectedDate === today ? 'Today' : formatDate(selectedDate)}
-        </span>
+        </button>
         <button
           onClick={goToNextDay}
           aria-label="Next day"
