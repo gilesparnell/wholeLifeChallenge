@@ -26,7 +26,7 @@ Each entry is split into:
 
 ---
 
-## [0.14.0] — 19 Apr 2026 — Multi-activity exercise logging
+## [0.14.0 → 0.14.1] — 19 Apr 2026 — Multi-activity exercise logging
 
 ### What's new
 
@@ -35,6 +35,7 @@ Each entry is split into:
 - **Old data still reads correctly.** Days you logged before this update show as a single-entry list. Nothing was lost. Editing such a day re-saves it in the new shape automatically.
 - **Activity celebrations stay calm.** When you log multiple exercises in a single day, only the FIRST one fires a "Someone special has just completed …" notification to the rest of the group — adding extras later is silent so the group's devices don't keep pinging.
 - **Progress totals now sum across entries.** The weekly minutes chart, the activity-type breakdown, the daily duration trend, the recovery × strain calculation — all of them now add up everything you logged that day, not just the first entry.
+- **/changelog page is less cluttered (0.14.1).** The dense "Conventions" preface (versioning rules, entry format, when to extend a range) used to take up the entire first scroll of the page. It's now collapsed behind a single small **Conventions** link near the top — tap it to open a modal with the same content. The latest version entry sits at the top of the page where it should.
 
 ### Under the hood
 
@@ -45,6 +46,7 @@ Each entry is split into:
 - **`src/components/habits/ExerciseCard.jsx` rewritten.** Three modes: `idle` (shows summary + entries + "+ Add another"), `picking-type`, `picking-duration`. On confirm it emits the full new entries array with `completed = entries.length > 0` as the writer invariant. Backward-compat read for legacy rows: a single-entry shape renders correctly and edits save in the new format.
 - **Test suite growth** — 760 tests after 0.13.1, **804 tests after 0.14.0** (+44 across the multi-activity work: helpers in `habits.test.js`, recovery + exerciseStats multi-entry blocks, activityNotifications multi-entry block, ExerciseCard rewrite, progressMetrics multi-entry assertions). Wire-level changes in 2 of 5 source files were caught by RED-then-GREEN cycles, not by accident.
 - **No new dependencies, no schema change, no service-worker change.** Plan: `docs/plans/2026-04-19-002-feat-ios-push-viewport-multi-activity-beta-plan.md`.
+- **0.14.1 — collapsible Conventions on /changelog.** New `src/lib/splitConventionsBlocks.{js,test.js}` walks the parsed block array and slices out the Conventions h2 + body up to (but not including) the next `hr` or `h2`. `src/pages/Changelog.jsx` renders a `Conventions` `<button>` styled as a link instead of inlining the content; clicking opens a bottom-sheet modal (same idiom as `ActivityModal`) with the conventions blocks rendered through the same `Block` component. Backdrop click + × button both close. 6 unit tests for the splitter + 5 page tests covering link visibility, body-not-inlined, modal open/close paths.
 
 ---
 

@@ -1,12 +1,16 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CHANGELOG_TEXT } from '../lib/changelogContent'
 import { parseChangelog } from '../lib/parseChangelog'
 import { annotateChangelogBlocks } from '../lib/annotateChangelogBlocks'
+import { splitConventionsBlocks } from '../lib/splitConventionsBlocks'
 import { colors, fonts } from '../styles/theme'
 
 export default function Changelog() {
   const navigate = useNavigate()
-  const blocks = annotateChangelogBlocks(parseChangelog(CHANGELOG_TEXT))
+  const allBlocks = annotateChangelogBlocks(parseChangelog(CHANGELOG_TEXT))
+  const { before, conventions, after } = splitConventionsBlocks(allBlocks)
+  const [conventionsOpen, setConventionsOpen] = useState(false)
 
   const handleClose = () => navigate(-1)
 
@@ -40,7 +44,113 @@ export default function Changelog() {
         ×
       </button>
 
-      {blocks.map((block, i) => <Block key={i} block={block} />)}
+      {before.map((block, i) => <Block key={`b${i}`} block={block} />)}
+
+      {conventions.length > 0 && (
+        <p style={{ fontSize: 13, color: colors.textDim, margin: '4px 0 8px 0' }}>
+          <button
+            type="button"
+            onClick={() => setConventionsOpen(true)}
+            data-testid="conventions-link"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              color: colors.accent,
+              fontSize: 13,
+              fontFamily: fonts.body,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              fontWeight: 600,
+            }}
+          >
+            Conventions
+          </button>
+          <span style={{ color: colors.textFaint }}> &mdash; how versions and entries are organised.</span>
+        </p>
+      )}
+
+      {after.map((block, i) => <Block key={`a${i}`} block={block} />)}
+
+      {conventionsOpen && (
+        <ConventionsModal
+          blocks={conventions}
+          onClose={() => setConventionsOpen(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+function ConventionsModal({ blocks, onClose }) {
+  return (
+    <div
+      data-testid="conventions-modal-overlay"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        zIndex: 1000,
+      }}
+    >
+      <div
+        data-testid="conventions-modal"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: colors.surface,
+          borderRadius: '20px 20px 0 0',
+          padding: '20px 20px 32px',
+          width: '100%',
+          maxWidth: 480,
+          maxHeight: '80vh',
+          overflowY: 'auto',
+          animation: 'fadeUp 0.3s ease',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 12,
+          }}
+        >
+          <h3
+            style={{
+              fontFamily: fonts.display,
+              fontSize: 20,
+              fontWeight: 400,
+              color: colors.text,
+              margin: 0,
+            }}
+          >
+            Conventions
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            data-testid="conventions-modal-close"
+            aria-label="Close conventions"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: colors.textGhost,
+              fontSize: 20,
+              cursor: 'pointer',
+            }}
+          >
+            {'\u2715'}
+          </button>
+        </div>
+        {/* Drop the conventions h2 itself — the modal already has a Conventions title */}
+        {blocks
+          .filter((b, i) => !(i === 0 && b.type === 'h2'))
+          .map((block, i) => <Block key={`c${i}`} block={block} />)}
+      </div>
     </div>
   )
 }
