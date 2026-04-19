@@ -1,6 +1,6 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest'
-import { detectSwipe, MIN_SWIPE_DISTANCE } from './swipe'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { detectSwipe, MIN_SWIPE_DISTANCE, createWheelSwipeDetector } from './swipe'
 
 describe('detectSwipe', () => {
   it('returns "left" for a clean right-to-left drag', () => {
@@ -35,5 +35,84 @@ describe('detectSwipe', () => {
 
   it('returns null for no movement at all', () => {
     expect(detectSwipe(100, 100, 100, 100)).toBeNull()
+  })
+})
+
+describe('createWheelSwipeDetector', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('accumulates a burst of wheel deltas and fires once after quietMs', () => {
+    const onSwipe = vi.fn()
+    const detector = createWheelSwipeDetector({ onSwipe, quietMs: 120 })
+
+    detector(40, 5)
+    detector(30, 2)
+    detector(40, 1) // accumulated dx = 110, dy = 8 → right
+    expect(onSwipe).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(120)
+    expect(onSwipe).toHaveBeenCalledTimes(1)
+    expect(onSwipe).toHaveBeenCalledWith('right')
+  })
+
+  it('fires "left" for a right-to-left trackpad swipe', () => {
+    const onSwipe = vi.fn()
+    const detector = createWheelSwipeDetector({ onSwipe, quietMs: 100 })
+    detector(-60, 0)
+    detector(-60, 0)
+    vi.advanceTimersByTime(100)
+    expect(onSwipe).toHaveBeenCalledWith('left')
+  })
+
+  it('does nothing when the burst is mostly vertical (scroll, not swipe)', () => {
+    const onSwipe = vi.fn()
+    const detector = createWheelSwipeDetector({ onSwipe, quietMs: 100 })
+    detector(10, 80)
+    detector(15, 120)
+    vi.advanceTimersByTime(100)
+    expect(onSwipe).not.toHaveBeenCalled()
+  })
+
+  it('does nothing when the horizontal accumulation is under the threshold', () => {
+    const onSwipe = vi.fn()
+    const detector = createWheelSwipeDetector({ onSwipe, quietMs: 100 })
+    detector(20, 0)
+    detector(20, 0) // total dx = 40 < MIN_SWIPE_DISTANCE (50)
+    vi.advanceTimersByTime(100)
+    expect(onSwipe).not.toHaveBeenCalled()
+  })
+
+  it('re-arms after firing — a second burst after the quiet period fires again', () => {
+    const onSwipe = vi.fn()
+    const detector = createWheelSwipeDetector({ onSwipe, quietMs: 100 })
+
+    detector(80, 0)
+    vi.advanceTimersByTime(100)
+    expect(onSwipe).toHaveBeenCalledTimes(1)
+    expect(onSwipe).toHaveBeenNthCalledWith(1, 'right')
+
+    detector(-80, 0)
+    vi.advanceTimersByTime(100)
+    expect(onSwipe).toHaveBeenCalledTimes(2)
+    expect(onSwipe).toHaveBeenNthCalledWith(2, 'left')
+  })
+
+  it('a new delta inside the quiet window extends the debounce', () => {
+    // User is still actively swiping — don't fire mid-gesture.
+    const onSwipe = vi.fn()
+    const detector = createWheelSwipeDetector({ onSwipe, quietMs: 100 })
+
+    detector(60, 0)
+    vi.advanceTimersByTime(80) // not yet
+    detector(30, 0) // resets the timer
+    vi.advanceTimersByTime(80) // still 20ms shy of the new quiet window
+    expect(onSwipe).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(20)
+    expect(onSwipe).toHaveBeenCalledWith('right')
   })
 })
