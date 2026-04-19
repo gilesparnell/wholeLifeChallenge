@@ -3,6 +3,36 @@ import { colors, fonts } from '../styles/theme'
 
 const MAX_ERROR_MESSAGE_LENGTH = 240
 
+// SessionStorage marker so a repeated crash does not produce a reload
+// loop. If a reload didn't fix it, we want the user to see the UI and
+// reach the manual Reload / Go home buttons.
+const CHUNK_RELOAD_KEY = 'wlc-chunk-reload-at'
+
+// Detect the various flavours of "I tried to load a JS chunk and got
+// something that isn't JS" across browsers + bundlers. Classic cause:
+// a stale service worker kept the old index.html which references old
+// hashed chunk filenames that no longer exist on the server, so the
+// server returns the SPA fallback HTML with content-type text/html.
+const isChunkLoadFailure = (error) => {
+  if (!error) return false
+  if (error.name === 'ChunkLoadError') return true
+  const msg = String(error.message || '')
+  return (
+    /is not a valid javascript mime type/i.test(msg) ||
+    /failed to fetch dynamically imported module/i.test(msg) ||
+    /loading chunk .* failed/i.test(msg) ||
+    /importing a module script failed/i.test(msg) ||
+    /module script.* mime type/i.test(msg)
+  )
+}
+
+const safeSessionGet = (key) => {
+  try { return window.sessionStorage.getItem(key) } catch { return null }
+}
+const safeSessionSet = (key, value) => {
+  try { window.sessionStorage.setItem(key, value) } catch { /* ignore */ }
+}
+
 /**
  * App-wide error boundary. Catches exceptions thrown during rendering
  * anywhere below it and shows a recoverable fallback UI instead of the
@@ -31,6 +61,28 @@ export default class ErrorBoundary extends Component {
         this.props.onError(error, info)
       } catch {
         /* ignore listener failures */
+      }
+    }
+
+    // Auto-recover from chunk / MIME failures: unregister any SW and
+    // force a fresh reload exactly once per session. If the reload
+    // still crashes, fall through to the manual UI (the sessionStorage
+    // marker prevents an infinite loop).
+    if (isChunkLoadFailure(error) && !safeSessionGet(CHUNK_RELOAD_KEY)) {
+      safeSessionSet(CHUNK_RELOAD_KEY, String(Date.now()))
+      try {
+        if (typeof navigator !== 'undefined' && navigator.serviceWorker?.getRegistrations) {
+          navigator.serviceWorker.getRegistrations()
+            .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+            .catch(() => {})
+            .finally(() => {
+              try { window.location.reload() } catch { /* noop */ }
+            })
+        } else {
+          window.location.reload()
+        }
+      } catch {
+        try { window.location.reload() } catch { /* noop */ }
       }
     }
   }

@@ -227,6 +227,48 @@ describe('MyPreferences', () => {
     })
   })
 
+  describe('self-notify test mode toggle', () => {
+    it('renders the self-notify toggle as OFF by default', () => {
+      renderPage()
+      const toggle = screen.getByRole('checkbox', { name: /notify me of my own/i })
+      expect(toggle.checked).toBe(false)
+    })
+
+    it('renders the toggle as ON when the profile opted in', () => {
+      mockProfile = {
+        ...mockProfile,
+        preferences: { notifyOnOwnActivity: true },
+      }
+      renderPage()
+      const toggle = screen.getByRole('checkbox', { name: /notify me of my own/i })
+      expect(toggle.checked).toBe(true)
+    })
+
+    it('persists { notifyOnOwnActivity: true } immediately when toggled on', async () => {
+      updateProfileMock.mockResolvedValue({ ...mockProfile })
+      renderPage()
+      fireEvent.click(screen.getByRole('checkbox', { name: /notify me of my own/i }))
+      await waitFor(() => expect(updateProfileMock).toHaveBeenCalledOnce())
+      const [id, patch] = updateProfileMock.mock.calls[0]
+      expect(id).toBe('user-barney')
+      expect(patch.preferences.notifyOnOwnActivity).toBe(true)
+    })
+
+    it('persists the opt-out when toggled back off', async () => {
+      mockProfile = {
+        ...mockProfile,
+        preferences: { notifyOnOwnActivity: true },
+      }
+      updateProfileMock.mockResolvedValue({ ...mockProfile })
+      renderPage()
+      fireEvent.click(screen.getByRole('checkbox', { name: /notify me of my own/i }))
+      await waitFor(() => expect(updateProfileMock).toHaveBeenCalledOnce())
+      const [, patch] = updateProfileMock.mock.calls[0]
+      // false matches the global default, so diff drops the key entirely
+      expect(patch.preferences.notifyOnOwnActivity).toBeUndefined()
+    })
+  })
+
   describe('reset to defaults', () => {
     it('clears all overrides when Reset to defaults is clicked', async () => {
       mockProfile = {

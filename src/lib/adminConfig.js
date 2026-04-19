@@ -12,6 +12,10 @@ export const DEFAULT_CONFIG = {
   // the browser Notification permission is a separate gate handled from
   // the /preferences toggle (requires user gesture).
   notificationsEnabled: true,
+  // Test-mode: when true, the sender also sees a local notification for
+  // their own activity flips. Useful for solo QA on a single browser.
+  // Opt-in only — normal "Someone special" framing expects this OFF.
+  notifyOnOwnActivity: false,
 }
 
 // Keys a standard user can override via My Preferences. Everything else
@@ -21,6 +25,7 @@ export const PERSONALISABLE_KEYS = [
   'hydrationIncrementMl',
   'sleepTargetHours',
   'notificationsEnabled',
+  'notifyOnOwnActivity',
 ]
 
 // Type map for sanitisation. Numeric keys carry range checks;
@@ -30,6 +35,7 @@ const PREFERENCE_TYPES = {
   hydrationIncrementMl: 'number',
   sleepTargetHours: 'number',
   notificationsEnabled: 'boolean',
+  notifyOnOwnActivity: 'boolean',
 }
 
 // Range checks for each personalisable field. Values outside the range are

@@ -51,6 +51,10 @@ describe('DEFAULT_CONFIG', () => {
   it('defaults notifications to ON (opt-out model)', () => {
     expect(DEFAULT_CONFIG.notificationsEnabled).toBe(true)
   })
+
+  it('defaults self-notify to OFF (test mode, not a normal UX)', () => {
+    expect(DEFAULT_CONFIG.notifyOnOwnActivity).toBe(false)
+  })
 })
 
 describe('PERSONALISABLE_KEYS', () => {
@@ -60,6 +64,7 @@ describe('PERSONALISABLE_KEYS', () => {
       'hydrationIncrementMl',
       'sleepTargetHours',
       'notificationsEnabled',
+      'notifyOnOwnActivity',
     ])
   })
 

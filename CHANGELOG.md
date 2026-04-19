@@ -26,7 +26,7 @@ Each entry is split into:
 
 ---
 
-## [0.12.0] — 19 Apr 2026 — "Someone special" activity notifications
+## [0.12.0 → 0.13.0] — 19 Apr 2026 — "Someone special" activity notifications
 
 ### What's new
 
@@ -34,6 +34,8 @@ Each entry is split into:
 - **Notifications are on by default.** A new toggle on the My Preferences screen lets you opt out any time. The first time you visit the page after this update, a small "Grant browser permission" button will appear — that's the one-click step needed to actually let your browser deliver the pings.
 - **Only today's wins fire.** If you go back and tick something on yesterday's check-in, nobody gets pinged — the feature celebrates activity as it happens, not historical cleanups.
 - **Foreground only for now.** Notifications only land when you've got the app open in a tab or installed as a PWA. A follow-up release will layer on true background delivery via the service worker.
+- **New "Also notify me of my own activity" toggle (0.13.0).** A second switch inside the Notifications card on My Preferences echoes your own completions back to your own device. Off by default — this is a solo-QA helper so you can verify the feature works without needing a second person signed in on another browser.
+- **Auto-recovery after app updates (0.13.0).** When a new deploy shipped and an old tab still held the previous `index.html` with stale chunk filenames, the app used to crash with a cryptic "'text/html' is not a valid JavaScript MIME type" error. It now detects that failure mode, unregisters the stale service worker, and reloads itself once so the fresh build takes over. Only falls back to the manual error screen if the reload also fails, preventing loops.
 
 ### Under the hood
 
@@ -45,7 +47,9 @@ Each entry is split into:
 - **`src/components/ActivityNotifier.jsx`** — headless subscriber mounted inside `<AuthGate><DataProvider>`. Subscribes to the shared channel while the user is signed in, not in local mode, and has not opted out; tears down on unmount, sign-out, or preference flip-off. On each broadcast it re-checks browser permission (so a mid-session revoke is respected), calls `composeMessage`, and routes to `showNotification`. 11 component tests including the full subscribe / unsubscribe / permission-revoked lifecycle.
 - **`src/pages/MyPreferences.jsx`** — new Notifications card rendered above the existing Targets group. Toggle persists immediately via `updateProfile` rather than waiting for the Save button. Clicking the toggle ON when permission is still `default` fires `requestPermission()` from that click (valid user gesture). A "Grant browser permission" button appears whenever the preference is ON and permission is `default`; a dim helper replaces it on denied. Analytics: new `notifications_toggled` event. 9 new tests.
 - **Architecture note — why realtime-only, not Web Push.** True background Web Push needs VAPID keys, a Supabase Edge Function triggered by a database webhook, a subscription table, and a `push` listener in the service worker. For a four-user whitelisted app this was excessive. The broadcast-channel approach ships zero new dependencies, no schema change, no secrets, and works across Chrome / Safari / Firefox desktop + iOS PWA while the app is in the foreground. The broadcast payload is deliberately shaped so a future Web Push edge function can drop in as a second source without changing the subscriber.
-- **Test suite growth** — 653 tests after 0.11.0, **739 tests after 0.12.0** (+86 tests across 6 new test files; 2 existing test files extended).
+- **Test suite growth** — 653 tests after 0.11.0, **739 tests after 0.12.0**, **752 tests after 0.13.0** (+99 tests overall across 6 new test files and several extended).
+- **0.13.0 — self-notify echo.** `src/lib/adminConfig.js` gains a `notifyOnOwnActivity` boolean preference in `PERSONALISABLE_KEYS` + `PREFERENCE_TYPES`. `src/contexts/DataContext.jsx` echoes each flip to `showNotification` locally when the preference is true (gated by browser permission). `src/pages/MyPreferences.jsx` renders a secondary toggle nested inside the Notifications card. New analytics event: `self_notify_toggled`.
+- **0.13.0 — ErrorBoundary chunk-failure auto-recovery.** `src/components/ErrorBoundary.jsx` detects `ChunkLoadError`, the Safari MIME-type error, and the Vite/Webpack "Failed to fetch dynamically imported module" / "Loading chunk X failed" / "Importing a module script failed" messages. On match it unregisters any active service worker and force-reloads the page exactly once per session (sessionStorage marker guards against loops). Repeat crashes fall through to the existing manual UI. 4 new regression tests exercising each failure signature.
 - **No new dependencies.** Honours the CLAUDE.md "don't add deps without a reason" rule — everything uses `@supabase/supabase-js` (already installed) and browser-native APIs.
 - **Plan** — `docs/plans/2026-04-19-001-feat-activity-push-notifications-beta-plan.md`.
 

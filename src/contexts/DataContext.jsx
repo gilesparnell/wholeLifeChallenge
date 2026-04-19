@@ -5,8 +5,9 @@ import { updateProfileStats } from '../lib/profiles'
 import { loadAll as localLoadAll, saveDay as localSaveDay, clearAll as localClearAll } from '../lib/dataStore'
 import { createSaveQueue } from '../lib/saveQueue'
 import { track as trackAnalytics } from '../lib/analytics'
-import { detectActivityFlips } from '../lib/activityNotifications'
+import { detectActivityFlips, composeMessage, tagFor } from '../lib/activityNotifications'
 import { sendActivity } from '../lib/activityBroadcaster'
+import { showNotification, getPermission, isNotificationSupported } from '../lib/browserNotifications'
 import { supabase } from '../lib/supabase'
 import { getToday } from '../lib/dates'
 
@@ -91,8 +92,22 @@ export function DataProvider({ children }) {
       profileRef.current?.preferences?.notificationsEnabled !== false
     ) {
       const flips = detectActivityFlips(prevDay, dayData)
+      const selfNotify =
+        profileRef.current?.preferences?.notifyOnOwnActivity === true
       for (const flip of flips) {
         sendActivity(flip, supabase)
+        // Test-mode echo: show the notification to the sender too.
+        // Gated by the opt-in pref + real browser permission.
+        if (
+          selfNotify &&
+          isNotificationSupported() &&
+          getPermission() === 'granted'
+        ) {
+          const msg = composeMessage(flip)
+          if (msg) {
+            showNotification({ ...msg, tag: tagFor(flip, date) })
+          }
+        }
       }
     }
 
