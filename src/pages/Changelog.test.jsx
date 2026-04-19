@@ -17,6 +17,21 @@ vi.mock('../lib/changelogContent', () => ({
 
 All notable changes.
 
+## Conventions
+
+### Versioning
+
+- **patch** (0.0.x) — bug fixes
+- **minor** (0.x.0) — new features
+- **major** (x.0.0) — breaking changes
+
+### Entry format
+
+Each entry is split into:
+
+- **What's new** — customer-facing
+- **Under the hood** — technical
+
 ---
 
 ## [0.10.0] — 2026-04-13
@@ -89,7 +104,55 @@ describe('Changelog page', () => {
 
   it('navigates back when the close button is clicked', () => {
     renderPage()
-    fireEvent.click(screen.getByRole('button', { name: /close|back/i }))
+    fireEvent.click(screen.getByRole('button', { name: /close changelog/i }))
     expect(mockNavigate).toHaveBeenCalledWith(-1)
+  })
+
+  describe('Conventions section', () => {
+    it('renders a Conventions link/button instead of inlining the section', () => {
+      renderPage()
+      expect(
+        screen.getByRole('button', { name: /^conventions$/i }),
+      ).toBeDefined()
+    })
+
+    it('does NOT render the conventions body inline', () => {
+      renderPage()
+      // The "Versioning" h3 lives inside the conventions section — it should
+      // not appear as an h3 on the page until the modal is opened.
+      const h3Names = screen
+        .queryAllByRole('heading', { level: 3 })
+        .map((h) => h.textContent)
+      expect(h3Names).not.toContain('Versioning')
+      expect(h3Names).not.toContain('Entry format')
+    })
+
+    it('opens a modal with the conventions content when the link is clicked', () => {
+      renderPage()
+      fireEvent.click(screen.getByRole('button', { name: /^conventions$/i }))
+      expect(screen.getByTestId('conventions-modal')).toBeDefined()
+      const within = screen.getByTestId('conventions-modal')
+      expect(within.textContent).toMatch(/versioning/i)
+      expect(within.textContent).toMatch(/entry format/i)
+      expect(within.textContent).toMatch(/under the hood/i)
+    })
+
+    it('closes the modal when the modal close button is clicked', () => {
+      renderPage()
+      fireEvent.click(screen.getByRole('button', { name: /^conventions$/i }))
+      const modal = screen.getByTestId('conventions-modal')
+      const closeBtn = modal.querySelector('[data-testid="conventions-modal-close"]')
+      expect(closeBtn).not.toBeNull()
+      fireEvent.click(closeBtn)
+      expect(screen.queryByTestId('conventions-modal')).toBeNull()
+    })
+
+    it('closes the modal when the backdrop is clicked', () => {
+      renderPage()
+      fireEvent.click(screen.getByRole('button', { name: /^conventions$/i }))
+      const overlay = screen.getByTestId('conventions-modal-overlay')
+      fireEvent.click(overlay)
+      expect(screen.queryByTestId('conventions-modal')).toBeNull()
+    })
   })
 })
