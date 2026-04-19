@@ -122,6 +122,20 @@ export default function MyPreferences() {
     }
   }
 
+  const handleToggleSelfNotify = async (e) => {
+    if (!profile?.id) return
+    const next = e.target.checked
+    const nextValues = { ...values, notifyOnOwnActivity: next }
+    setValues(nextValues)
+
+    const diff = buildDiff(nextValues, globalConfig)
+    const result = await updateProfile(profile.id, { preferences: diff })
+    if (result) {
+      updateLocalProfile({ preferences: diff })
+      track('self_notify_toggled', { enabled: next })
+    }
+  }
+
   const handleGrantPermission = async () => {
     if (!isNotificationSupported()) return
     const res = await requestPermission()
@@ -129,6 +143,7 @@ export default function MyPreferences() {
   }
 
   const notificationsOn = values.notificationsEnabled !== false
+  const selfNotifyOn = values.notifyOnOwnActivity === true
   const showGrantButton =
     notificationsOn &&
     isNotificationSupported() &&
@@ -240,6 +255,45 @@ export default function MyPreferences() {
             Your browser has blocked notifications for this site. Enable them
             via your browser settings to start receiving celebrations.
           </p>
+        )}
+
+        {/* Self-notify (test mode) — shown whenever the top toggle is on */}
+        {notificationsOn && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              marginTop: 14,
+              paddingTop: 12,
+              borderTop: `1px solid ${colors.borderSubtle}`,
+            }}
+          >
+            <label
+              htmlFor="pref-self-notify"
+              style={{
+                fontSize: 12,
+                color: colors.textDim,
+                lineHeight: 1.4,
+                flex: 1,
+              }}
+            >
+              <span style={{ display: 'block', fontWeight: 600, color: colors.text, marginBottom: 2 }}>
+                Also notify me of my own activity
+              </span>
+              Test mode &mdash; shows the celebration to you too, so you can
+              verify the feature without a second person logged in.
+            </label>
+            <input
+              id="pref-self-notify"
+              aria-label="Also notify me of my own activity"
+              type="checkbox"
+              checked={selfNotifyOn}
+              onChange={handleToggleSelfNotify}
+              style={{ width: 18, height: 18, cursor: 'pointer', flexShrink: 0 }}
+            />
+          </div>
         )}
       </div>
 

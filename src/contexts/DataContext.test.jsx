@@ -21,6 +21,16 @@ vi.mock('../lib/activityBroadcaster', () => ({
   ACTIVITY_BROADCAST_EVENT: 'activity',
 }))
 
+// Mock browser notifications so the self-notify path is observable
+const showNotificationMock = vi.fn()
+const getPermissionMock = vi.fn(() => 'granted')
+vi.mock('../lib/browserNotifications', () => ({
+  showNotification: (...args) => showNotificationMock(...args),
+  getPermission: (...args) => getPermissionMock(...args),
+  isNotificationSupported: () => true,
+  requestPermission: vi.fn(),
+}))
+
 // Mock the supabase client — non-null truthy value is enough for the
 // broadcast path; sendActivity is mocked anyway.
 vi.mock('../lib/supabase', () => ({
@@ -391,6 +401,67 @@ describe('DataContext', () => {
 
       expect(sendActivityMock).toHaveBeenCalledTimes(1)
       expect(sendActivityMock.mock.calls[0][0]).toEqual({ activity: 'reflect' })
+    })
+
+    it('also shows a local notification when notifyOnOwnActivity is true (test mode)', async () => {
+      currentProfile = {
+        id: 'user-123',
+        preferences: { notifyOnOwnActivity: true },
+      }
+      const today = getToday()
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const day = makeDay({
+        exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+      })
+      await act(async () => {
+        await result.current.saveDay(today, day)
+      })
+
+      // Broadcast still fires so other users see it …
+      expect(sendActivityMock).toHaveBeenCalledTimes(1)
+      // … AND the sender sees a local notification
+      expect(showNotificationMock).toHaveBeenCalledTimes(1)
+      const arg = showNotificationMock.mock.calls[0][0]
+      expect(arg.body).toBe('Someone special has just completed 30 min of Running')
+      expect(arg.tag).toMatch(/^wlc-activity-exercise-\d{8}$/)
+    })
+
+    it('does NOT show a local notification when notifyOnOwnActivity is false', async () => {
+      const today = getToday()
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const day = makeDay({
+        exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+      })
+      await act(async () => {
+        await result.current.saveDay(today, day)
+      })
+
+      expect(sendActivityMock).toHaveBeenCalledTimes(1)
+      expect(showNotificationMock).not.toHaveBeenCalled()
+    })
+
+    it('does NOT show a local notification when permission is not granted (even if notifyOnOwnActivity is true)', async () => {
+      currentProfile = {
+        id: 'user-123',
+        preferences: { notifyOnOwnActivity: true },
+      }
+      getPermissionMock.mockReturnValueOnce('denied')
+      const today = getToday()
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const day = makeDay({
+        reflect: { completed: true, reflection_text: 'x' },
+      })
+      await act(async () => {
+        await result.current.saveDay(today, day)
+      })
+
+      expect(showNotificationMock).not.toHaveBeenCalled()
     })
 
     it('does NOT send when the activity did not flip (already completed)', async () => {
