@@ -9,9 +9,19 @@ const DEFAULTS = {
   hydrate: { completed: false, current_ml: 0, target_ml: 2000 },
   wellbeing: { completed: false, activity_text: '' },
   reflect: { completed: false, reflection_text: '' },
+  selfReport: null,
+  bonusApplied: {},
 }
 
-const HABIT_KEYS = ['nutrition', 'exercise', 'mobilize', 'sleep', 'hydrate', 'wellbeing', 'reflect']
+// Keys round-tripped between the app's dayData shape and the daily_entries
+// row. selfReport (the "How Do You Feel?" scales) and bonusApplied (Free
+// Day / Indulgence / Rest Day / Night Owl flags) both need to persist here
+// or cloud users lose them on any Supabase refetch. See migration
+// 20260419000012_selfreport_and_bonusapplied_columns.sql.
+const HABIT_KEYS = [
+  'nutrition', 'exercise', 'mobilize', 'sleep', 'hydrate', 'wellbeing', 'reflect',
+  'selfReport', 'bonusApplied',
+]
 
 /** Convert a DB row to { date, dayData } app format */
 export function rowToEntry(row) {
