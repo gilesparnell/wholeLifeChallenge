@@ -42,6 +42,35 @@ describe('supabaseStore', () => {
       expect(result.dayData.nutrition).toBe(5)
       expect(result.dayData.exercise).toEqual({ completed: false, type: '' })
     })
+
+    // Regression: the "How Do You Feel?" 1-5 self-report section on CheckIn
+    // persists values under `dayData.selfReport`. It was added in v3 Phase 3
+    // but never round-tripped through Supabase, so cloud users lost the
+    // value on any refetch (page reload, tab foreground). Fixed in 0.14.4.
+    it('round-trips selfReport from a DB row', () => {
+      const row = {
+        date: '2026-04-19',
+        nutrition: 5,
+        selfReport: { mood: 4, energyLevel: 3, soreness: 2, stressLevel: 2, sleepQuality: 5, sleepHours: 7.5 },
+      }
+      const result = rowToEntry(row)
+      expect(result.dayData.selfReport).toEqual({
+        mood: 4, energyLevel: 3, soreness: 2, stressLevel: 2, sleepQuality: 5, sleepHours: 7.5,
+      })
+    })
+
+    // Regression: bonusApplied flags (Indulgence / Rest Day / Night Owl /
+    // Free Day) drive scoring and must persist or a user-activated Free Day
+    // evaporates on refetch. Same root cause as selfReport.
+    it('round-trips bonusApplied from a DB row', () => {
+      const row = {
+        date: '2026-04-19',
+        nutrition: 5,
+        bonusApplied: { freeDay: true },
+      }
+      const result = rowToEntry(row)
+      expect(result.dayData.bonusApplied).toEqual({ freeDay: true })
+    })
   })
 
   // --- entryToRow: app format → DB row ---
@@ -67,6 +96,28 @@ describe('supabaseStore', () => {
     it('includes updated_at timestamp', () => {
       const row = entryToRow('user-123', '2026-04-11', { nutrition: 5 })
       expect(row.updated_at).toBeDefined()
+    })
+
+    // Regression (0.14.4): the "How Do You Feel?" selfReport payload used
+    // to be silently stripped before upsert because `selfReport` wasn't in
+    // the persisted-keys list. Cloud users lost it on every Supabase
+    // refetch — the symptom was "switch to another day and back, values
+    // are gone".
+    it('includes selfReport in the upsert payload', () => {
+      const dayData = {
+        nutrition: 5,
+        selfReport: { mood: 4, energyLevel: 3, soreness: 2, stressLevel: 2, sleepQuality: 5, sleepHours: 7.5 },
+      }
+      const row = entryToRow('user-123', '2026-04-19', dayData)
+      expect(row.selfReport).toEqual({
+        mood: 4, energyLevel: 3, soreness: 2, stressLevel: 2, sleepQuality: 5, sleepHours: 7.5,
+      })
+    })
+
+    it('includes bonusApplied in the upsert payload', () => {
+      const dayData = { nutrition: 5, bonusApplied: { freeDay: true } }
+      const row = entryToRow('user-123', '2026-04-19', dayData)
+      expect(row.bonusApplied).toEqual({ freeDay: true })
     })
   })
 
