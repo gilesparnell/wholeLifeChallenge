@@ -97,6 +97,81 @@ describe('getActivityTypeBreakdown', () => {
   })
 })
 
+describe('multi-entry shape (v0.14.0)', () => {
+  it('sums weekly minutes across multi-entry exercise', () => {
+    const dates = ['2026-04-13', '2026-04-14']
+    const data = {
+      '2026-04-13': {
+        exercise: {
+          completed: true,
+          entries: [
+            { type: 'Running', duration_minutes: 30 },
+            { type: 'Swimming', duration_minutes: 15 },
+          ],
+        },
+        mobilize: { completed: false, entries: [] },
+      },
+      '2026-04-14': {
+        exercise: {
+          completed: true,
+          entries: [{ type: 'Gym', duration_minutes: 45 }],
+        },
+        mobilize: { completed: false, entries: [] },
+      },
+    }
+    const result = getWeeklyExerciseMinutes(data, dates, 1)
+    expect(result[0].exercise).toBe(90) // 30+15+45
+  })
+
+  it('breaks activity types out of multi-entry rows', () => {
+    const dates = ['2026-04-13', '2026-04-14']
+    const data = {
+      '2026-04-13': {
+        exercise: {
+          completed: true,
+          entries: [
+            { type: 'Running', duration_minutes: 30 },
+            { type: 'Swimming', duration_minutes: 15 },
+          ],
+        },
+      },
+      '2026-04-14': {
+        exercise: {
+          completed: true,
+          entries: [
+            { type: 'Running', duration_minutes: 20 },
+            { type: 'Gym', duration_minutes: 45 },
+          ],
+        },
+      },
+    }
+    const result = getActivityTypeBreakdown(data, dates, 1)
+    const map = Object.fromEntries(result.map((r) => [r.type, r.minutes]))
+    expect(map.Running).toBe(50)
+    expect(map.Swimming).toBe(15)
+    expect(map.Gym).toBe(45)
+  })
+
+  it('produces a daily duration total that sums multi-entry exercise', () => {
+    const dates = ['2026-04-13']
+    const data = {
+      '2026-04-13': {
+        exercise: {
+          completed: true,
+          entries: [
+            { type: 'Running', duration_minutes: 30 },
+            { type: 'Swimming', duration_minutes: 15 },
+          ],
+        },
+        mobilize: { completed: true, entries: [{ type: 'Yoga', duration_minutes: 10 }] },
+      },
+    }
+    const result = getDailyDurationTrend(data, dates, 0)
+    expect(result[0].exercise).toBe(45)
+    expect(result[0].mobilize).toBe(10)
+  })
+})
+
 describe('getDailyDurationTrend', () => {
   it('returns daily exercise + mobilize minutes', () => {
     const result = getDailyDurationTrend(sampleData, allDates, 3)

@@ -180,6 +180,76 @@ describe('detectActivityFlips', () => {
       { activity: 'exercise', exerciseType: 'Running' },
     ])
   })
+
+  describe('multi-entry exercise (v0.14.0)', () => {
+    it('reads the first entry from the entries array', () => {
+      const next = {
+        ...falseBase,
+        exercise: {
+          completed: true,
+          entries: [
+            { type: 'Swimming', duration_minutes: 20 },
+            { type: 'Running', duration_minutes: 30 },
+          ],
+        },
+      }
+      expect(detectActivityFlips(falseBase, next)).toEqual([
+        { activity: 'exercise', exerciseType: 'Swimming', durationMinutes: 20 },
+      ])
+    })
+
+    it('returns no flip when entries is empty (completed false → false)', () => {
+      const next = {
+        ...falseBase,
+        exercise: { completed: false, entries: [] },
+      }
+      expect(detectActivityFlips(falseBase, next)).toEqual([])
+    })
+
+    it('still reads the legacy single-entry shape', () => {
+      const next = {
+        ...falseBase,
+        exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+      }
+      expect(detectActivityFlips(falseBase, next)).toEqual([
+        { activity: 'exercise', exerciseType: 'Running', durationMinutes: 30 },
+      ])
+    })
+
+    it('drops duration when the first entry has no duration_minutes', () => {
+      const next = {
+        ...falseBase,
+        exercise: {
+          completed: true,
+          entries: [{ type: 'Yoga', duration_minutes: null }],
+        },
+      }
+      expect(detectActivityFlips(falseBase, next)).toEqual([
+        { activity: 'exercise', exerciseType: 'Yoga' },
+      ])
+    })
+
+    it('does not fire a second flip when adding a second entry to an already-completed day', () => {
+      const prev = {
+        ...falseBase,
+        exercise: {
+          completed: true,
+          entries: [{ type: 'Running', duration_minutes: 30 }],
+        },
+      }
+      const next = {
+        ...falseBase,
+        exercise: {
+          completed: true,
+          entries: [
+            { type: 'Running', duration_minutes: 30 },
+            { type: 'Swimming', duration_minutes: 15 },
+          ],
+        },
+      }
+      expect(detectActivityFlips(prev, next)).toEqual([])
+    })
+  })
 })
 
 describe('composeMessage', () => {

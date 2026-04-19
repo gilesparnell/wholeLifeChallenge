@@ -1,7 +1,9 @@
+import { getExerciseEntries, getTotalExerciseMinutes } from './habits'
+
 const getDuration = (entry, habitId) => {
   const val = entry?.[habitId]
   if (!val || typeof val !== 'object') return 0
-  return val.duration_minutes || 0
+  return getTotalExerciseMinutes(val)
 }
 
 export const getWeeklyExerciseMinutes = (data, allDates, dayIndex) => {
@@ -40,8 +42,9 @@ export const getActivityTypeBreakdown = (data, allDates, dayIndex) => {
   for (let i = 0; i <= dayIndex && i < allDates.length; i++) {
     const d = allDates[i]
     const ex = data[d]?.exercise
-    if (ex && typeof ex === 'object' && ex.type && ex.duration_minutes) {
-      typeMap[ex.type] = (typeMap[ex.type] || 0) + ex.duration_minutes
+    for (const entry of getExerciseEntries(ex)) {
+      if (!entry.duration_minutes) continue
+      typeMap[entry.type] = (typeMap[entry.type] || 0) + entry.duration_minutes
     }
   }
 

@@ -158,6 +158,52 @@ describe('calculateStrainScore', () => {
     )
     expect(score).toBeGreaterThan(0)
   })
+
+  it('sums strain across multi-entry exercise (v0.14.0 shape)', () => {
+    // 30 min Running across two entries = same total strain as one 30 min Running entry.
+    const single = calculateStrainScore(
+      { completed: true, entries: [{ type: 'Running', duration_minutes: 30 }] },
+      null,
+    )
+    const split = calculateStrainScore(
+      {
+        completed: true,
+        entries: [
+          { type: 'Running', duration_minutes: 15 },
+          { type: 'Running', duration_minutes: 15 },
+        ],
+      },
+      null,
+    )
+    expect(split).toBeCloseTo(single, 6)
+    expect(split).toBeGreaterThan(0)
+  })
+
+  it('weights each entry by its own intensity (HIIT entry contributes more than Yoga entry)', () => {
+    const mixed = calculateStrainScore(
+      {
+        completed: true,
+        entries: [
+          { type: 'Yoga', duration_minutes: 30 },
+          { type: 'HIIT', duration_minutes: 30 },
+        ],
+      },
+      null,
+    )
+    const yogaOnly = calculateStrainScore(
+      { completed: true, entries: [{ type: 'Yoga', duration_minutes: 60 }] },
+      null,
+    )
+    expect(mixed).toBeGreaterThan(yogaOnly)
+  })
+
+  it('still works for a legacy single-entry exercise row', () => {
+    const score = calculateStrainScore(
+      { completed: true, type: 'Running', duration_minutes: 30 },
+      null,
+    )
+    expect(score).toBeGreaterThan(0)
+  })
 })
 
 describe('getRecoveryTrend', () => {

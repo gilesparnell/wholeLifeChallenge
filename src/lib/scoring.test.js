@@ -3,10 +3,10 @@ import { scoreDay, calculateStreak, calculateHabitStreak } from './scoring'
 import { emptyDay } from './habits'
 
 describe('emptyDay', () => {
-  it('includes duration_minutes: null for exercise and mobilize', () => {
+  it('starts exercise and mobilize with empty entries arrays (multi-activity, v0.14.0)', () => {
     const day = emptyDay()
-    expect(day.exercise).toEqual({ completed: false, type: '', duration_minutes: null })
-    expect(day.mobilize).toEqual({ completed: false, type: '', duration_minutes: null })
+    expect(day.exercise).toEqual({ completed: false, entries: [] })
+    expect(day.mobilize).toEqual({ completed: false, entries: [] })
   })
 
   it('does not add duration_minutes to non-dropdown habits', () => {

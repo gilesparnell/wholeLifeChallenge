@@ -1,4 +1,5 @@
 import { scoreDay, calculateHabitStreak } from './scoring'
+import { getTotalExerciseMinutes } from './habits'
 
 const isHabitCompleted = (value) => {
   if (value === true) return true
@@ -157,7 +158,10 @@ const FIELD_EXTRACTORS = {
   stressLevel: (day) => day?.selfReport?.stressLevel ?? null,
   mood: (day) => day?.selfReport?.mood ?? null,
   hydrateMl: (day) => day?.hydrate?.current_ml ?? null,
-  exerciseMinutes: (day) => day?.exercise?.duration_minutes ?? null,
+  exerciseMinutes: (day) => {
+    const total = getTotalExerciseMinutes(day?.exercise)
+    return total > 0 ? total : null
+  },
 }
 
 const CORRELATION_PAIRS = [

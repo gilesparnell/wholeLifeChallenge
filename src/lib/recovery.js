@@ -1,3 +1,5 @@
+import { getExerciseEntries } from './habits'
+
 const INTENSITY_MAP = {
   'HIIT': 1.0,
   'CrossFit': 0.95,
@@ -60,9 +62,15 @@ export const calculateRecoveryScore = (selfReport) => {
  */
 export const calculateStrainScore = (exercise, mobilize) => {
   const getStrain = (activity) => {
-    if (!activity || !activity.completed || !activity.duration_minutes) return 0
-    const intensity = INTENSITY_MAP[activity.type] ?? DEFAULT_INTENSITY
-    return (activity.duration_minutes / 60) * intensity * 3.5
+    if (!activity || !activity.completed) return 0
+    const entries = getExerciseEntries(activity)
+    let strain = 0
+    for (const entry of entries) {
+      if (!entry.duration_minutes) continue
+      const intensity = INTENSITY_MAP[entry.type] ?? DEFAULT_INTENSITY
+      strain += (entry.duration_minutes / 60) * intensity * 3.5
+    }
+    return strain
   }
 
   const total = getStrain(exercise) + getStrain(mobilize)

@@ -247,6 +247,63 @@ describe('calculateCorrelations', () => {
     expect(pair.n).toBeGreaterThanOrEqual(7)
   })
 
+  it('sums exercise duration across multi-entry days for correlation calculation', () => {
+    // Two scenarios with identical per-day total minutes — one logs 30 min as
+    // a single entry, the other splits it across three entries. The correlation
+    // pipeline must see the same totals in both cases (and a real, non-undefined
+    // result), not just because both fail).
+    const singleEntry = Array.from({ length: 8 }, (_, i) =>
+      makeDay({
+        exercise: { completed: true, entries: [{ type: 'Running', duration_minutes: 10 + i * 5 }] },
+        selfReport: { sleepQuality: 3, sleepHours: 7, energyLevel: i, soreness: 3, stressLevel: 3, mood: 3 },
+      }),
+    )
+    const splitEntries = Array.from({ length: 8 }, (_, i) => {
+      const total = 10 + i * 5
+      const each = total / 3
+      return makeDay({
+        exercise: {
+          completed: true,
+          entries: [
+            { type: 'Running', duration_minutes: each },
+            { type: 'Swimming', duration_minutes: each },
+            { type: 'Gym', duration_minutes: each },
+          ],
+        },
+        selfReport: { sleepQuality: 3, sleepHours: 7, energyLevel: i, soreness: 3, stressLevel: 3, mood: 3 },
+      })
+    })
+    const single = makeData(singleEntry)
+    const split = makeData(splitEntries)
+    const singleResult = calculateCorrelations(single.data, single.dates, 7)
+    const splitResult = calculateCorrelations(split.data, split.dates, 7)
+    const singlePair = singleResult.find((c) => c.x === 'exerciseMinutes' && c.y === 'energyLevel')
+    const splitPair = splitResult.find((c) => c.x === 'exerciseMinutes' && c.y === 'energyLevel')
+    // Multi-entry rows must actually produce a correlation, not silently return
+    // undefined — that's the regression we're guarding against.
+    expect(singlePair).toBeDefined()
+    expect(splitPair).toBeDefined()
+    expect(splitPair.r).toBeCloseTo(singlePair.r, 6)
+    expect(splitPair.n).toBe(singlePair.n)
+  })
+
+  it('also sums duration for the legacy single-entry exercise shape', () => {
+    // Pre-0.14.0 row shape: { type, duration_minutes } at the top level.
+    // Use varying minutes so Pearson r actually computes (no zero variance).
+    const legacyDays = Array.from({ length: 8 }, (_, i) =>
+      makeDay({
+        exercise: { completed: true, type: 'Running', duration_minutes: 10 + i * 5 },
+        selfReport: { sleepQuality: 3, sleepHours: 7, energyLevel: i, soreness: 3, stressLevel: 3, mood: 3 },
+      }),
+    )
+    const { data, dates } = makeData(legacyDays)
+    const result = calculateCorrelations(data, dates, 7)
+    // Legacy rows must still feed the correlation pipeline (regression guard).
+    const pair = result.find((c) => c.x === 'exerciseMinutes' && c.y === 'energyLevel')
+    expect(pair).toBeDefined()
+    expect(pair.n).toBeGreaterThanOrEqual(7)
+  })
+
   it('filters out correlations below the |r| threshold', () => {
     // Random-ish data — unlikely to pass the 0.3 threshold
     const entries = Array.from({ length: 14 }, (_, i) =>

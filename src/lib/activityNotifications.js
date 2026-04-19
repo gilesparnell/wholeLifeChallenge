@@ -27,12 +27,21 @@ const wasCompleted = (dayData, activity) => {
 const flipPayload = (activity, nextSlot) => {
   if (activity !== 'exercise') return { activity }
   const payload = { activity: 'exercise' }
-  if (nextSlot && typeof nextSlot.type === 'string' && nextSlot.type.length > 0) {
-    payload.exerciseType = nextSlot.type
-  }
-  if (nextSlot && Number.isFinite(nextSlot.duration_minutes)) {
-    payload.durationMinutes = nextSlot.duration_minutes
-  }
+  if (!nextSlot || typeof nextSlot !== 'object') return payload
+
+  // Prefer the v0.14.0 entries[] shape; fall back to the pre-0.14.0
+  // top-level fields. The first entry drives the broadcast — multi-entry
+  // days only celebrate the first activity logged.
+  const firstEntry = Array.isArray(nextSlot.entries) ? nextSlot.entries[0] : null
+  const type = firstEntry && typeof firstEntry.type === 'string' && firstEntry.type.length > 0
+    ? firstEntry.type
+    : (typeof nextSlot.type === 'string' && nextSlot.type.length > 0 ? nextSlot.type : null)
+  const duration = firstEntry && Number.isFinite(firstEntry.duration_minutes)
+    ? firstEntry.duration_minutes
+    : (Number.isFinite(nextSlot.duration_minutes) ? nextSlot.duration_minutes : null)
+
+  if (type) payload.exerciseType = type
+  if (duration !== null) payload.durationMinutes = duration
   return payload
 }
 
