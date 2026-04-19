@@ -105,7 +105,13 @@ export function DataProvider({ children }) {
         ) {
           const msg = composeMessage(flip)
           if (msg) {
-            showNotification({ ...msg, tag: tagFor(flip, date) })
+            // Append a per-call uniqueness suffix so iOS treats each
+            // self-notify as a distinct notification rather than
+            // silently replacing the previous one with the same tag.
+            // Cross-tab dedup is moot here — self-notify only runs in
+            // the same tab that did the save.
+            const uniqueTag = `${tagFor(flip, date)}-${Date.now()}`
+            showNotification({ ...msg, tag: uniqueTag })
           }
         }
       }

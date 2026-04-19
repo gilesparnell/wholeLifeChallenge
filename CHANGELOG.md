@@ -26,7 +26,7 @@ Each entry is split into:
 
 ---
 
-## [0.14.0 → 0.14.1] — 19 Apr 2026 — Multi-activity exercise logging
+## [0.14.0 → 0.14.2] — 19 Apr 2026 — Multi-activity exercise logging
 
 ### What's new
 
@@ -36,6 +36,7 @@ Each entry is split into:
 - **Activity celebrations stay calm.** When you log multiple exercises in a single day, only the FIRST one fires a "Someone special has just completed …" notification to the rest of the group — adding extras later is silent so the group's devices don't keep pinging.
 - **Progress totals now sum across entries.** The weekly minutes chart, the activity-type breakdown, the daily duration trend, the recovery × strain calculation — all of them now add up everything you logged that day, not just the first entry.
 - **/changelog page is less cluttered (0.14.1).** The dense "Conventions" preface (versioning rules, entry format, when to extend a range) used to take up the entire first scroll of the page. It's now collapsed behind a single small **Conventions** link near the top — tap it to open a modal with the same content. The latest version entry sits at the top of the page where it should.
+- **Notifications now keep firing for every activity (0.14.2).** You logged exercise → got a ping → logged hydration → got nothing. iOS Web Push silently merges follow-up notifications into the previous one's slot unless we explicitly tell it "this is a fresh alert". Every notification now carries the `renotify: true` flag so iOS re-alerts on every call, and self-notify test pings get a per-call timestamp on their tag so iOS treats each one as new.
 
 ### Under the hood
 
@@ -47,6 +48,7 @@ Each entry is split into:
 - **Test suite growth** — 760 tests after 0.13.1, **804 tests after 0.14.0** (+44 across the multi-activity work: helpers in `habits.test.js`, recovery + exerciseStats multi-entry blocks, activityNotifications multi-entry block, ExerciseCard rewrite, progressMetrics multi-entry assertions). Wire-level changes in 2 of 5 source files were caught by RED-then-GREEN cycles, not by accident.
 - **No new dependencies, no schema change, no service-worker change.** Plan: `docs/plans/2026-04-19-002-feat-ios-push-viewport-multi-activity-beta-plan.md`.
 - **0.14.1 — collapsible Conventions on /changelog.** New `src/lib/splitConventionsBlocks.{js,test.js}` walks the parsed block array and slices out the Conventions h2 + body up to (but not including) the next `hr` or `h2`. `src/pages/Changelog.jsx` renders a `Conventions` `<button>` styled as a link instead of inlining the content; clicking opens a bottom-sheet modal (same idiom as `ActivityModal`) with the conventions blocks rendered through the same `Block` component. Backdrop click + × button both close. 6 unit tests for the splitter + 5 page tests covering link visibility, body-not-inlined, modal open/close paths.
+- **0.14.2 — iOS notification re-alert + unique self-notify tags.** `src/lib/browserNotifications.js` now passes `renotify: true` into both the `ServiceWorkerRegistration.showNotification(...)` and the constructor paths. iOS Web Push's default behaviour silently replaces a same-tag notification without re-alerting, which is why follow-up activity celebrations went missing in 0.14.1. `src/contexts/DataContext.jsx` self-notify echo now appends `Date.now()` to the tag (`wlc-activity-exercise-20260419-1776576430066`) so each test ping is treated as a brand new notification, sidestepping the dedup entirely. Cross-tab dedup for the broadcast subscriber is unaffected — that path still uses the per-day tag. 2 new tests (renotify pass-through + per-call tag uniqueness).
 
 ---
 

@@ -403,6 +403,38 @@ describe('DataContext', () => {
       expect(sendActivityMock.mock.calls[0][0]).toEqual({ activity: 'reflect' })
     })
 
+    it('uses a unique tag per self-notify call so iOS does not silently merge them', async () => {
+      currentProfile = {
+        id: 'user-123',
+        preferences: { notifyOnOwnActivity: true },
+      }
+      const today = getToday()
+      const { result } = renderHook(() => useData(), { wrapper })
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      // Save 1: exercise flips
+      await act(async () => {
+        await result.current.saveDay(today, makeDay({
+          exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+        }))
+      })
+      // Save 2: reflect flips (independent habit)
+      await act(async () => {
+        await result.current.saveDay(today, makeDay({
+          exercise: { completed: true, type: 'Running', duration_minutes: 30 },
+          reflect: { completed: true, reflection_text: 'x' },
+        }))
+      })
+
+      expect(showNotificationMock).toHaveBeenCalledTimes(2)
+      const tagA = showNotificationMock.mock.calls[0][0].tag
+      const tagB = showNotificationMock.mock.calls[1][0].tag
+      expect(tagA).not.toBe(tagB)
+      // Both still carry the activity prefix so they are clearly WLC notifications
+      expect(tagA).toMatch(/^wlc-activity-exercise-/)
+      expect(tagB).toMatch(/^wlc-activity-reflect-/)
+    })
+
     it('also shows a local notification when notifyOnOwnActivity is true (test mode)', async () => {
       currentProfile = {
         id: 'user-123',
@@ -425,7 +457,8 @@ describe('DataContext', () => {
       expect(showNotificationMock).toHaveBeenCalledTimes(1)
       const arg = showNotificationMock.mock.calls[0][0]
       expect(arg.body).toBe('Someone special has just completed 30 min of Running')
-      expect(arg.tag).toMatch(/^wlc-activity-exercise-\d{8}$/)
+      // tag includes the per-call uniqueness suffix added in 0.14.2
+      expect(arg.tag).toMatch(/^wlc-activity-exercise-\d{8}-\d+$/)
     })
 
     it('does NOT show a local notification when notifyOnOwnActivity is false', async () => {

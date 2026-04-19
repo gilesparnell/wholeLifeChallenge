@@ -62,6 +62,12 @@ const showViaServiceWorker = async ({ title, body, tag, icon }) => {
       tag,
       icon: icon || DEFAULT_ICON,
       silent: false,
+      // renotify forces a fresh banner/sound when a notification with
+      // the same tag replaces an older one. Without this, iOS silently
+      // updates the existing notification in notification centre and
+      // the user sees nothing — exactly the "fired once, then nothing"
+      // failure mode reported in 0.14.1.
+      renotify: true,
     })
     return true
   } catch {
@@ -77,6 +83,7 @@ const showViaConstructor = ({ title, body, tag, icon }) => {
       tag,
       icon: icon || DEFAULT_ICON,
       silent: false,
+      renotify: true,
     })
     return true
   } catch {
