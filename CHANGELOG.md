@@ -26,6 +26,28 @@ Each entry is split into:
 
 ---
 
+## [0.14.0] — 19 Apr 2026 — Multi-activity exercise logging
+
+### What's new
+
+- **Log more than one exercise per day.** The Exercise card on Check In now lets you stack multiple activities — swim 30 min, then run 20 min, then gym 45 min. Each entry shows on its own row with type and duration; tap × to remove any one. A summary line shows the total minutes and number of activities at the top of the card ("Total: 1h 35m \u00B7 3 activities").
+- **The same applies to Mobilise.** Same card layout, same "+ Add another" affordance.
+- **Old data still reads correctly.** Days you logged before this update show as a single-entry list. Nothing was lost. Editing such a day re-saves it in the new shape automatically.
+- **Activity celebrations stay calm.** When you log multiple exercises in a single day, only the FIRST one fires a "Someone special has just completed …" notification to the rest of the group — adding extras later is silent so the group's devices don't keep pinging.
+- **Progress totals now sum across entries.** The weekly minutes chart, the activity-type breakdown, the daily duration trend, the recovery × strain calculation — all of them now add up everything you logged that day, not just the first entry.
+
+### Under the hood
+
+- **No migration required.** `daily_entries.exercise` is JSONB; the change is shape-of-payload only. Pre-0.14.0 rows have `{completed, type, duration_minutes}`; new saves emit `{completed, entries: [{type, duration_minutes}]}`. Readers go through new helpers in `src/lib/habits.js` (`getExerciseEntries`, `getTotalExerciseMinutes`) that normalise both shapes — old rows render forever, no destructive backfill.
+- **`emptyDay()` change.** `exercise` and `mobilize` now start as `{ completed: false, entries: [] }`. Single test in `src/lib/scoring.test.js` updated to match the new shape.
+- **Downstream readers updated.** `src/lib/exerciseStats.js` (`getDuration`, `getActivityTypeBreakdown`) and `src/lib/recovery.js` (`calculateStrainScore`) now sum across the entries array. Per-entry intensity is honoured in strain calculation — a HIIT entry contributes more than a Yoga entry of the same duration. `src/lib/progressMetrics.js` correlation pipeline reads minutes via the helper; the existing single-entry shape continues to feed the same correlation pair.
+- **Broadcast contract preserved.** `src/lib/activityNotifications.js` `flipPayload` reads `exerciseType` and `durationMinutes` from `entries[0]` (falls back to legacy top-level fields). The flip detector still keys on `exercise.completed: false → true` — adding a second entry while `completed` is already `true` produces no broadcast. Regression test added.
+- **`src/components/habits/ExerciseCard.jsx` rewritten.** Three modes: `idle` (shows summary + entries + "+ Add another"), `picking-type`, `picking-duration`. On confirm it emits the full new entries array with `completed = entries.length > 0` as the writer invariant. Backward-compat read for legacy rows: a single-entry shape renders correctly and edits save in the new format.
+- **Test suite growth** — 760 tests after 0.13.1, **804 tests after 0.14.0** (+44 across the multi-activity work: helpers in `habits.test.js`, recovery + exerciseStats multi-entry blocks, activityNotifications multi-entry block, ExerciseCard rewrite, progressMetrics multi-entry assertions). Wire-level changes in 2 of 5 source files were caught by RED-then-GREEN cycles, not by accident.
+- **No new dependencies, no schema change, no service-worker change.** Plan: `docs/plans/2026-04-19-002-feat-ios-push-viewport-multi-activity-beta-plan.md`.
+
+---
+
 ## [0.12.0 → 0.13.2] — 19 Apr 2026 — "Someone special" activity notifications
 
 ### What's new

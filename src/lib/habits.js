@@ -9,8 +9,8 @@ export const HABITS = [
 
 export const emptyDay = () => ({
   nutrition: 5,
-  exercise: { completed: false, type: '', duration_minutes: null },
-  mobilize: { completed: false, type: '', duration_minutes: null },
+  exercise: { completed: false, entries: [] },
+  mobilize: { completed: false, entries: [] },
   sleep: { completed: false, hours: null },
   hydrate: { completed: false, current_ml: 0, target_ml: 2000 },
   wellbeing: { completed: false, activity_text: '' },
@@ -18,3 +18,40 @@ export const emptyDay = () => ({
   selfReport: null,
   bonusApplied: {},
 })
+
+// Multi-activity helpers (v0.14.0).
+//
+// The exercise + mobilise habits store an `entries` array of
+// { type, duration_minutes } items. Pre-0.14.0 rows have the legacy
+// shape { type, duration_minutes } at the top level. Readers go through
+// these helpers so old rows render correctly forever — no destructive
+// migration is required.
+
+const normaliseEntry = (raw) => {
+  if (!raw || typeof raw !== 'object') return null
+  const type = typeof raw.type === 'string' ? raw.type.trim() : ''
+  if (!type) return null
+  const duration = Number.isFinite(raw.duration_minutes) ? raw.duration_minutes : null
+  return { type, duration_minutes: duration }
+}
+
+export const getExerciseEntries = (slot) => {
+  if (!slot || typeof slot !== 'object') return []
+  if (Array.isArray(slot.entries)) {
+    return slot.entries.map(normaliseEntry).filter(Boolean)
+  }
+  // Legacy shape — single optional entry derived from top-level fields
+  const legacy = normaliseEntry({
+    type: slot.type,
+    duration_minutes: slot.duration_minutes,
+  })
+  return legacy ? [legacy] : []
+}
+
+export const getTotalExerciseMinutes = (slot) => {
+  const entries = getExerciseEntries(slot)
+  return entries.reduce(
+    (acc, e) => acc + (Number.isFinite(e.duration_minutes) ? e.duration_minutes : 0),
+    0,
+  )
+}
