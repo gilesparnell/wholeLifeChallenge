@@ -8,6 +8,10 @@ export const DEFAULT_CONFIG = {
   sleepTargetHours: 8,
   challengeStart: '2026-04-13',
   challengeDays: 75,
+  // Opt-out default: new users are in the celebration circle by default;
+  // the browser Notification permission is a separate gate handled from
+  // the /preferences toggle (requires user gesture).
+  notificationsEnabled: true,
 }
 
 // Keys a standard user can override via My Preferences. Everything else
@@ -16,7 +20,17 @@ export const PERSONALISABLE_KEYS = [
   'hydrationTargetMl',
   'hydrationIncrementMl',
   'sleepTargetHours',
+  'notificationsEnabled',
 ]
+
+// Type map for sanitisation. Numeric keys carry range checks;
+// boolean keys coerce via Boolean() and persist both true and false.
+const PREFERENCE_TYPES = {
+  hydrationTargetMl: 'number',
+  hydrationIncrementMl: 'number',
+  sleepTargetHours: 'number',
+  notificationsEnabled: 'boolean',
+}
 
 // Range checks for each personalisable field. Values outside the range are
 // silently dropped so a corrupted preferences blob can't wedge the app.
@@ -58,6 +72,11 @@ export const sanitisePreferences = (input) => {
   for (const key of PERSONALISABLE_KEYS) {
     if (!(key in input)) continue
     const raw = input[key]
+    const type = PREFERENCE_TYPES[key] ?? 'number'
+    if (type === 'boolean') {
+      clean[key] = Boolean(raw)
+      continue
+    }
     const num = typeof raw === 'number' ? raw : parseFloat(raw)
     if (!Number.isFinite(num)) continue
     const range = PREFERENCE_RANGES[key]

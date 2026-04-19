@@ -9,6 +9,14 @@ vi.mock('../lib/profiles', () => ({
   updateProfile: (...args) => updateProfileMock(...args),
 }))
 
+const requestPermissionMock = vi.fn()
+const getPermissionMock = vi.fn()
+vi.mock('../lib/browserNotifications', () => ({
+  isNotificationSupported: () => true,
+  getPermission: (...args) => getPermissionMock(...args),
+  requestPermission: (...args) => requestPermissionMock(...args),
+}))
+
 const updateLocalProfileMock = vi.fn()
 let mockProfile = null
 vi.mock('../contexts/AuthContext', () => ({
@@ -29,6 +37,9 @@ const renderPage = () =>
 beforeEach(() => {
   updateProfileMock.mockReset()
   updateLocalProfileMock.mockReset()
+  requestPermissionMock.mockReset()
+  getPermissionMock.mockReset()
+  getPermissionMock.mockReturnValue('granted')
   mockProfile = {
     id: 'user-barney',
     email: 'barney@example.com',
@@ -125,6 +136,94 @@ describe('MyPreferences', () => {
       const [, patch] = updateProfileMock.mock.calls[0]
       // The out-of-range value must NOT land in the persisted preferences
       expect(patch.preferences.hydrationTargetMl).toBeUndefined()
+    })
+  })
+
+  describe('notifications toggle', () => {
+    it('renders the notifications toggle as ON by default (opt-out)', () => {
+      renderPage()
+      const toggle = screen.getByRole('checkbox', { name: /notifications/i })
+      expect(toggle.checked).toBe(true)
+    })
+
+    it('renders the toggle as OFF when the profile has opted out', () => {
+      mockProfile = {
+        ...mockProfile,
+        preferences: { notificationsEnabled: false },
+      }
+      renderPage()
+      const toggle = screen.getByRole('checkbox', { name: /notifications/i })
+      expect(toggle.checked).toBe(false)
+    })
+
+    it('persists { notificationsEnabled: false } immediately when toggled off', async () => {
+      updateProfileMock.mockResolvedValue({ ...mockProfile })
+      renderPage()
+      fireEvent.click(screen.getByRole('checkbox', { name: /notifications/i }))
+      await waitFor(() => expect(updateProfileMock).toHaveBeenCalledOnce())
+      const [id, patch] = updateProfileMock.mock.calls[0]
+      expect(id).toBe('user-barney')
+      expect(patch.preferences.notificationsEnabled).toBe(false)
+    })
+
+    it('persists { notificationsEnabled: true } and requests permission when toggling back on with default permission', async () => {
+      mockProfile = {
+        ...mockProfile,
+        preferences: { notificationsEnabled: false },
+      }
+      getPermissionMock.mockReturnValue('default')
+      requestPermissionMock.mockResolvedValue('granted')
+      updateProfileMock.mockResolvedValue({ ...mockProfile })
+      renderPage()
+      fireEvent.click(screen.getByRole('checkbox', { name: /notifications/i }))
+      await waitFor(() => expect(updateProfileMock).toHaveBeenCalledOnce())
+      const [, patch] = updateProfileMock.mock.calls[0]
+      // diff only persists values that differ from the global default,
+      // and the default is true, so toggling "back on" to match the
+      // default should result in an empty preferences object.
+      expect(patch.preferences.notificationsEnabled).toBeUndefined()
+      expect(requestPermissionMock).toHaveBeenCalledOnce()
+    })
+
+    it('does not call requestPermission when toggling off', async () => {
+      getPermissionMock.mockReturnValue('default')
+      updateProfileMock.mockResolvedValue({ ...mockProfile })
+      renderPage()
+      fireEvent.click(screen.getByRole('checkbox', { name: /notifications/i }))
+      await waitFor(() => expect(updateProfileMock).toHaveBeenCalledOnce())
+      expect(requestPermissionMock).not.toHaveBeenCalled()
+    })
+
+    it('shows a Grant browser permission button when the preference is on but permission is default', () => {
+      getPermissionMock.mockReturnValue('default')
+      renderPage()
+      expect(
+        screen.getByRole('button', { name: /grant browser permission/i }),
+      ).toBeDefined()
+    })
+
+    it('hides the Grant button once permission is granted', () => {
+      getPermissionMock.mockReturnValue('granted')
+      renderPage()
+      expect(
+        screen.queryByRole('button', { name: /grant browser permission/i }),
+      ).toBeNull()
+    })
+
+    it('calls requestPermission when the Grant button is clicked', async () => {
+      getPermissionMock.mockReturnValue('default')
+      requestPermissionMock.mockResolvedValue('granted')
+      renderPage()
+      fireEvent.click(
+        screen.getByRole('button', { name: /grant browser permission/i }),
+      )
+      await waitFor(() => expect(requestPermissionMock).toHaveBeenCalledOnce())
+    })
+
+    it('shows a denied helper when permission is denied', () => {
+      getPermissionMock.mockReturnValue('denied')
+      renderPage()
+      expect(screen.getByText(/browser.+blocked|enable.+browser settings/i)).toBeDefined()
     })
   })
 

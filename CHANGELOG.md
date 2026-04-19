@@ -26,6 +26,31 @@ Each entry is split into:
 
 ---
 
+## [0.12.0] — 19 Apr 2026 — "Someone special" activity notifications
+
+### What's new
+
+- **Someone special has just completed …** — when anyone else in your challenge finishes their exercise, well-being, or daily reflexion, or hits their hydration target, your device gently pings with a quiet celebration. The person isn't named (we all know who the "someone special" is), and neither the activity text nor the reflexion content is ever included — the notification is just the headline, nothing more. Exercise celebrations include duration and type: "Someone special has just completed 30 min of Running".
+- **Notifications are on by default.** A new toggle on the My Preferences screen lets you opt out any time. The first time you visit the page after this update, a small "Grant browser permission" button will appear — that's the one-click step needed to actually let your browser deliver the pings.
+- **Only today's wins fire.** If you go back and tick something on yesterday's check-in, nobody gets pinged — the feature celebrates activity as it happens, not historical cleanups.
+- **Foreground only for now.** Notifications only land when you've got the app open in a tab or installed as a PWA. A follow-up release will layer on true background delivery via the service worker.
+
+### Under the hood
+
+- **No migration required.** The opt-out preference lives inside the existing `profile.preferences` JSONB under a new `notificationsEnabled` key (default `true`). `src/lib/adminConfig.js` gains a `PREFERENCE_TYPES` map so `sanitisePreferences` can coerce booleans without the numeric range-check path. `PERSONALISABLE_KEYS` picks up `notificationsEnabled`.
+- **`src/lib/activityNotifications.js`** — pure helpers: `detectActivityFlips(prevDay, nextDay)` diffs two `dayData` objects and returns any activity that flipped from incomplete to complete, scoped to the four watched habits (exercise, wellbeing, reflect, hydrate); `composeMessage(flip)` returns the notification `{title, body}` with the fixed user-facing copy; `tagFor(flip, dateISO)` produces an OS-dedupable notification tag. 29 unit tests covering the full truth table of flips + composition fallbacks.
+- **`src/lib/browserNotifications.js`** — thin feature-detected wrapper around `window.Notification`. `isNotificationSupported`, `getPermission`, `requestPermission`, `showNotification`. Swallows constructor failures and unsupported environments (SSR, older Safari, jsdom) silently. 11 unit tests.
+- **`src/lib/activityBroadcaster.js`** — singleton Supabase Realtime broadcast-channel holder for `activity-celebrations` with `config.broadcast.self = false` so the sender never receives its own messages. `sendActivity(flip, supabase)` is fire-and-forget and safe against a null client. 11 unit tests.
+- **`src/contexts/DataContext.jsx`** — `saveDay` now captures the previous `dayData` via a ref, detects flips, and fires a broadcast for each flip, gated on: non-local user, supabase client present, `date === getToday()` (back-dated edits are silent), and `profile.preferences.notificationsEnabled !== false`.
+- **`src/components/ActivityNotifier.jsx`** — headless subscriber mounted inside `<AuthGate><DataProvider>`. Subscribes to the shared channel while the user is signed in, not in local mode, and has not opted out; tears down on unmount, sign-out, or preference flip-off. On each broadcast it re-checks browser permission (so a mid-session revoke is respected), calls `composeMessage`, and routes to `showNotification`. 11 component tests including the full subscribe / unsubscribe / permission-revoked lifecycle.
+- **`src/pages/MyPreferences.jsx`** — new Notifications card rendered above the existing Targets group. Toggle persists immediately via `updateProfile` rather than waiting for the Save button. Clicking the toggle ON when permission is still `default` fires `requestPermission()` from that click (valid user gesture). A "Grant browser permission" button appears whenever the preference is ON and permission is `default`; a dim helper replaces it on denied. Analytics: new `notifications_toggled` event. 9 new tests.
+- **Architecture note — why realtime-only, not Web Push.** True background Web Push needs VAPID keys, a Supabase Edge Function triggered by a database webhook, a subscription table, and a `push` listener in the service worker. For a four-user whitelisted app this was excessive. The broadcast-channel approach ships zero new dependencies, no schema change, no secrets, and works across Chrome / Safari / Firefox desktop + iOS PWA while the app is in the foreground. The broadcast payload is deliberately shaped so a future Web Push edge function can drop in as a second source without changing the subscriber.
+- **Test suite growth** — 653 tests after 0.11.0, **739 tests after 0.12.0** (+86 tests across 6 new test files; 2 existing test files extended).
+- **No new dependencies.** Honours the CLAUDE.md "don't add deps without a reason" rule — everything uses `@supabase/supabase-js` (already installed) and browser-native APIs.
+- **Plan** — `docs/plans/2026-04-19-001-feat-activity-push-notifications-beta-plan.md`.
+
+---
+
 ## [0.11.0] — 16 Apr 2026 — My Preferences + Progress v2
 
 ### What's new

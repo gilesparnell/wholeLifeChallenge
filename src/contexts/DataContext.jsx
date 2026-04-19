@@ -1,17 +1,21 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from './AuthContext'
 import { fetchAllEntries, upsertEntry, clearAllEntries } from '../lib/supabaseStore'
 import { updateProfileStats } from '../lib/profiles'
 import { loadAll as localLoadAll, saveDay as localSaveDay, clearAll as localClearAll } from '../lib/dataStore'
 import { createSaveQueue } from '../lib/saveQueue'
 import { track as trackAnalytics } from '../lib/analytics'
+import { detectActivityFlips } from '../lib/activityNotifications'
+import { sendActivity } from '../lib/activityBroadcaster'
+import { supabase } from '../lib/supabase'
+import { getToday } from '../lib/dates'
 
 const DataContext = createContext(null)
 
 const IDLE_STATUS = { status: 'idle', pendingCount: 0, lastError: null }
 
 export function DataProvider({ children }) {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [data, setData] = useState({})
   const [loading, setLoading] = useState(true)
   const [saveStatus, setSaveStatus] = useState(IDLE_STATUS)
@@ -20,6 +24,15 @@ export function DataProvider({ children }) {
   // The lazy useState initialiser runs exactly once per provider lifetime,
   // so we don't recreate the queue on every render.
   const [saveQueue] = useState(() => createSaveQueue())
+
+  // Refs track the latest data + profile without forcing saveDay to
+  // recompute its identity on every save. Used by the activity-broadcast
+  // side-effect below so it can diff prev vs next and read the opt-out
+  // preference without pulling both into the useCallback dependency list.
+  const dataRef = useRef(data)
+  const profileRef = useRef(profile)
+  useEffect(() => { dataRef.current = data }, [data])
+  useEffect(() => { profileRef.current = profile }, [profile])
 
   useEffect(() => {
     return saveQueue.subscribe(setSaveStatus)
@@ -49,6 +62,10 @@ export function DataProvider({ children }) {
   }, [user, isLocal])
 
   const saveDay = useCallback((date, dayData) => {
+    // Capture prev for today's activity-flip diff BEFORE the optimistic
+    // update overwrites it.
+    const prevDay = dataRef.current[date]
+
     // Optimistic update first — UI never blocks on the network.
     // Always write through to localStorage as a defensive backup so a
     // failed Supabase upsert can't lose the user's edit on tab close.
@@ -61,6 +78,23 @@ export function DataProvider({ children }) {
       ? Object.keys(dayData).length
       : 0
     trackAnalytics('checkin_saved', { habit_count: habitCount, mode: isLocal ? 'local' : 'cloud' })
+
+    // Fire-and-forget "Someone special" broadcast for any activity that
+    // flipped false→true on today's entry. Gated by: non-local mode,
+    // supabase client present, save is for today, and user has not opted
+    // out via preferences.notificationsEnabled === false.
+    if (
+      !isLocal &&
+      supabase &&
+      user &&
+      date === getToday() &&
+      profileRef.current?.preferences?.notificationsEnabled !== false
+    ) {
+      const flips = detectActivityFlips(prevDay, dayData)
+      for (const flip of flips) {
+        sendActivity(flip, supabase)
+      }
+    }
 
     if (isLocal) {
       return Promise.resolve({ success: true })

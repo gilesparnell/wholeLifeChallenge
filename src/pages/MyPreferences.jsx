@@ -6,6 +6,11 @@ import {
   sanitisePreferences,
   PERSONALISABLE_KEYS,
 } from '../lib/adminConfig'
+import {
+  getPermission,
+  requestPermission,
+  isNotificationSupported,
+} from '../lib/browserNotifications'
 import { colors, fonts } from '../styles/theme'
 import { track } from '../lib/analytics'
 
@@ -33,6 +38,20 @@ const FIELD_META = {
   },
 }
 
+// Only the numeric fields are batch-saved via the Save button.
+// Boolean preferences (e.g. notificationsEnabled) save immediately on
+// change and are rendered in their own section.
+const NUMERIC_KEYS = PERSONALISABLE_KEYS.filter((k) => FIELD_META[k])
+
+const buildDiff = (rawValues, globalConfig) => {
+  const sanitised = sanitisePreferences(rawValues)
+  const diff = {}
+  for (const [key, value] of Object.entries(sanitised)) {
+    if (value !== globalConfig[key]) diff[key] = value
+  }
+  return diff
+}
+
 export default function MyPreferences() {
   const { profile, updateLocalProfile } = useAuth()
   const globalConfig = useMemo(() => getConfig(), [])
@@ -50,6 +69,9 @@ export default function MyPreferences() {
 
   const [values, setValues] = useState(initialValues)
   const [saveState, setSaveState] = useState('idle') // idle | saving | saved | error
+  const [permission, setPermission] = useState(() =>
+    isNotificationSupported() ? getPermission() : 'unsupported',
+  )
 
   const handleChange = (key) => (e) => {
     setValues((v) => ({ ...v, [key]: e.target.value }))
@@ -67,13 +89,7 @@ export default function MyPreferences() {
     if (!profile?.id) return
     setSaveState('saving')
 
-    // Only persist values that actually differ from the global default — no
-    // point storing a duplicate. sanitisePreferences strips junk + range-checks.
-    const sanitised = sanitisePreferences(values)
-    const diff = {}
-    for (const [key, value] of Object.entries(sanitised)) {
-      if (value !== globalConfig[key]) diff[key] = value
-    }
+    const diff = buildDiff(values, globalConfig)
 
     const result = await updateProfile(profile.id, { preferences: diff })
     if (!result) {
@@ -84,6 +100,40 @@ export default function MyPreferences() {
     track('preferences_saved', { fields: Object.keys(diff).length })
     setSaveState('saved')
   }
+
+  const handleToggleNotifications = async (e) => {
+    if (!profile?.id) return
+    const next = e.target.checked
+    const nextValues = { ...values, notificationsEnabled: next }
+    setValues(nextValues)
+
+    const diff = buildDiff(nextValues, globalConfig)
+    const result = await updateProfile(profile.id, { preferences: diff })
+    if (result) {
+      updateLocalProfile({ preferences: diff })
+      track('notifications_toggled', { enabled: next })
+    }
+
+    // When toggling ON and permission is still default, this click is a
+    // legitimate user gesture, so we can prompt without a separate step.
+    if (next && isNotificationSupported() && getPermission() === 'default') {
+      const res = await requestPermission()
+      setPermission(res)
+    }
+  }
+
+  const handleGrantPermission = async () => {
+    if (!isNotificationSupported()) return
+    const res = await requestPermission()
+    setPermission(res)
+  }
+
+  const notificationsOn = values.notificationsEnabled !== false
+  const showGrantButton =
+    notificationsOn &&
+    isNotificationSupported() &&
+    permission === 'default'
+  const showDeniedHelper = notificationsOn && permission === 'denied'
 
   return (
     <div>
@@ -110,7 +160,103 @@ export default function MyPreferences() {
         anything you change here only affects your own view. Reset to defaults any time.
       </p>
 
-      {PERSONALISABLE_KEYS.map((key) => {
+      {/* Notifications section — saves immediately on toggle */}
+      <div
+        style={{
+          background: colors.surface,
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 20,
+          border: `1px solid ${colors.borderSubtle}`,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 6,
+          }}
+        >
+          <label
+            htmlFor="pref-notifications"
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: colors.text,
+            }}
+          >
+            Notifications
+          </label>
+          <input
+            id="pref-notifications"
+            aria-label="Notifications"
+            type="checkbox"
+            checked={notificationsOn}
+            onChange={handleToggleNotifications}
+            style={{ width: 18, height: 18, cursor: 'pointer' }}
+          />
+        </div>
+        <p
+          style={{
+            fontSize: 11,
+            color: colors.textFaint,
+            lineHeight: 1.4,
+            marginBottom: showGrantButton || showDeniedHelper ? 10 : 0,
+          }}
+        >
+          When anyone in the challenge completes an activity, your device will
+          ping with a quiet &ldquo;Someone special&rdquo; celebration. Opt out
+          any time.
+        </p>
+        {showGrantButton && (
+          <button
+            type="button"
+            onClick={handleGrantPermission}
+            style={{
+              padding: '8px 12px',
+              background: colors.accent,
+              color: colors.bg,
+              border: 'none',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              fontFamily: fonts.body,
+              cursor: 'pointer',
+            }}
+          >
+            Grant browser permission
+          </button>
+        )}
+        {showDeniedHelper && (
+          <p
+            style={{
+              fontSize: 11,
+              color: colors.textDim,
+              lineHeight: 1.4,
+              margin: 0,
+            }}
+          >
+            Your browser has blocked notifications for this site. Enable them
+            via your browser settings to start receiving celebrations.
+          </p>
+        )}
+      </div>
+
+      <p
+        style={{
+          fontSize: 12,
+          color: colors.textDim,
+          textTransform: 'uppercase',
+          letterSpacing: 1.5,
+          fontWeight: 600,
+          marginBottom: 10,
+        }}
+      >
+        Targets
+      </p>
+
+      {NUMERIC_KEYS.map((key) => {
         const meta = FIELD_META[key]
         const isOverridden =
           profile?.preferences && key in profile.preferences &&
