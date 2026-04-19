@@ -67,10 +67,17 @@
   Disable iOS PWA rubber-band overscroll so the whole app can't be dragged
   around inside the standalone window. Supported on iOS 16+ Safari and every
   modern desktop browser; older iOS degrades to the previous behaviour.
+
+  `touch-action: manipulation` on the root suppresses iOS double-tap-to-zoom
+  gesture delays on the whole app, complementing the viewport meta's
+  `maximum-scale=1, user-scalable=no` (which blocks pinch-zoom) to give the
+  PWA a native-feeling shell. Interior scrollable containers (Progress
+  charts, Journal list, etc.) keep their own overflow behaviour.
 */
 html,
 body {
   overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 body {
