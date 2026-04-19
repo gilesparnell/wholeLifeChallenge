@@ -7,9 +7,11 @@ const loadModule = async () => {
 
 describe('browserNotifications', () => {
   let originalNotification
+  let originalNavigator
 
   beforeEach(() => {
     originalNotification = globalThis.Notification
+    originalNavigator = globalThis.navigator
   })
 
   afterEach(() => {
@@ -18,7 +20,44 @@ describe('browserNotifications', () => {
     } else {
       globalThis.Notification = originalNotification
     }
+    // Restore the original navigator (jsdom always provides one).
+    if (originalNavigator !== undefined) {
+      Object.defineProperty(globalThis, 'navigator', {
+        value: originalNavigator,
+        configurable: true,
+        writable: true,
+      })
+    }
   })
+
+  // Helper: install a fake serviceWorker on navigator with a controlled
+  // `ready` promise + a registration that exposes a spyable showNotification.
+  const installFakeServiceWorker = ({
+    readyResolution = 'registration',
+    showNotificationImpl,
+  } = {}) => {
+    const showSpy = vi.fn(showNotificationImpl ?? (() => Promise.resolve()))
+    const registration = { showNotification: showSpy }
+    let ready
+    if (readyResolution === 'registration') {
+      ready = Promise.resolve(registration)
+    } else if (readyResolution === 'never') {
+      ready = new Promise(() => {})
+    } else if (readyResolution === 'no-method') {
+      ready = Promise.resolve({})
+    } else {
+      ready = Promise.resolve(readyResolution)
+    }
+    const fakeNavigator = {
+      serviceWorker: { ready },
+    }
+    Object.defineProperty(globalThis, 'navigator', {
+      value: fakeNavigator,
+      configurable: true,
+      writable: true,
+    })
+    return { showSpy, registration }
+  }
 
   describe('when the Notification API is absent', () => {
     it('reports unsupported', async () => {
@@ -151,6 +190,141 @@ describe('browserNotifications', () => {
       await mod.showNotification({ title: 't', body: 'b', icon: '/other.png' })
       const [, optsArg] = FakeNotification.mock.calls[0]
       expect(optsArg.icon).toBe('/other.png')
+    })
+  })
+
+  describe('iOS PWA path: ServiceWorkerRegistration.showNotification', () => {
+    it('prefers the SW path over the constructor when both are available', async () => {
+      const FakeNotification = vi.fn()
+      FakeNotification.permission = 'granted'
+      FakeNotification.requestPermission = vi.fn()
+      globalThis.Notification = FakeNotification
+      const { showSpy } = installFakeServiceWorker()
+
+      const mod = await loadModule()
+      const ok = await mod.showNotification({
+        title: 'Whole Life Challenge',
+        body: 'Someone special has just completed 30 min of Running',
+        tag: 'wlc-activity-exercise-20260419',
+      })
+      expect(ok).toBe(true)
+      expect(showSpy).toHaveBeenCalledTimes(1)
+      // Constructor must NOT be called when the SW path succeeded
+      expect(FakeNotification).not.toHaveBeenCalled()
+    })
+
+    it('passes title, body, tag, icon, silent through to registration.showNotification', async () => {
+      const FakeNotification = vi.fn()
+      FakeNotification.permission = 'granted'
+      FakeNotification.requestPermission = vi.fn()
+      globalThis.Notification = FakeNotification
+      const { showSpy } = installFakeServiceWorker()
+
+      const mod = await loadModule()
+      await mod.showNotification({
+        title: 'T',
+        body: 'B',
+        tag: 'wlc-tag',
+        icon: '/icon.png',
+      })
+      const [titleArg, optsArg] = showSpy.mock.calls[0]
+      expect(titleArg).toBe('T')
+      expect(optsArg).toMatchObject({
+        body: 'B',
+        tag: 'wlc-tag',
+        icon: '/icon.png',
+        silent: false,
+      })
+    })
+
+    it('defaults the icon when none is provided (SW path)', async () => {
+      const FakeNotification = vi.fn()
+      FakeNotification.permission = 'granted'
+      FakeNotification.requestPermission = vi.fn()
+      globalThis.Notification = FakeNotification
+      const { showSpy } = installFakeServiceWorker()
+
+      const mod = await loadModule()
+      await mod.showNotification({ title: 'T', body: 'B' })
+      const [, optsArg] = showSpy.mock.calls[0]
+      expect(optsArg.icon).toBe('/icon-192.svg')
+    })
+
+    it('falls back to the constructor when SW path rejects', async () => {
+      const FakeNotification = vi.fn()
+      FakeNotification.permission = 'granted'
+      FakeNotification.requestPermission = vi.fn()
+      globalThis.Notification = FakeNotification
+      installFakeServiceWorker({
+        showNotificationImpl: () => Promise.reject(new Error('sw boom')),
+      })
+
+      const mod = await loadModule()
+      const ok = await mod.showNotification({ title: 'T', body: 'B' })
+      expect(ok).toBe(true)
+      expect(FakeNotification).toHaveBeenCalledTimes(1)
+    })
+
+    it('falls back to the constructor when navigator.serviceWorker.ready hangs (uses timeout)', async () => {
+      const FakeNotification = vi.fn()
+      FakeNotification.permission = 'granted'
+      FakeNotification.requestPermission = vi.fn()
+      globalThis.Notification = FakeNotification
+      installFakeServiceWorker({ readyResolution: 'never' })
+
+      vi.useFakeTimers()
+      const mod = await loadModule()
+      const promise = mod.showNotification({ title: 'T', body: 'B' })
+      // Advance past the SW ready timeout
+      await vi.advanceTimersByTimeAsync(2500)
+      const ok = await promise
+      vi.useRealTimers()
+      expect(ok).toBe(true)
+      expect(FakeNotification).toHaveBeenCalledTimes(1)
+    })
+
+    it('falls back to the constructor when registration lacks showNotification', async () => {
+      const FakeNotification = vi.fn()
+      FakeNotification.permission = 'granted'
+      FakeNotification.requestPermission = vi.fn()
+      globalThis.Notification = FakeNotification
+      installFakeServiceWorker({ readyResolution: 'no-method' })
+
+      const mod = await loadModule()
+      const ok = await mod.showNotification({ title: 'T', body: 'B' })
+      expect(ok).toBe(true)
+      expect(FakeNotification).toHaveBeenCalledTimes(1)
+    })
+
+    it('returns false (no notification) when permission is denied, even with SW available', async () => {
+      const FakeNotification = vi.fn()
+      FakeNotification.permission = 'denied'
+      FakeNotification.requestPermission = vi.fn()
+      globalThis.Notification = FakeNotification
+      const { showSpy } = installFakeServiceWorker()
+
+      const mod = await loadModule()
+      const ok = await mod.showNotification({ title: 'T', body: 'B' })
+      expect(ok).toBe(false)
+      expect(showSpy).not.toHaveBeenCalled()
+      expect(FakeNotification).not.toHaveBeenCalled()
+    })
+
+    it('iOS-PWA scenario: constructor missing-ish, SW present → still delivers via SW', async () => {
+      // Simulate iOS PWA where new Notification() throws but SW path works.
+      const FakeNotification = vi.fn(() => {
+        throw new Error('Illegal constructor (iOS Safari page-context)')
+      })
+      FakeNotification.permission = 'granted'
+      FakeNotification.requestPermission = vi.fn()
+      globalThis.Notification = FakeNotification
+      const { showSpy } = installFakeServiceWorker()
+
+      const mod = await loadModule()
+      const ok = await mod.showNotification({ title: 'T', body: 'B' })
+      expect(ok).toBe(true)
+      expect(showSpy).toHaveBeenCalledTimes(1)
+      expect(FakeNotification).not.toHaveBeenCalled()
     })
   })
 })
