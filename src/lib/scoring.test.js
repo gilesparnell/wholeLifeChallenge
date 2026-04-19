@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { scoreDay, calculateStreak, calculateHabitStreak } from './scoring'
 import { emptyDay } from './habits'

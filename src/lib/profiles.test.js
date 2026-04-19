@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { isEmailAllowed, upsertProfile, getProfileByEmail, listProfiles, listAllowedEmails, addAllowedEmail, removeAllowedEmail, updateProfile, deleteProfile, updateProfileStats, setLeaderboardVisibility, markOnboardingComplete } from './profiles'
 

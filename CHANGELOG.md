@@ -26,7 +26,7 @@ Each entry is split into:
 
 ---
 
-## [0.14.0 → 0.14.2] — 19 Apr 2026 — Multi-activity exercise logging
+## [0.14.0 → 0.14.3] — 19 Apr 2026 — Multi-activity exercise logging
 
 ### What's new
 
@@ -49,6 +49,7 @@ Each entry is split into:
 - **No new dependencies, no schema change, no service-worker change.** Plan: `docs/plans/2026-04-19-002-feat-ios-push-viewport-multi-activity-beta-plan.md`.
 - **0.14.1 — collapsible Conventions on /changelog.** New `src/lib/splitConventionsBlocks.{js,test.js}` walks the parsed block array and slices out the Conventions h2 + body up to (but not including) the next `hr` or `h2`. `src/pages/Changelog.jsx` renders a `Conventions` `<button>` styled as a link instead of inlining the content; clicking opens a bottom-sheet modal (same idiom as `ActivityModal`) with the conventions blocks rendered through the same `Block` component. Backdrop click + × button both close. 6 unit tests for the splitter + 5 page tests covering link visibility, body-not-inlined, modal open/close paths.
 - **0.14.2 — iOS notification re-alert + unique self-notify tags.** `src/lib/browserNotifications.js` now passes `renotify: true` into both the `ServiceWorkerRegistration.showNotification(...)` and the constructor paths. iOS Web Push's default behaviour silently replaces a same-tag notification without re-alerting, which is why follow-up activity celebrations went missing in 0.14.1. `src/contexts/DataContext.jsx` self-notify echo now appends `Date.now()` to the tag (`wlc-activity-exercise-20260419-1776576430066`) so each test ping is treated as a brand new notification, sidestepping the dedup entirely. Cross-tab dedup for the broadcast subscriber is unaffected — that path still uses the per-day tag. 2 new tests (renotify pass-through + per-call tag uniqueness).
+- **0.14.3 — test-suite streamline (developer-only).** 26 pure-logic test files in `src/lib/` + the `viewport.test.js` smoke check now carry a `// @vitest-environment node` directive, opting them out of the jsdom environment they don't need. Cumulative environment-setup time across workers dropped from ~1040 s to ~162 s (≈6.5×), measured on a sequential `--no-file-parallelism` run. Files that genuinely need DOM/global APIs (adminConfig + dataStore use `localStorage`; browserNotifications + serviceWorker use `navigator`/`Notification`; everything in `.test.jsx`) stay in jsdom. No behavioural change. Suite still 817 tests, all passing.
 
 ---
 

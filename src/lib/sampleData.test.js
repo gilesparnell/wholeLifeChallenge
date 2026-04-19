@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { generateSampleData } from './sampleData'
 import { CHALLENGE_START, getDayIndex } from './dates'

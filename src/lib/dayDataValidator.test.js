@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { validateDayData, NUTRITION_MIN, NUTRITION_MAX, SLEEP_HOURS_MAX } from './dayDataValidator'
 
