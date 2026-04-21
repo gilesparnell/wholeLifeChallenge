@@ -2,12 +2,25 @@ import { useState } from 'react'
 import { scoreDay } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
 import { useData } from '../contexts/DataContext'
+import { useAuth } from '../contexts/AuthContext'
+import { useSharedJournal } from '../hooks/useSharedJournal'
 import { colors, fonts } from '../styles/theme'
 import Help from '../components/Help'
+import OwnerSelector from '../components/OwnerSelector'
 import ActivityModal from '../components/modals/ActivityModal'
 
 export default function Journal() {
-  const { data, loading, saveDay } = useData()
+  const { user } = useAuth()
+  const selfId = user?.id || null
+  const [viewingOwnerId, setViewingOwnerId] = useState(selfId)
+  const isSelf = !selfId || viewingOwnerId === selfId
+
+  const { data: selfData, loading: selfLoading, saveDay } = useData()
+  const { data: sharedData, loading: sharedLoading } = useSharedJournal(isSelf ? null : viewingOwnerId)
+
+  const data = isSelf ? selfData : sharedData
+  const loading = isSelf ? selfLoading : sharedLoading
+
   const [editDate, setEditDate] = useState(null)
 
   const today = getToday()
@@ -19,15 +32,14 @@ export default function Journal() {
 
   const getReflectionText = (entry) => {
     if (!entry) return null
-    // Support both legacy and new formats
     if (entry.reflect?.reflection_text) return entry.reflect.reflection_text
     if (entry.reflection) return entry.reflection
     return null
   }
 
-  // Same edit window as CheckIn: past days that have happened but are
-  // still inside the challenge window are editable. Future days are not.
+  // Editing is only ever allowed for your own reflections.
   const isDateEditable = (dateStr) => {
+    if (!isSelf) return false
     const i = getDayIndex(dateStr)
     return i >= 0 && i <= dayIndex && i < CHALLENGE_DAYS
   }
@@ -75,6 +87,14 @@ export default function Journal() {
           </p>
         </Help>
       </div>
+      {selfId && (
+        <OwnerSelector
+          scope="journal"
+          selfId={selfId}
+          value={viewingOwnerId || selfId}
+          onChange={setViewingOwnerId}
+        />
+      )}
       {visibleDates.slice().reverse().map((d) => {
         const entry = data[d]
         const text = getReflectionText(entry)
@@ -106,13 +126,17 @@ export default function Journal() {
               </div>
             </div>
             <p style={{ fontSize: 13, color: colors.textMuted, lineHeight: 1.6 }}>{text}</p>
-            <div style={{ marginTop: 8, fontSize: 12, color: colors.textGhost }}>Score: {scoreDay(entry)}/35</div>
+            {isSelf && (
+              <div style={{ marginTop: 8, fontSize: 12, color: colors.textGhost }}>Score: {scoreDay(entry)}/35</div>
+            )}
           </div>
         )
       })}
       {!hasReflections && (
         <p style={{ textAlign: 'center', color: colors.textGhost, fontSize: 13, marginTop: 40 }}>
-          No reflections yet. Write your first one in today's check-in!
+          {isSelf
+            ? "No reflections yet. Write your first one in today's check-in!"
+            : "This person hasn't shared any reflections yet."}
         </p>
       )}
 

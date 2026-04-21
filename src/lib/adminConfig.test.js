@@ -55,6 +55,14 @@ describe('DEFAULT_CONFIG', () => {
   it('defaults self-notify to OFF (test mode, not a normal UX)', () => {
     expect(DEFAULT_CONFIG.notifyOnOwnActivity).toBe(false)
   })
+
+  it('defaults share_wellness_all to OFF (opt-in sharing)', () => {
+    expect(DEFAULT_CONFIG.share_wellness_all).toBe(false)
+  })
+
+  it('defaults share_journal_all to OFF (opt-in sharing)', () => {
+    expect(DEFAULT_CONFIG.share_journal_all).toBe(false)
+  })
 })
 
 describe('PERSONALISABLE_KEYS', () => {
@@ -65,6 +73,8 @@ describe('PERSONALISABLE_KEYS', () => {
       'sleepTargetHours',
       'notificationsEnabled',
       'notifyOnOwnActivity',
+      'share_wellness_all',
+      'share_journal_all',
     ])
   })
 
@@ -164,6 +174,24 @@ describe('sanitisePreferences', () => {
     })
     expect(sanitisePreferences({ notificationsEnabled: null })).toEqual({
       notificationsEnabled: false,
+    })
+  })
+
+  it('persists share_wellness_all true and false', () => {
+    expect(sanitisePreferences({ share_wellness_all: true })).toEqual({
+      share_wellness_all: true,
+    })
+    expect(sanitisePreferences({ share_wellness_all: false })).toEqual({
+      share_wellness_all: false,
+    })
+  })
+
+  it('persists share_journal_all true and false', () => {
+    expect(sanitisePreferences({ share_journal_all: true })).toEqual({
+      share_journal_all: true,
+    })
+    expect(sanitisePreferences({ share_journal_all: false })).toEqual({
+      share_journal_all: false,
     })
   })
 })

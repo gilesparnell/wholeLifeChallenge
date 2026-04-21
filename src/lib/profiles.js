@@ -196,6 +196,18 @@ export const markOnboardingComplete = async (id) => {
 }
 
 /**
+ * Return every active profile except the caller. Backed by a SECURITY
+ * DEFINER RPC so it works across the profiles RLS boundary. Used by the
+ * Preferences "share with specific people" checkbox list.
+ */
+export const listShareableProfiles = async () => {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('list_shareable_profiles')
+  if (error || !data) return []
+  return data
+}
+
+/**
  * Toggle a user's opt-in to the public leaderboard.
  */
 export const setLeaderboardVisibility = async (id, visible) => {
