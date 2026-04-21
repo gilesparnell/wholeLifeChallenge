@@ -5,6 +5,14 @@ import { colors, fonts } from '../styles/theme'
 const VIEW_BY_SCOPE = {
   journal: 'shared_journal_entries',
   wellness: 'shared_wellness_entries',
+  exercise: 'shared_exercise_entries',
+}
+
+// "insights" is a virtual scope — union of wellness + exercise. Used on
+// the Progress page so a sharer shows up if they've granted EITHER.
+const viewsFor = (scope) => {
+  if (scope === 'insights') return [VIEW_BY_SCOPE.wellness, VIEW_BY_SCOPE.exercise]
+  return VIEW_BY_SCOPE[scope] ? [VIEW_BY_SCOPE[scope]] : []
 }
 
 export default function OwnerSelector({ scope, selfId, value, onChange, label = 'Viewing' }) {
@@ -12,23 +20,27 @@ export default function OwnerSelector({ scope, selfId, value, onChange, label = 
 
   useEffect(() => {
     let cancelled = false
-    const view = VIEW_BY_SCOPE[scope]
-    if (!view || !supabase) return
+    const views = viewsFor(scope)
+    if (views.length === 0 || !supabase) return
 
-    supabase
-      .from(view)
-      .select('owner_id, owner_name')
-      .then(({ data, error }) => {
-        if (cancelled || error || !data) return
-        const seen = new Map()
+    Promise.all(
+      views.map((view) =>
+        supabase.from(view).select('owner_id, owner_name'),
+      ),
+    ).then((results) => {
+      if (cancelled) return
+      const seen = new Map()
+      for (const { data, error } of results) {
+        if (error || !data) continue
         for (const row of data) {
           if (!row || !row.owner_id) continue
           if (row.owner_id === selfId) continue
           if (seen.has(row.owner_id)) continue
           seen.set(row.owner_id, row.owner_name || 'Someone')
         }
-        setSharers(Array.from(seen, ([id, name]) => ({ id, name })))
-      })
+      }
+      setSharers(Array.from(seen, ([id, name]) => ({ id, name })))
+    })
     return () => { cancelled = true }
   }, [scope, selfId])
 

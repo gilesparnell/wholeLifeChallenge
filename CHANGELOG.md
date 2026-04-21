@@ -26,6 +26,28 @@ Each entry is split into:
 
 ---
 
+## [0.17.0] — 22 Apr 2026 — Exercise + mobility sharing
+
+### What's new
+
+- **Share your exercise and mobility activity too.** The Sharing section in **My Preferences** now has a third block: *Share my exercise &amp; mobility activity*. Same shape as the others — per-person checkboxes for the people you trust, or a &ldquo;with all active users&rdquo; switch. Defaults to off; nothing changes unless you flip it.
+- **Exercise insights appear inline on the Progress tab.** When you view a sharer who's opted into exercise sharing (with or without wellness), the compact view on Progress now shows their **activity types with total minutes** (e.g. Running 90 min, Swimming 60 min) and **weekly totals** split into exercise vs mobility. Wellness and exercise sections render independently — if someone shares only exercise, only that section appears; same for wellness-only.
+- **The Progress selector is now labelled &ldquo;Viewing insights&rdquo;** (not &ldquo;Viewing wellness&rdquo;), since the compact view now covers both scopes. It still lists the union of everyone who's shared either wellness **or** exercise with you.
+- **Nutrition, hydration, and reflections remain private** under the exercise scope. Reflections are still only visible through their own separate journal-sharing toggle.
+
+### Under the hood
+
+- **`supabase/migrations/20260422000014_exercise_share_scope.sql`** — adds 'exercise' to the `entry_shares_scope_check` CHECK constraint and creates a new `shared_exercise_entries` curated view exposing `(owner_id, owner_name, date, exercise, mobilize)`. Same gating predicate as the other curated views: self OR explicit `entry_shares` row OR `profile.preferences.share_exercise_all = true`. **Manual apply** required post-merge.
+- **`src/lib/adminConfig.js`** — `share_exercise_all: 'boolean'` added to `PREFERENCE_TYPES`, `PERSONALISABLE_KEYS`, and `DEFAULT_CONFIG` (default `false`). Tests pin coercion.
+- **`src/lib/shareRepo.js`** — `SHARE_SCOPES` now includes `'exercise'`; `addShare` accepts it and rejects anything else.
+- **`src/components/OwnerSelector.jsx`** — introduces a virtual `scope="insights"` that unions the `shared_wellness_entries` + `shared_exercise_entries` views, so a sharer appears in the Progress selector if they've granted **either** scope. Internally, the component now calls `Promise.all` across the mapped views and merges owner IDs via a `Map` to dedupe. 2 new unit tests pin the union + exercise-only selection.
+- **`src/hooks/useSharedExercise.js` (new)** — thin wrapper over `shared_exercise_entries`, returns `{data, loading}` as a date-keyed map matching the existing `getActivityTypeBreakdown` / `getWeeklyExerciseMinutes` input contract. 4 unit tests.
+- **`src/pages/Progress.jsx`** — shared-mode branch now calls both `useSharedWellness` and `useSharedExercise`, renders a wellness section and/or an exercise section independently based on which has data. Page heading flipped from *&ldquo;Wellness Insights&rdquo;* to *&ldquo;Insights&rdquo;* to reflect both scopes. Exercise section lists activity types (with `getActivityTypeBreakdown`) and weekly totals (with `getWeeklyExerciseMinutes`) — reusing the existing self-view helpers without modification. 3 new Progress tests cover the render-exercise / hide-exercise / hide-wellness paths.
+- **`src/pages/MyPreferences.jsx`** — third share block (`scope: 'exercise'`) added to the block iterator; `shareExerciseAll` state derived from `values.share_exercise_all`. 3 new tests pin rendering, all-toggle persistence, and per-person `addShare` with `scope: 'exercise'`.
+- Test suite: 904 &rarr; **918 tests, all passing** (+14 across exercise sharing). No new dependencies.
+
+---
+
 ## [0.16.0 → 0.16.1] — 21 Apr 2026 — Custom sleep hours + opt-in sharing
 
 ### What's new

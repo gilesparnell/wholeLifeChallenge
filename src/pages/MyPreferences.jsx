@@ -199,6 +199,7 @@ export default function MyPreferences() {
 
   const shareWellnessAll = values.share_wellness_all === true
   const shareJournalAll = values.share_journal_all === true
+  const shareExerciseAll = values.share_exercise_all === true
 
   const [testState, setTestState] = useState('idle') // idle | sending | sent | failed
 
@@ -469,6 +470,13 @@ export default function MyPreferences() {
           help: 'Sleep hours, wellbeing score, and the &ldquo;How Do You Feel&rdquo; scales.',
           allKey: 'share_wellness_all',
           allValue: shareWellnessAll,
+        },
+        {
+          scope: 'exercise',
+          title: 'Share my exercise &amp; mobility activity',
+          help: 'Activity types (e.g. Running, Swimming, Yoga) and minutes per session. Nutrition and hydration stay private.',
+          allKey: 'share_exercise_all',
+          allValue: shareExerciseAll,
         },
       ].map((block) => (
         <div

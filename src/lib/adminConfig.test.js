@@ -63,6 +63,10 @@ describe('DEFAULT_CONFIG', () => {
   it('defaults share_journal_all to OFF (opt-in sharing)', () => {
     expect(DEFAULT_CONFIG.share_journal_all).toBe(false)
   })
+
+  it('defaults share_exercise_all to OFF (opt-in sharing)', () => {
+    expect(DEFAULT_CONFIG.share_exercise_all).toBe(false)
+  })
 })
 
 describe('PERSONALISABLE_KEYS', () => {
@@ -75,6 +79,7 @@ describe('PERSONALISABLE_KEYS', () => {
       'notifyOnOwnActivity',
       'share_wellness_all',
       'share_journal_all',
+      'share_exercise_all',
     ])
   })
 
@@ -192,6 +197,15 @@ describe('sanitisePreferences', () => {
     })
     expect(sanitisePreferences({ share_journal_all: false })).toEqual({
       share_journal_all: false,
+    })
+  })
+
+  it('persists share_exercise_all true and false', () => {
+    expect(sanitisePreferences({ share_exercise_all: true })).toEqual({
+      share_exercise_all: true,
+    })
+    expect(sanitisePreferences({ share_exercise_all: false })).toEqual({
+      share_exercise_all: false,
     })
   })
 })

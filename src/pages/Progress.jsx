@@ -20,6 +20,7 @@ import {
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useSharedWellness } from '../hooks/useSharedWellness'
+import { useSharedExercise } from '../hooks/useSharedExercise'
 import { getEffectiveConfig } from '../lib/adminConfig'
 import { colors, fonts } from '../styles/theme'
 import Help from '../components/Help'
@@ -67,6 +68,7 @@ export default function Progress() {
   const [viewingOwnerId, setViewingOwnerId] = useState(selfId)
   const isSelf = !selfId || viewingOwnerId === selfId
   const { data: sharedData, loading: sharedLoading } = useSharedWellness(isSelf ? null : viewingOwnerId)
+  const { data: sharedExerciseData, loading: sharedExerciseLoading } = useSharedExercise(isSelf ? null : viewingOwnerId)
   const [leaderboard, setLeaderboard] = useState([])
 
   // Fetch leaderboard on mount + subscribe to live updates so the comparison
@@ -226,60 +228,147 @@ export default function Progress() {
     return <div style={{ textAlign: 'center', padding: 40, color: colors.textDim }}>Loading...</div>
   }
 
-  // When viewing someone else's wellness, render a compact page. The
-  // shared_wellness_entries view only exposes sleep, wellbeing, and
-  // selfReport — so we render the charts driven by those fields, not
-  // the full Progress dashboard which depends on every habit.
+  // When viewing someone else's insights, render a compact page.
+  // The curated views expose only sleep/wellbeing/selfReport (wellness)
+  // or exercise/mobilise (exercise). Render whichever sections have
+  // data for this viewer-owner pair; hide the others.
   if (!isSelf) {
     const sharedWellnessTrends = calculateWellnessTrends(sharedData, allDates, dayIndex)
     const sharedEffectiveConfig = getEffectiveConfig(profile)
+    const hasWellnessData = Object.keys(sharedData).length > 0
+    const hasExerciseData = Object.keys(sharedExerciseData).length > 0
+    const loadingSomething = sharedLoading || sharedExerciseLoading
+    const sharedActivityBreakdown = hasExerciseData
+      ? getActivityTypeBreakdown(sharedExerciseData, allDates, dayIndex)
+      : []
+    const sharedWeeklyExercise = hasExerciseData
+      ? getWeeklyExerciseMinutes(sharedExerciseData, allDates, dayIndex)
+      : []
     return (
       <div style={{ animation: 'fadeUp 0.4s ease' }}>
         <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, marginBottom: 20, textAlign: 'center' }}>
-          Wellness Insights
+          Insights
         </h2>
         {selfId && (
           <OwnerSelector
-            scope="wellness"
+            scope="insights"
             selfId={selfId}
             value={viewingOwnerId || selfId}
             onChange={setViewingOwnerId}
-            label="Viewing wellness"
+            label="Viewing insights"
           />
         )}
-        {sharedLoading && (
+        {loadingSomething && (
           <div style={{ textAlign: 'center', padding: 40, color: colors.textDim }}>
             Loading shared insights…
           </div>
         )}
-        {!sharedLoading && Object.keys(sharedData).length === 0 && (
+        {!loadingSomething && !hasWellnessData && !hasExerciseData && (
           <p
             data-testid="shared-wellness-empty"
             style={{ textAlign: 'center', color: colors.textGhost, fontSize: 13, marginTop: 40 }}
           >
-            This person hasn&rsquo;t shared any wellness data yet.
+            This person hasn&rsquo;t shared any insights yet.
           </p>
         )}
-        {!sharedLoading && Object.keys(sharedData).length > 0 && (
-          <>
+        {!loadingSomething && hasWellnessData && (
+          <div data-testid="shared-wellness-section">
             <SleepHoursChart
               trend={sharedWellnessTrends.sleepHours}
               targetHours={sharedEffectiveConfig.sleepTargetHours}
             />
             <WellnessSparklines trends={sharedWellnessTrends} />
+          </div>
+        )}
+        {!loadingSomething && hasExerciseData && (
+          <div
+            data-testid="shared-exercise-section"
+            style={{
+              background: colors.surface,
+              borderRadius: 14,
+              padding: 16,
+              marginBottom: 16,
+              border: `1px solid ${colors.border}`,
+            }}
+          >
             <p
               style={{
-                textAlign: 'center',
-                fontSize: 11,
-                color: colors.textFaint,
-                marginTop: 16,
-                fontStyle: 'italic',
+                fontSize: 12,
+                color: colors.textDim,
+                textTransform: 'uppercase',
+                letterSpacing: 2,
+                marginBottom: 12,
               }}
             >
-              Only sleep, wellbeing, and &ldquo;How Do You Feel&rdquo; scales
-              are shared. Nutrition, exercise, and hydration stay private.
+              Exercise &amp; Mobility
             </p>
-          </>
+            {sharedActivityBreakdown.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontSize: 11, color: colors.textFaint, marginBottom: 8 }}>
+                  Activity types (total minutes):
+                </p>
+                {sharedActivityBreakdown.map((row) => (
+                  <div
+                    key={row.type}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: 13,
+                      color: colors.textMuted,
+                      padding: '4px 0',
+                      borderBottom: `1px solid ${colors.borderSubtle}`,
+                    }}
+                  >
+                    <span>{row.type}</span>
+                    <span style={{ fontFamily: fonts.display, color: colors.text }}>
+                      {row.minutes} min
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {sharedWeeklyExercise.length > 0 && (
+              <div>
+                <p style={{ fontSize: 11, color: colors.textFaint, marginBottom: 8 }}>
+                  Weekly totals (exercise + mobility):
+                </p>
+                {sharedWeeklyExercise.map((w) => (
+                  <div
+                    key={w.week}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: 13,
+                      color: colors.textMuted,
+                      padding: '4px 0',
+                    }}
+                  >
+                    <span>{w.week}</span>
+                    <span style={{ fontFamily: fonts.display, color: colors.text }}>
+                      {w.total} min
+                      <span style={{ color: colors.textFaint, fontSize: 11 }}>
+                        {' '}({w.exercise}e + {w.mobilize}m)
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {!loadingSomething && (hasWellnessData || hasExerciseData) && (
+          <p
+            style={{
+              textAlign: 'center',
+              fontSize: 11,
+              color: colors.textFaint,
+              marginTop: 16,
+              fontStyle: 'italic',
+            }}
+          >
+            Only the scopes this person has explicitly shared appear here.
+            Nutrition, hydration, and reflections stay private.
+          </p>
         )}
       </div>
     )
@@ -293,10 +382,11 @@ export default function Progress() {
 
       {selfId && (
         <OwnerSelector
-          scope="wellness"
+          scope="insights"
           selfId={selfId}
           value={viewingOwnerId || selfId}
           onChange={setViewingOwnerId}
+          label="Viewing insights"
         />
       )}
 
