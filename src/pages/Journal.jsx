@@ -93,6 +93,7 @@ export default function Journal() {
           selfId={selfId}
           value={viewingOwnerId || selfId}
           onChange={setViewingOwnerId}
+          label="Viewing journal"
         />
       )}
       {visibleDates.slice().reverse().map((d) => {

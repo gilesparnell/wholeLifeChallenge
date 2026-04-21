@@ -32,26 +32,8 @@ export default function OwnerSelector({ scope, selfId, value, onChange, label = 
     return () => { cancelled = true }
   }, [scope, selfId])
 
-  // Hide the whole control when there's no one to switch to — keeps the
-  // default journal / progress pages clean for users without any shares.
-  if (sharers.length === 0 && value === selfId) {
-    return (
-      <select
-        data-testid="owner-selector"
-        aria-label={label}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          display: 'none',
-        }}
-      >
-        <option value={selfId}>Me</option>
-      </select>
-    )
-  }
-
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
       <span style={{ fontSize: 12, color: colors.textFaint, fontFamily: fonts.body }}>
         {label}:
       </span>
@@ -73,6 +55,11 @@ export default function OwnerSelector({ scope, selfId, value, onChange, label = 
           <option key={id} value={id}>{name}</option>
         ))}
       </select>
+      {sharers.length === 0 && (
+        <span style={{ fontSize: 11, color: colors.textGhost, fontFamily: fonts.body }}>
+          — no one&rsquo;s shared with you yet
+        </span>
+      )}
     </div>
   )
 }

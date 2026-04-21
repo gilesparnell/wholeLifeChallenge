@@ -100,4 +100,27 @@ describe('OwnerSelector', () => {
     const select = screen.getByTestId('owner-selector')
     expect(select.querySelectorAll('option').length).toBe(1)
   })
+
+  it('is visible (not display:none) when no sharers exist so the user can see the control', async () => {
+    mockFrom.mockImplementation(() => buildViewChain([]))
+    render(<OwnerSelector scope="journal" selfId="u1" value="u1" onChange={() => {}} />)
+    const select = screen.getByTestId('owner-selector')
+    // display:none would hide the "Viewing:" label + selector chrome entirely
+    expect(select.style.display).not.toBe('none')
+    // The "Viewing:" label MUST render so the user can see where the control is
+    expect(screen.getByText(/Viewing/i)).toBeDefined()
+  })
+
+  it('uses the scope to label the selector ("Viewing journal" vs "Viewing wellness")', async () => {
+    mockFrom.mockImplementation(() => buildViewChain([]))
+    const { unmount } = render(
+      <OwnerSelector scope="journal" selfId="u1" value="u1" onChange={() => {}} label="Journal owner" />,
+    )
+    expect(screen.getByText(/Journal owner/i)).toBeDefined()
+    unmount()
+    render(
+      <OwnerSelector scope="wellness" selfId="u1" value="u1" onChange={() => {}} label="Wellness owner" />,
+    )
+    expect(screen.getByText(/Wellness owner/i)).toBeDefined()
+  })
 })
