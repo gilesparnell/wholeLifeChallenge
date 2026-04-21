@@ -16,6 +16,11 @@ export const DEFAULT_CONFIG = {
   // their own activity flips. Useful for solo QA on a single browser.
   // Opt-in only — normal "Someone special" framing expects this OFF.
   notifyOnOwnActivity: false,
+  // Blanket-share overrides. When true, every active user can see the
+  // user's wellness / journal data without a per-recipient row in
+  // entry_shares. Default off — sharing stays opt-in + recipient-scoped.
+  share_wellness_all: false,
+  share_journal_all: false,
 }
 
 // Keys a standard user can override via My Preferences. Everything else
@@ -26,6 +31,8 @@ export const PERSONALISABLE_KEYS = [
   'sleepTargetHours',
   'notificationsEnabled',
   'notifyOnOwnActivity',
+  'share_wellness_all',
+  'share_journal_all',
 ]
 
 // Type map for sanitisation. Numeric keys carry range checks;
@@ -36,6 +43,8 @@ const PREFERENCE_TYPES = {
   sleepTargetHours: 'number',
   notificationsEnabled: 'boolean',
   notifyOnOwnActivity: 'boolean',
+  share_wellness_all: 'boolean',
+  share_journal_all: 'boolean',
 }
 
 // Range checks for each personalisable field. Values outside the range are

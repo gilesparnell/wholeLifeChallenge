@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { updateProfile } from '../lib/profiles'
+import { updateProfile, listShareableProfiles } from '../lib/profiles'
+import { listShares, addShare, removeShare } from '../lib/shareRepo'
 import {
   getConfig,
   sanitisePreferences,
@@ -144,6 +145,60 @@ export default function MyPreferences() {
       setPermission(res)
     }
   }
+
+  // --- Sharing state ---
+  const [shareablePeople, setShareablePeople] = useState([])
+  const [shares, setShares] = useState([]) // rows of entry_shares for this owner
+
+  useEffect(() => {
+    if (!profile?.id) return
+    let cancelled = false
+    Promise.all([listShareableProfiles(), listShares(profile.id)]).then(
+      ([people, rows]) => {
+        if (cancelled) return
+        setShareablePeople(people)
+        setShares(rows)
+      },
+    )
+    return () => { cancelled = true }
+  }, [profile?.id])
+
+  const hasShare = (viewerId, scope) =>
+    shares.some((s) => s.viewer_id === viewerId && s.scope === scope)
+
+  const togglePersonShare = async (viewerId, scope, next) => {
+    if (!profile?.id) return
+    if (next) {
+      const ok = await addShare({ ownerId: profile.id, viewerId, scope })
+      if (ok) {
+        setShares((rows) => [...rows, { owner_id: profile.id, viewer_id: viewerId, scope }])
+        track('share_granted', { scope })
+      }
+    } else {
+      const ok = await removeShare({ ownerId: profile.id, viewerId, scope })
+      if (ok) {
+        setShares((rows) =>
+          rows.filter((r) => !(r.viewer_id === viewerId && r.scope === scope)),
+        )
+        track('share_revoked', { scope })
+      }
+    }
+  }
+
+  const toggleShareAll = async (key, next) => {
+    if (!profile?.id) return
+    const nextValues = { ...values, [key]: next }
+    setValues(nextValues)
+    const diff = buildDiff(nextValues, globalConfig)
+    const result = await updateProfile(profile.id, { preferences: diff })
+    if (result) {
+      updateLocalProfile({ preferences: diff })
+      track('share_all_toggled', { key, enabled: next })
+    }
+  }
+
+  const shareWellnessAll = values.share_wellness_all === true
+  const shareJournalAll = values.share_journal_all === true
 
   const [testState, setTestState] = useState('idle') // idle | sending | sent | failed
 
@@ -372,6 +427,7 @@ export default function MyPreferences() {
         )}
       </div>
 
+      {/* Sharing section */}
       <p
         style={{
           fontSize: 12,
@@ -380,6 +436,154 @@ export default function MyPreferences() {
           letterSpacing: 1.5,
           fontWeight: 600,
           marginBottom: 10,
+          marginTop: 8,
+        }}
+      >
+        Sharing
+      </p>
+      <p
+        style={{
+          fontSize: 12,
+          color: colors.textFaint,
+          lineHeight: 1.5,
+          marginBottom: 12,
+        }}
+      >
+        Everything below is <strong>opt-in</strong> and off by default. Share
+        your reflection journal or wellness insights with specific people in
+        the cohort — or toggle &ldquo;everyone&rdquo; if that&rsquo;s simpler.
+        Nutrition, exercise, and hydration detail stay private.
+      </p>
+
+      {[
+        {
+          scope: 'journal',
+          title: 'Share my reflection journal',
+          help: 'The written reflection you add each day — not the score.',
+          allKey: 'share_journal_all',
+          allValue: shareJournalAll,
+        },
+        {
+          scope: 'wellness',
+          title: 'Share my wellness insights',
+          help: 'Sleep hours, wellbeing score, and the &ldquo;How Do You Feel&rdquo; scales.',
+          allKey: 'share_wellness_all',
+          allValue: shareWellnessAll,
+        },
+      ].map((block) => (
+        <div
+          key={block.scope}
+          style={{
+            background: colors.surface,
+            borderRadius: 12,
+            padding: 16,
+            marginBottom: 12,
+            border: `1px solid ${colors.borderSubtle}`,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <label
+              htmlFor={`pref-${block.allKey}`}
+              style={{ fontSize: 13, fontWeight: 600, color: colors.text }}
+            >
+              {block.title}
+            </label>
+          </div>
+          <p
+            style={{ fontSize: 11, color: colors.textFaint, lineHeight: 1.4, marginBottom: 10 }}
+            dangerouslySetInnerHTML={{ __html: block.help }}
+          />
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: colors.bg,
+              border: `1px solid ${colors.borderSubtle}`,
+              cursor: 'pointer',
+              marginBottom: 10,
+            }}
+          >
+            <span style={{ fontSize: 12, color: colors.text, fontWeight: 600 }}>
+              Share with all active users
+            </span>
+            <input
+              id={`pref-${block.allKey}`}
+              data-testid={`share-all-${block.scope}`}
+              type="checkbox"
+              checked={block.allValue}
+              onChange={(e) => toggleShareAll(block.allKey, e.target.checked)}
+              style={{ width: 18, height: 18, cursor: 'pointer' }}
+            />
+          </label>
+          {!block.allValue && (
+            <div>
+              <p style={{ fontSize: 11, color: colors.textFaint, marginBottom: 8 }}>
+                …or share with specific people:
+              </p>
+              {shareablePeople.length === 0 ? (
+                <p style={{ fontSize: 12, color: colors.textGhost, margin: 0 }}>
+                  No other active users yet.
+                </p>
+              ) : (
+                shareablePeople.map((person) => {
+                  const checked = hasShare(person.id, block.scope)
+                  return (
+                    <label
+                      key={person.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        color: colors.textMuted,
+                      }}
+                    >
+                      <span>{person.display_name || 'Unnamed'}</span>
+                      <input
+                        data-testid={`share-${block.scope}-${person.id}`}
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => togglePersonShare(person.id, block.scope, e.target.checked)}
+                        style={{ width: 16, height: 16, cursor: 'pointer' }}
+                      />
+                    </label>
+                  )
+                })
+              )}
+            </div>
+          )}
+          {block.allValue && (
+            <p
+              style={{
+                fontSize: 11,
+                color: colors.textFaint,
+                margin: 0,
+                fontStyle: 'italic',
+              }}
+            >
+              Shared with every active user. Turn the switch off to pick
+              specific people instead.
+            </p>
+          )}
+        </div>
+      ))}
+
+      <p
+        style={{
+          fontSize: 12,
+          color: colors.textDim,
+          textTransform: 'uppercase',
+          letterSpacing: 1.5,
+          fontWeight: 600,
+          marginBottom: 10,
+          marginTop: 8,
         }}
       >
         Targets

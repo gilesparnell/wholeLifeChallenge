@@ -5,8 +5,19 @@ import MyPreferences from './MyPreferences'
 
 // Mock supabase auth + profiles module so save tests don't hit the network
 const updateProfileMock = vi.fn()
+const listShareableProfilesMock = vi.fn()
 vi.mock('../lib/profiles', () => ({
   updateProfile: (...args) => updateProfileMock(...args),
+  listShareableProfiles: (...args) => listShareableProfilesMock(...args),
+}))
+
+const listSharesMock = vi.fn()
+const addShareMock = vi.fn()
+const removeShareMock = vi.fn()
+vi.mock('../lib/shareRepo', () => ({
+  listShares: (...args) => listSharesMock(...args),
+  addShare: (...args) => addShareMock(...args),
+  removeShare: (...args) => removeShareMock(...args),
 }))
 
 const requestPermissionMock = vi.fn()
@@ -42,6 +53,14 @@ beforeEach(() => {
   requestPermissionMock.mockReset()
   getPermissionMock.mockReset()
   showNotificationMock.mockReset()
+  listShareableProfilesMock.mockReset()
+  listSharesMock.mockReset()
+  addShareMock.mockReset()
+  removeShareMock.mockReset()
+  listShareableProfilesMock.mockResolvedValue([])
+  listSharesMock.mockResolvedValue([])
+  addShareMock.mockResolvedValue(true)
+  removeShareMock.mockResolvedValue(true)
   showNotificationMock.mockResolvedValue(true)
   getPermissionMock.mockReturnValue('granted')
   mockProfile = {
@@ -354,6 +373,110 @@ describe('MyPreferences', () => {
       await waitFor(() =>
         expect(screen.getByText(/couldn.t send|blocked|failed/i)).toBeDefined(),
       )
+    })
+  })
+
+  describe('sharing section', () => {
+    it('renders both share blocks (journal + wellness)', async () => {
+      renderPage()
+      await waitFor(() => expect(screen.getByText(/share my reflection journal/i)).toBeDefined())
+      expect(screen.getByText(/share my wellness insights/i)).toBeDefined()
+    })
+
+    it('renders both "Share with all active users" toggles as unchecked by default', async () => {
+      renderPage()
+      await waitFor(() => expect(screen.getByTestId('share-all-journal')).toBeDefined())
+      expect(screen.getByTestId('share-all-journal').checked).toBe(false)
+      expect(screen.getByTestId('share-all-wellness').checked).toBe(false)
+    })
+
+    it('reflects preference values share_journal_all=true / share_wellness_all=true', async () => {
+      mockProfile = {
+        ...mockProfile,
+        preferences: { share_journal_all: true, share_wellness_all: true },
+      }
+      renderPage()
+      await waitFor(() => expect(screen.getByTestId('share-all-journal')).toBeDefined())
+      expect(screen.getByTestId('share-all-journal').checked).toBe(true)
+      expect(screen.getByTestId('share-all-wellness').checked).toBe(true)
+    })
+
+    it('persists share_journal_all=true via updateProfile when its toggle flips on', async () => {
+      updateProfileMock.mockResolvedValue({ ...mockProfile })
+      renderPage()
+      await waitFor(() => expect(screen.getByTestId('share-all-journal')).toBeDefined())
+      fireEvent.click(screen.getByTestId('share-all-journal'))
+      await waitFor(() => expect(updateProfileMock).toHaveBeenCalled())
+      const [, patch] = updateProfileMock.mock.calls[0]
+      expect(patch.preferences.share_journal_all).toBe(true)
+    })
+
+    it('lists shareable people and shows per-person checkboxes', async () => {
+      listShareableProfilesMock.mockResolvedValue([
+        { id: 'u2', display_name: 'Alice' },
+        { id: 'u3', display_name: 'Bob' },
+      ])
+      renderPage()
+      await waitFor(() => expect(screen.getByTestId('share-journal-u2')).toBeDefined())
+      expect(screen.getByTestId('share-journal-u3')).toBeDefined()
+      expect(screen.getByTestId('share-wellness-u2')).toBeDefined()
+      expect(screen.getByTestId('share-wellness-u3')).toBeDefined()
+      // display names render alongside each checkbox
+      expect(screen.getAllByText(/Alice/).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/Bob/).length).toBeGreaterThan(0)
+    })
+
+    it('shows an existing share as checked in the per-person list', async () => {
+      listShareableProfilesMock.mockResolvedValue([{ id: 'u2', display_name: 'Alice' }])
+      listSharesMock.mockResolvedValue([
+        { owner_id: 'user-barney', viewer_id: 'u2', scope: 'journal' },
+      ])
+      renderPage()
+      await waitFor(() => expect(screen.getByTestId('share-journal-u2')).toBeDefined())
+      expect(screen.getByTestId('share-journal-u2').checked).toBe(true)
+      expect(screen.getByTestId('share-wellness-u2').checked).toBe(false)
+    })
+
+    it('calls addShare when a per-person journal checkbox is ticked', async () => {
+      listShareableProfilesMock.mockResolvedValue([{ id: 'u2', display_name: 'Alice' }])
+      renderPage()
+      await waitFor(() => expect(screen.getByTestId('share-journal-u2')).toBeDefined())
+      fireEvent.click(screen.getByTestId('share-journal-u2'))
+      await waitFor(() => expect(addShareMock).toHaveBeenCalled())
+      expect(addShareMock).toHaveBeenCalledWith({
+        ownerId: 'user-barney',
+        viewerId: 'u2',
+        scope: 'journal',
+      })
+    })
+
+    it('calls removeShare when a ticked per-person wellness checkbox is un-ticked', async () => {
+      listShareableProfilesMock.mockResolvedValue([{ id: 'u2', display_name: 'Alice' }])
+      listSharesMock.mockResolvedValue([
+        { owner_id: 'user-barney', viewer_id: 'u2', scope: 'wellness' },
+      ])
+      renderPage()
+      await waitFor(() => expect(screen.getByTestId('share-wellness-u2').checked).toBe(true))
+      fireEvent.click(screen.getByTestId('share-wellness-u2'))
+      await waitFor(() => expect(removeShareMock).toHaveBeenCalled())
+      expect(removeShareMock).toHaveBeenCalledWith({
+        ownerId: 'user-barney',
+        viewerId: 'u2',
+        scope: 'wellness',
+      })
+    })
+
+    it('hides the per-person list when share-with-all is on', async () => {
+      mockProfile = {
+        ...mockProfile,
+        preferences: { share_wellness_all: true },
+      }
+      listShareableProfilesMock.mockResolvedValue([{ id: 'u2', display_name: 'Alice' }])
+      renderPage()
+      await waitFor(() => expect(screen.getByTestId('share-all-wellness')).toBeDefined())
+      // Alice checkbox should still show for journal (allValue=false) but not wellness
+      expect(screen.queryByTestId('share-wellness-u2')).toBeNull()
+      expect(screen.getByTestId('share-journal-u2')).toBeDefined()
     })
   })
 

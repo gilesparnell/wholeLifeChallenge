@@ -19,9 +19,11 @@ import {
 } from '../lib/progressMetrics'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
+import { useSharedWellness } from '../hooks/useSharedWellness'
 import { getEffectiveConfig } from '../lib/adminConfig'
 import { colors, fonts } from '../styles/theme'
 import Help from '../components/Help'
+import OwnerSelector from '../components/OwnerSelector'
 import StatCards from '../components/progress/StatCards'
 import StreaksStrip from '../components/progress/StreaksStrip'
 import BonusProgress from '../components/progress/BonusProgress'
@@ -60,7 +62,11 @@ const OVERLAY_COLORS = [
 
 export default function Progress() {
   const { data, loading } = useData()
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
+  const selfId = user?.id || profile?.id || null
+  const [viewingOwnerId, setViewingOwnerId] = useState(selfId)
+  const isSelf = !selfId || viewingOwnerId === selfId
+  const { data: sharedData, loading: sharedLoading } = useSharedWellness(isSelf ? null : viewingOwnerId)
   const [leaderboard, setLeaderboard] = useState([])
 
   // Fetch leaderboard on mount + subscribe to live updates so the comparison
@@ -220,11 +226,78 @@ export default function Progress() {
     return <div style={{ textAlign: 'center', padding: 40, color: colors.textDim }}>Loading...</div>
   }
 
+  // When viewing someone else's wellness, render a compact page. The
+  // shared_wellness_entries view only exposes sleep, wellbeing, and
+  // selfReport — so we render the charts driven by those fields, not
+  // the full Progress dashboard which depends on every habit.
+  if (!isSelf) {
+    const sharedWellnessTrends = calculateWellnessTrends(sharedData, allDates, dayIndex)
+    const sharedEffectiveConfig = getEffectiveConfig(profile)
+    return (
+      <div style={{ animation: 'fadeUp 0.4s ease' }}>
+        <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, marginBottom: 20, textAlign: 'center' }}>
+          Wellness Insights
+        </h2>
+        {selfId && (
+          <OwnerSelector
+            scope="wellness"
+            selfId={selfId}
+            value={viewingOwnerId || selfId}
+            onChange={setViewingOwnerId}
+          />
+        )}
+        {sharedLoading && (
+          <div style={{ textAlign: 'center', padding: 40, color: colors.textDim }}>
+            Loading shared insights…
+          </div>
+        )}
+        {!sharedLoading && Object.keys(sharedData).length === 0 && (
+          <p
+            data-testid="shared-wellness-empty"
+            style={{ textAlign: 'center', color: colors.textGhost, fontSize: 13, marginTop: 40 }}
+          >
+            This person hasn&rsquo;t shared any wellness data yet.
+          </p>
+        )}
+        {!sharedLoading && Object.keys(sharedData).length > 0 && (
+          <>
+            <SleepHoursChart
+              trend={sharedWellnessTrends.sleepHours}
+              targetHours={sharedEffectiveConfig.sleepTargetHours}
+            />
+            <WellnessSparklines trends={sharedWellnessTrends} />
+            <p
+              style={{
+                textAlign: 'center',
+                fontSize: 11,
+                color: colors.textFaint,
+                marginTop: 16,
+                fontStyle: 'italic',
+              }}
+            >
+              Only sleep, wellbeing, and &ldquo;How Do You Feel&rdquo; scales
+              are shared. Nutrition, exercise, and hydration stay private.
+            </p>
+          </>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div style={{ animation: 'fadeUp 0.4s ease' }}>
       <h2 style={{ fontFamily: fonts.display, fontSize: 24, fontWeight: 300, marginBottom: 20, textAlign: 'center' }}>
         Your Journey
       </h2>
+
+      {selfId && (
+        <OwnerSelector
+          scope="wellness"
+          selfId={selfId}
+          value={viewingOwnerId || selfId}
+          onChange={setViewingOwnerId}
+        />
+      )}
 
       <StatCards stats={statCardsData} />
       <StreaksStrip streaks={habitStreaks} />
