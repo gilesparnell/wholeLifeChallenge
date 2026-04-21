@@ -244,6 +244,7 @@ export default function Progress() {
             selfId={selfId}
             value={viewingOwnerId || selfId}
             onChange={setViewingOwnerId}
+            label="Viewing wellness"
           />
         )}
         {sharedLoading && (

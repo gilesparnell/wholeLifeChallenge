@@ -26,7 +26,7 @@ Each entry is split into:
 
 ---
 
-## [0.16.0] — 21 Apr 2026 — Custom sleep hours + opt-in sharing
+## [0.16.0 → 0.16.1] — 21 Apr 2026 — Custom sleep hours + opt-in sharing
 
 ### What's new
 
@@ -35,6 +35,7 @@ Each entry is split into:
 - **Share your wellness insights the same way.** Same shape, different scope — share sleep hours, wellbeing score, and the &ldquo;How Do You Feel?&rdquo; scales (mood, energy, stress, soreness). Nutrition, exercise, and hydration stay private either way.
 - **View a friend&rsquo;s shared data inline.** The Reflections tab and the Progress page both now have a &ldquo;Viewing:&rdquo; dropdown at the top. Default is you. If someone shares with you, their name appears in the dropdown; pick it to see what they&rsquo;ve shared. For wellness, you land on a compact &ldquo;Wellness Insights&rdquo; view with their sleep and wellbeing charts — not the full Progress dashboard, since most of that isn&rsquo;t shared.
 - **Privacy note.** Reflections used to be strictly private — no toggle existed. That stays the default. The new surface is explicit opt-in, per-recipient, and revocable any time. Flipping a share off takes effect on the next page load for the viewer.
+- **The &ldquo;Viewing:&rdquo; selectors are now always visible (0.16.1).** On both Reflections and Progress, a small dropdown at the top of the page shows where the switch happens — even if no one has shared with you yet. You&rsquo;ll see &ldquo;Viewing journal: Me ▾ — no one&rsquo;s shared with you yet&rdquo; on Reflections, and &ldquo;Viewing wellness: Me ▾&rdquo; on Progress. Previously the control was hidden until a share existed, which made it hard to know the feature was even there.
 
 ### Under the hood
 
@@ -48,7 +49,8 @@ Each entry is split into:
 - **`src/hooks/useSharedJournal.js` + `useSharedWellness.js` (new)** — fetch the caller-visible rows from the respective view, shape them as a date-keyed map matching the `useData()` contract so existing rendering code (Journal cards, SleepHoursChart, WellnessSparklines) can consume shared data without modification. Return `{data, loading}`. Gracefully return empty data when the owner id is null (viewing self — no fetch fires) or on error. 10 tests across both hooks.
 - **`src/pages/Journal.jsx`** — mounts `OwnerSelector scope="journal"`, swaps between `useData()` (self) and `useSharedJournal(ownerId)` (sharer) via a `viewingOwnerId` state. Edit buttons and the &ldquo;Score: N/35&rdquo; footer are gated on `isSelf` so shared views stay read-only and don&rsquo;t leak score. Empty-state copy adapts (&ldquo;No reflections yet&rdquo; vs &ldquo;This person hasn&rsquo;t shared any reflections yet&rdquo;). 5 new tests layered on top of the existing suite.
 - **`src/pages/Progress.jsx`** — early-returns a compact &ldquo;Wellness Insights&rdquo; view (selector + `SleepHoursChart` + `WellnessSparklines` + a privacy reassurance line) when `!isSelf`; the full Progress dashboard stays on when viewing self. Chart components are reused with no changes — they already render null when there&rsquo;s insufficient data, so the &ldquo;not shared yet&rdquo; empty state falls out naturally from the shape of the data. New `Progress.test.jsx` file covers the self / compact-shared / empty / privacy-copy flows (5 tests).
-- Test suite: 838 &rarr; **902 tests, all passing** (+64 across the new features). No new dependencies.
+- Test suite: 838 &rarr; **904 tests, all passing** (+66 across the new features). No new dependencies.
+- **0.16.1 — always-visible owner selector.** Dropped the `display:none` gate in `src/components/OwnerSelector.jsx` that hid the whole control when `sharers.length === 0`. Now the control always renders with a single "Me" option and, when empty, a dim "— no one's shared with you yet" hint beside it. `Journal.jsx` and `Progress.jsx` each pass a distinct `label` prop ("Viewing journal" / "Viewing wellness") so the two selectors read unambiguously. 2 new unit tests pin the always-visible behaviour and the scope-specific label.
 
 ---
 
