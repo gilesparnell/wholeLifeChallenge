@@ -21,6 +21,7 @@ export const DEFAULT_CONFIG = {
   // entry_shares. Default off — sharing stays opt-in + recipient-scoped.
   share_wellness_all: false,
   share_journal_all: false,
+  share_exercise_all: false,
 }
 
 // Keys a standard user can override via My Preferences. Everything else
@@ -33,6 +34,7 @@ export const PERSONALISABLE_KEYS = [
   'notifyOnOwnActivity',
   'share_wellness_all',
   'share_journal_all',
+  'share_exercise_all',
 ]
 
 // Type map for sanitisation. Numeric keys carry range checks;
@@ -45,6 +47,7 @@ const PREFERENCE_TYPES = {
   notifyOnOwnActivity: 'boolean',
   share_wellness_all: 'boolean',
   share_journal_all: 'boolean',
+  share_exercise_all: 'boolean',
 }
 
 // Range checks for each personalisable field. Values outside the range are

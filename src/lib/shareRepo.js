@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-export const SHARE_SCOPES = ['wellness', 'journal']
+export const SHARE_SCOPES = ['wellness', 'journal', 'exercise']
 
 export const listShares = async (ownerId) => {
   if (!ownerId || !supabase) return []

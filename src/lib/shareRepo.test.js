@@ -69,6 +69,17 @@ describe('shareRepo', () => {
       expect(mockFrom).not.toHaveBeenCalled()
     })
 
+    it('accepts exercise as a valid scope', async () => {
+      const upsert = vi.fn().mockResolvedValue({ data: [{ ok: true }], error: null })
+      mockFrom.mockReturnValue({ upsert })
+      const ok = await addShare({ ownerId: 'u1', viewerId: 'u2', scope: 'exercise' })
+      expect(upsert).toHaveBeenCalledWith(
+        { owner_id: 'u1', viewer_id: 'u2', scope: 'exercise' },
+        { onConflict: 'owner_id,viewer_id,scope' },
+      )
+      expect(ok).toBe(true)
+    })
+
     it('refuses to create a self-share', async () => {
       const ok = await addShare({ ownerId: 'u1', viewerId: 'u1', scope: 'journal' })
       expect(ok).toBe(false)

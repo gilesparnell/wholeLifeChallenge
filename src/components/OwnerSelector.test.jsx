@@ -111,6 +111,41 @@ describe('OwnerSelector', () => {
     expect(screen.getByText(/Viewing/i)).toBeDefined()
   })
 
+  it('unions sharers across wellness + exercise when scope="insights"', async () => {
+    mockFrom.mockImplementation((view) => {
+      if (view === 'shared_wellness_entries') {
+        return buildViewChain([{ owner_id: 'u2', owner_name: 'Alice' }])
+      }
+      if (view === 'shared_exercise_entries') {
+        return buildViewChain([
+          { owner_id: 'u3', owner_name: 'Bob' },
+          { owner_id: 'u2', owner_name: 'Alice' }, // duplicate: Alice shares both
+        ])
+      }
+      return buildViewChain([])
+    })
+    render(<OwnerSelector scope="insights" selfId="u1" value="u1" onChange={() => {}} />)
+    await waitFor(() => expect(screen.getByText('Alice')).toBeDefined())
+    expect(screen.getByText('Bob')).toBeDefined()
+    // Alice listed exactly once even though she shares both scopes
+    const select = screen.getByTestId('owner-selector')
+    const aliceOptions = Array.from(select.querySelectorAll('option')).filter(
+      (o) => o.textContent === 'Alice',
+    )
+    expect(aliceOptions.length).toBe(1)
+  })
+
+  it('lists exercise-only sharers when scope="exercise"', async () => {
+    mockFrom.mockImplementation((view) => {
+      if (view === 'shared_exercise_entries') {
+        return buildViewChain([{ owner_id: 'u3', owner_name: 'Bob' }])
+      }
+      return buildViewChain([])
+    })
+    render(<OwnerSelector scope="exercise" selfId="u1" value="u1" onChange={() => {}} />)
+    await waitFor(() => expect(screen.getByText('Bob')).toBeDefined())
+  })
+
   it('uses the scope to label the selector ("Viewing journal" vs "Viewing wellness")', async () => {
     mockFrom.mockImplementation(() => buildViewChain([]))
     const { unmount } = render(

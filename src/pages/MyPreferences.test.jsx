@@ -377,17 +377,42 @@ describe('MyPreferences', () => {
   })
 
   describe('sharing section', () => {
-    it('renders both share blocks (journal + wellness)', async () => {
+    it('renders all three share blocks (journal + wellness + exercise)', async () => {
       renderPage()
       await waitFor(() => expect(screen.getByText(/share my reflection journal/i)).toBeDefined())
       expect(screen.getByText(/share my wellness insights/i)).toBeDefined()
+      expect(screen.getByText(/share my exercise/i)).toBeDefined()
     })
 
-    it('renders both "Share with all active users" toggles as unchecked by default', async () => {
+    it('renders all three "Share with all active users" toggles as unchecked by default', async () => {
       renderPage()
       await waitFor(() => expect(screen.getByTestId('share-all-journal')).toBeDefined())
       expect(screen.getByTestId('share-all-journal').checked).toBe(false)
       expect(screen.getByTestId('share-all-wellness').checked).toBe(false)
+      expect(screen.getByTestId('share-all-exercise').checked).toBe(false)
+    })
+
+    it('persists share_exercise_all=true via updateProfile when its toggle flips on', async () => {
+      updateProfileMock.mockResolvedValue({ ...mockProfile })
+      renderPage()
+      await waitFor(() => expect(screen.getByTestId('share-all-exercise')).toBeDefined())
+      fireEvent.click(screen.getByTestId('share-all-exercise'))
+      await waitFor(() => expect(updateProfileMock).toHaveBeenCalled())
+      const [, patch] = updateProfileMock.mock.calls[0]
+      expect(patch.preferences.share_exercise_all).toBe(true)
+    })
+
+    it('calls addShare with scope="exercise" when a per-person exercise checkbox is ticked', async () => {
+      listShareableProfilesMock.mockResolvedValue([{ id: 'u2', display_name: 'Alice' }])
+      renderPage()
+      await waitFor(() => expect(screen.getByTestId('share-exercise-u2')).toBeDefined())
+      fireEvent.click(screen.getByTestId('share-exercise-u2'))
+      await waitFor(() => expect(addShareMock).toHaveBeenCalled())
+      expect(addShareMock).toHaveBeenCalledWith({
+        ownerId: 'user-barney',
+        viewerId: 'u2',
+        scope: 'exercise',
+      })
     })
 
     it('reflects preference values share_journal_all=true / share_wellness_all=true', async () => {
