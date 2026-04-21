@@ -115,6 +115,34 @@ describe('HeaderMenu', () => {
     })
   })
 
+  describe('signed-in user header', () => {
+    it('shows the display name at the top of the menu when signed in', () => {
+      renderMenu({ displayName: 'Barney' })
+      fireEvent.click(screen.getByRole('button', { name: /menu/i }))
+      const header = screen.getByTestId('header-menu-user')
+      expect(header.textContent).toMatch(/Signed in as/i)
+      expect(header.textContent).toMatch(/Barney/)
+    })
+
+    it('does NOT render the email address anywhere in the menu header', () => {
+      renderMenu({ displayName: 'Barney', email: 'barney@example.com' })
+      fireEvent.click(screen.getByRole('button', { name: /menu/i }))
+      expect(screen.getByTestId('header-menu-user').textContent).not.toMatch(/barney@example\.com/i)
+    })
+
+    it('falls back to the signed-in user label when displayName is missing', () => {
+      renderMenu({ displayName: null })
+      fireEvent.click(screen.getByRole('button', { name: /menu/i }))
+      expect(screen.getByTestId('header-menu-user').textContent).toMatch(/Signed in/i)
+    })
+
+    it('omits the user header entirely when signedIn is false', () => {
+      renderMenu({ signedIn: false })
+      fireEvent.click(screen.getByRole('button', { name: /menu/i }))
+      expect(screen.queryByTestId('header-menu-user')).toBeNull()
+    })
+  })
+
   describe('auto-close after navigation', () => {
     it('closes after clicking a menu item link', () => {
       renderMenu()
