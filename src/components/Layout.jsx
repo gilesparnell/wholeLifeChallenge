@@ -16,7 +16,7 @@ const NAV_ITEMS = [
 ]
 
 export default function Layout({ children }) {
-  const { user, signOut, isAdmin } = useAuth()
+  const { user, profile, signOut, isAdmin } = useAuth()
   const { resolvedTheme, toggleTheme } = useTheme()
   const location = useLocation()
   const today = getToday()
@@ -93,6 +93,7 @@ export default function Layout({ children }) {
               onToggleTheme={toggleTheme}
               onSignOut={signOut}
               signedIn={!!user}
+              displayName={profile?.display_name || null}
             />
           </div>
           <p style={{

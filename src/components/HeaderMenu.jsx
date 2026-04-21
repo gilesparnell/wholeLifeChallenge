@@ -30,6 +30,7 @@ export default function HeaderMenu({
   onToggleTheme,
   onSignOut,
   signedIn = true,
+  displayName = null,
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const triggerRef = useRef(null)
@@ -120,6 +121,37 @@ export default function HeaderMenu({
               animation: 'menuFade 0.18s ease',
             }}
           >
+            {signedIn && (
+              <div
+                data-testid="header-menu-user"
+                style={{
+                  padding: '10px 18px 8px',
+                  fontSize: 11,
+                  color: colors.textFaint,
+                  fontFamily: fonts.body,
+                  letterSpacing: 0.3,
+                  borderBottom: `1px solid ${colors.borderSubtle}`,
+                  marginBottom: 4,
+                }}
+              >
+                <span style={{ textTransform: 'uppercase', letterSpacing: 1 }}>
+                  Signed in as
+                </span>
+                <div
+                  style={{
+                    marginTop: 2,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: colors.text,
+                    letterSpacing: 'normal',
+                    textTransform: 'none',
+                  }}
+                >
+                  {displayName || 'You'}
+                </div>
+              </div>
+            )}
+
             <Link
               role="menuitem"
               to="/preferences"

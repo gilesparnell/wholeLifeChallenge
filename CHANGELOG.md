@@ -26,7 +26,7 @@ Each entry is split into:
 
 ---
 
-## [0.17.0] — 22 Apr 2026 — Exercise + mobility sharing
+## [0.17.0 → 0.17.1] — 22 Apr 2026 — Exercise + mobility sharing
 
 ### What's new
 
@@ -34,6 +34,7 @@ Each entry is split into:
 - **Exercise insights appear inline on the Progress tab.** When you view a sharer who's opted into exercise sharing (with or without wellness), the compact view on Progress now shows their **activity types with total minutes** (e.g. Running 90 min, Swimming 60 min) and **weekly totals** split into exercise vs mobility. Wellness and exercise sections render independently — if someone shares only exercise, only that section appears; same for wellness-only.
 - **The Progress selector is now labelled &ldquo;Viewing insights&rdquo;** (not &ldquo;Viewing wellness&rdquo;), since the compact view now covers both scopes. It still lists the union of everyone who's shared either wellness **or** exercise with you.
 - **Nutrition, hydration, and reflections remain private** under the exercise scope. Reflections are still only visible through their own separate journal-sharing toggle.
+- **You can now see which account you&rsquo;re signed into (0.17.1).** The hamburger menu now shows a small &ldquo;Signed in as &hellip;&rdquo; header at the top with your display name (not your email). Handy when switching between accounts on the same device.
 
 ### Under the hood
 
@@ -45,6 +46,7 @@ Each entry is split into:
 - **`src/pages/Progress.jsx`** — shared-mode branch now calls both `useSharedWellness` and `useSharedExercise`, renders a wellness section and/or an exercise section independently based on which has data. Page heading flipped from *&ldquo;Wellness Insights&rdquo;* to *&ldquo;Insights&rdquo;* to reflect both scopes. Exercise section lists activity types (with `getActivityTypeBreakdown`) and weekly totals (with `getWeeklyExerciseMinutes`) — reusing the existing self-view helpers without modification. 3 new Progress tests cover the render-exercise / hide-exercise / hide-wellness paths.
 - **`src/pages/MyPreferences.jsx`** — third share block (`scope: 'exercise'`) added to the block iterator; `shareExerciseAll` state derived from `values.share_exercise_all`. 3 new tests pin rendering, all-toggle persistence, and per-person `addShare` with `scope: 'exercise'`.
 - Test suite: 904 &rarr; **918 tests, all passing** (+14 across exercise sharing). No new dependencies.
+- **0.17.1 — HeaderMenu shows display name.** `src/components/HeaderMenu.jsx` accepts a new `displayName` prop and renders a `data-testid="header-menu-user"` block at the top of the dropdown: small uppercase &ldquo;Signed in as&rdquo; label + the display name in bold. Falls back to &ldquo;You&rdquo; if the name is missing. `src/components/Layout.jsx` pulls `profile?.display_name` from `useAuth()` and passes it through. 4 new unit tests cover render-with-name, no-email-leak, fallback, and hide-when-signed-out. Suite 918 &rarr; **922 tests, all passing**.
 
 ---
 
