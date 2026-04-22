@@ -11,6 +11,8 @@ import UpdateToast from './components/UpdateToast'
 import ActivityNotifier from './components/ActivityNotifier'
 import { reportError } from './lib/sentry'
 import { registerServiceWorker } from './lib/serviceWorker'
+import { CHANGELOG_TEXT } from './lib/changelogContent'
+import { getLatestWhatsNew } from './lib/getLatestWhatsNew'
 import CheckIn from './pages/CheckIn'
 import Journal from './pages/Journal'
 import Info from './pages/Info'
@@ -30,6 +32,10 @@ const PageFallback = () => (
   </div>
 )
 
+// Computed once at module load — the bundle is rebuilt every deploy so the
+// changelog text always matches the version about to be served.
+const LATEST_WHATS_NEW = getLatestWhatsNew(CHANGELOG_TEXT)
+
 function App() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
 
@@ -45,7 +51,11 @@ function App() {
 
   return (
     <ErrorBoundary onError={reportError}>
-      <UpdateToast visible={updateAvailable} onRefresh={handleRefresh} />
+      <UpdateToast
+        visible={updateAvailable}
+        onRefresh={handleRefresh}
+        summary={LATEST_WHATS_NEW}
+      />
       <BrowserRouter>
         <ThemeProvider>
         <AuthProvider>
