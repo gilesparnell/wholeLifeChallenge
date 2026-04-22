@@ -26,6 +26,24 @@ Each entry is split into:
 
 ---
 
+## [0.18.0] — 22 Apr 2026 — Update toast summary + shareable changelog links
+
+### What's new
+
+- **Know what changed before refreshing.** The little &ldquo;New version available&rdquo; toast at the bottom of the screen now shows the version number, the release title, and a short list of what&rsquo;s new in this release. No more deciding whether to hit Refresh on faith — you can see the highlights at a glance, then refresh.
+- **Each version on the changelog page is now its own shareable link.** Every version heading on `/changelog` has a small &ldquo;🔗 link&rdquo; button beside it — tap it to copy a deep link like `/changelog#0.16.0` to your clipboard. Paste that link in a chat or email and the recipient lands directly on that version&rsquo;s entry, scrolled into view. URL fragments work end-to-end on first load too, so an inbound link to `/changelog#0.15.1` jumps straight to it.
+
+### Under the hood
+
+- **`src/lib/changelogVersionSlug.js` (new)** — `extractVersionSlug(headingText)` returns the last version string from a `[X.Y.Z]` or `[X.Y.Z → X.Y.Z+n]` bracket, and `extractVersionHeadingParts(headingText)` separates `{version, range, date, title}`. 9 unit tests pin happy-path / range / ASCII-arrow / null-input cases.
+- **`src/lib/getLatestWhatsNew.js` (new)** — walks the parsed changelog, finds the first h2 with a version slug (skipping the `## Conventions` block), then collects bullets only from a sibling `### What&rsquo;s new` h3 until the next h2 or `---`. Returns `{version, title, items, hasMore}` with a `maxItems` cap (default 3). 10 unit tests cover what&rsquo;s-new isolation, truncation, hasMore signalling, and null/empty input.
+- **`src/components/UpdateToast.jsx`** — gains a `summary` prop. When present, lays out as a card: bold version header (`New version available — vX.Y.Z`), dim title line, then a 12px bullet list. Falls back to the original single-line toast when `summary` is null. 6 new unit tests pin the layout matrix.
+- **`src/App.jsx`** — computes `LATEST_WHATS_NEW = getLatestWhatsNew(CHANGELOG_TEXT)` once at module load (changelog text rebuilds with every deploy, so it always matches the version about to be served) and passes it as `summary` to `<UpdateToast>`.
+- **`src/pages/Changelog.jsx`** — every version `<h2>` now renders with `id={versionSlug}` so URL fragments resolve to the right element, plus a 🔗 link button beside the heading that writes `${origin}/changelog#${slug}` to the clipboard via `navigator.clipboard.writeText`. A new `useEffect` reads `location.hash` on mount and calls `scrollIntoView({behavior:'smooth'})` after a `requestAnimationFrame`, so deep links scrolled-into-view work on first load (browsers don&rsquo;t auto-scroll for SPA route renders with a fragment). 4 new Changelog tests pin the `id` attribute, the copy-link affordance, the clipboard call, and the no-anchor behaviour for the Conventions h2.
+- Test suite: 922 &rarr; **951 tests, all passing** (+29 across both features). No new dependencies.
+
+---
+
 ## [0.17.0 → 0.17.1] — 22 Apr 2026 — Exercise + mobility sharing
 
 ### What's new

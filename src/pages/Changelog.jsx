@@ -1,16 +1,34 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { CHANGELOG_TEXT } from '../lib/changelogContent'
 import { parseChangelog } from '../lib/parseChangelog'
 import { annotateChangelogBlocks } from '../lib/annotateChangelogBlocks'
 import { splitConventionsBlocks } from '../lib/splitConventionsBlocks'
+import { extractVersionSlug } from '../lib/changelogVersionSlug'
 import { colors, fonts } from '../styles/theme'
 
 export default function Changelog() {
   const navigate = useNavigate()
+  const location = useLocation()
   const allBlocks = annotateChangelogBlocks(parseChangelog(CHANGELOG_TEXT))
   const { before, conventions, after } = splitConventionsBlocks(allBlocks)
   const [conventionsOpen, setConventionsOpen] = useState(false)
+
+  // Honour the URL hash (e.g. /changelog#0.16.0) on mount and on hash change.
+  // Browsers don't auto-scroll for SPA route loads with a fragment.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = location.hash?.replace(/^#/, '')
+    if (!hash) return
+    // Defer to next paint so the headings have mounted with their ids.
+    const id = window.requestAnimationFrame(() => {
+      const el = document.getElementById(hash)
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [location.hash])
 
   const handleClose = () => navigate(-1)
 
@@ -173,8 +191,20 @@ function Block({ block }) {
   }
 
   if (block.type === 'h2') {
+    const slug = extractVersionSlug(block.text)
+    const handleCopyLink = async () => {
+      if (!slug) return
+      const url = `${window.location.origin}/changelog#${slug}`
+      try {
+        await navigator.clipboard?.writeText(url)
+      } catch {
+        // Best-effort — older browsers may reject silently. Falling back
+        // to a prompt() would be more annoying than a no-op.
+      }
+    }
     return (
       <h2
+        id={slug || undefined}
         style={{
           fontFamily: fonts.display,
           fontSize: 18,
@@ -182,9 +212,36 @@ function Block({ block }) {
           margin: '28px 0 8px 0',
           color: colors.accent,
           letterSpacing: 0.2,
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 8,
+          flexWrap: 'wrap',
         }}
       >
-        {block.text}
+        <span>{block.text}</span>
+        {slug && (
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            data-testid={`copy-link-${slug}`}
+            aria-label={`Copy link to v${slug}`}
+            title={`Copy link to v${slug}`}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: colors.textFaint,
+              fontSize: 12,
+              fontFamily: fonts.body,
+              cursor: 'pointer',
+              padding: '2px 6px',
+              borderRadius: 6,
+              fontWeight: 500,
+              letterSpacing: 0,
+            }}
+          >
+            🔗 link
+          </button>
+        )}
       </h2>
     )
   }

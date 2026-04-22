@@ -155,4 +155,45 @@ describe('Changelog page', () => {
       expect(screen.queryByTestId('conventions-modal')).toBeNull()
     })
   })
+
+  describe('version anchors', () => {
+    it('renders each version h2 with an id matching the version slug', () => {
+      renderPage()
+      const headings = screen.getAllByRole('heading', { level: 2 })
+      const v0_10 = headings.find((h) => h.textContent.includes('0.10.0'))
+      const v0_9_6 = headings.find((h) => h.textContent.includes('0.9.6'))
+      expect(v0_10).toBeDefined()
+      expect(v0_10.getAttribute('id')).toBe('0.10.0')
+      expect(v0_9_6).toBeDefined()
+      expect(v0_9_6.getAttribute('id')).toBe('0.9.6')
+    })
+
+    it('renders a copy-link affordance next to each version heading', () => {
+      renderPage()
+      expect(screen.getByTestId('copy-link-0.10.0')).toBeDefined()
+      expect(screen.getByTestId('copy-link-0.9.6')).toBeDefined()
+    })
+
+    it('does NOT add an id to the Conventions h2 (it has no version)', () => {
+      renderPage()
+      const conventionsBtn = screen.queryByRole('button', { name: /^conventions$/i })
+      expect(conventionsBtn).toBeDefined()
+      // Conventions is the link-button now, not an h2 in the rendered DOM
+      const headings = screen.getAllByRole('heading', { level: 2 })
+      const noVersionHeading = headings.find((h) => h.textContent.includes('Conventions'))
+      // Should not exist as an h2 — Conventions is collapsed behind a button.
+      expect(noVersionHeading).toBeUndefined()
+    })
+
+    it('the copy-link button writes the deep link URL to the clipboard', async () => {
+      const writeText = vi.fn().mockResolvedValue()
+      Object.assign(navigator, { clipboard: { writeText } })
+
+      renderPage()
+      fireEvent.click(screen.getByTestId('copy-link-0.10.0'))
+      expect(writeText).toHaveBeenCalledTimes(1)
+      const arg = writeText.mock.calls[0][0]
+      expect(arg).toMatch(/\/changelog#0\.10\.0$/)
+    })
+  })
 })
