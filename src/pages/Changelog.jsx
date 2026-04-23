@@ -90,20 +90,29 @@ export default function Changelog() {
         onClick={handleClose}
         aria-label="Close changelog"
         style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          background: 'transparent',
-          border: 'none',
-          color: colors.textDim,
-          fontSize: 24,
+          position: 'fixed',
+          top: 'calc(env(safe-area-inset-top) + 12px)',
+          right: 'calc(env(safe-area-inset-right) + 12px)',
+          background: colors.surface,
+          border: `1px solid ${colors.borderSubtle}`,
+          color: colors.text,
+          fontSize: 13,
           lineHeight: 1,
           cursor: 'pointer',
-          padding: 4,
+          padding: '8px 14px',
+          borderRadius: 999,
           fontFamily: fonts.body,
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
+          zIndex: 2000,
+          minHeight: 36,
         }}
       >
-        ×
+        <span style={{ fontSize: 18, lineHeight: 1 }}>×</span>
+        <span>Close</span>
       </button>
 
       {before.map((block, i) => <Block key={`b${i}`} block={block} />)}
