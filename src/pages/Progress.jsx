@@ -30,6 +30,7 @@ import StatCards from '../components/progress/StatCards'
 import StreaksStrip from '../components/progress/StreaksStrip'
 import HabitGrid from '../components/progress/HabitGrid'
 import HabitConsistencyPanel from '../components/progress/HabitConsistencyPanel'
+import CollapsibleSection from '../components/CollapsibleSection'
 import BonusProgress from '../components/progress/BonusProgress'
 import SleepHoursChart from '../components/progress/SleepHoursChart'
 import WellnessSparklines from '../components/progress/WellnessSparklines'
@@ -398,6 +399,7 @@ export default function Progress() {
       <StreaksStrip streaks={habitStreaks} />
       <BonusProgress bonuses={bonuses} />
 
+      <CollapsibleSection id="scores" title="Scores" defaultOpen={true}>
       <div className="wlc-charts-grid">
       {/* Daily Score Chart */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
@@ -548,12 +550,17 @@ export default function Progress() {
         )}
       </div>
 
-      {/* Wellness section — sleep, wellness sparklines, hydration */}
+      </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection id="wellness" title="Wellness" defaultOpen={false}>
       <SleepHoursChart trend={wellnessTrends.sleepHours} targetHours={effectiveConfig.sleepTargetHours} />
       <WellnessSparklines trends={wellnessTrends} />
       <HydrationProgressChart data={hydrationSeries} effectiveTargetMl={effectiveConfig.hydrationTargetMl} />
+      </CollapsibleSection>
 
-      {/* Per-Habit Bar Chart (NEW) */}
+      <CollapsibleSection id="habit-breakdown" title="Habit Breakdown" defaultOpen={false}>
+      {/* Per-Habit Bar Chart */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
         <p style={chartHeadingStyle}>
           Habit Breakdown (Weekly)
@@ -582,12 +589,12 @@ export default function Progress() {
           </BarChart>
         </ResponsiveContainer>
       </div>
-
-      </div>
+      </CollapsibleSection>
 
       {/* Exercise Duration Charts — only shown when duration data exists */}
       {hasExerciseDuration && (
-        <div className="wlc-charts-grid" style={{ marginTop: 16 }}>
+        <CollapsibleSection id="exercise" title="Exercise" defaultOpen={false}>
+        <div className="wlc-charts-grid">
           {/* Weekly Exercise Minutes */}
           <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
             <p style={chartHeadingStyle}>
@@ -642,10 +649,12 @@ export default function Progress() {
             </ResponsiveContainer>
           </div>
         </div>
+        </CollapsibleSection>
       )}
 
       {/* Activity Type Breakdown */}
       {activityBreakdown.length > 0 && (
+        <CollapsibleSection id="activity" title="Activity Types" defaultOpen={false}>
         <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
           <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
             Activity Breakdown
@@ -673,10 +682,12 @@ export default function Progress() {
             )
           })}
         </div>
+        </CollapsibleSection>
       )}
 
       {/* Recovery & Strain Chart — only shown when self-report data exists */}
       {hasRecoveryData && (
+        <CollapsibleSection id="recovery" title="Recovery & Strain" defaultOpen={false}>
         <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
           <p style={chartHeadingStyle}>
           Recovery &amp; Strain
@@ -719,9 +730,10 @@ export default function Progress() {
             <span style={{ fontSize: 11, color: colors.accent }}>{'\u25CF'} Strain (0-21)</span>
           </div>
         </div>
+        </CollapsibleSection>
       )}
 
-      {/* Deep dives section — calendar heatmap, week radar, recovery-strain scatter */}
+      <CollapsibleSection id="deep-dives" title="Deep Dives" defaultOpen={false}>
       <CalendarHeatmap data={heatmapData} />
       <RadarWeek
         data={data}
@@ -730,7 +742,9 @@ export default function Progress() {
         currentWeekIndex={currentWeekIndex}
       />
       {hasRecoveryData && <RecoveryStrainScatter trend={recoveryTrend} />}
+      </CollapsibleSection>
 
+      <CollapsibleSection id="habit-heatmap" title="Habit Heatmap" defaultOpen={false}>
       {/* Habit Heatmap */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
         <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
@@ -775,23 +789,21 @@ export default function Progress() {
           </div>
         </div>
       </div>
+      </CollapsibleSection>
 
-      {/* Day-by-Day Habit Grid */}
+      <CollapsibleSection id="habit-log" title="Day-by-Day Habit Log" defaultOpen={true}>
       <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
-        <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
-          📅 Day-by-Day Habit Log
-        </p>
         <HabitGrid data={data} allDates={allDates} dayIndex={dayIndex} habits={HABITS} />
       </div>
+      </CollapsibleSection>
 
-      {/* Habit Consistency Analysis */}
+      <CollapsibleSection id="habit-consistency" title="Habit Consistency" defaultOpen={true}>
       <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
-        <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
-          📊 Habit Consistency
-        </p>
         <HabitConsistencyPanel consistency={habitConsistency} />
       </div>
+      </CollapsibleSection>
 
+      <CollapsibleSection id="weekly-totals" title="Weekly Totals" defaultOpen={false}>
       {/* Weekly Totals */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: 16, border: `1px solid ${colors.border}` }}>
         <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
@@ -824,13 +836,15 @@ export default function Progress() {
           )
         })}
       </div>
+      </CollapsibleSection>
 
-      {/* Insights — peer delta + correlation patterns */}
+      <CollapsibleSection id="insights" title="Insights" defaultOpen={false}>
       <PeerDeltaChart delta={peerDelta} peerCount={otherUsers.length} />
       <CorrelationInsights
         correlations={correlations}
         enoughData={enoughDataForCorrelations}
       />
+      </CollapsibleSection>
     </div>
   )
 }
