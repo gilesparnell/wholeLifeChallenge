@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { HABITS, emptyDay } from '../lib/habits'
 import { scoreDay, calculateStreak, calculateHabitStreak } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
@@ -40,10 +40,9 @@ export default function CheckIn() {
   const [showGapsCard, setShowGapsCard] = useState(true)
   const yesterday = allDates[dayIndex - 1] ?? null
   const yesterdayDayIndex = dayIndex - 1
-  const yesterdayGaps = useMemo(() => {
-    if (!showGapsCard || loading || !yesterday) return []
-    return getYesterdayGaps(data, yesterday, yesterdayDayIndex)
-  }, [showGapsCard, loading, data, yesterday, yesterdayDayIndex])
+  const yesterdayGaps = (!showGapsCard || loading || !yesterday)
+    ? []
+    : getYesterdayGaps(data, yesterday, yesterdayDayIndex)
 
   // Wraps save with bonus auto-application. Computes bonuses BEFORE the new
   // day is written (so we don't double-count the save we're about to make)
