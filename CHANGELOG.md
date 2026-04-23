@@ -26,12 +26,25 @@ Each entry is split into:
 
 ---
 
+## [0.21.0] — 23 Apr 2026 — Collapsible Progress page sections
+
+### What's new
+
+- The **Progress page** is now organised into collapsible sections — tap any section heading to collapse or expand it. Your preferences are remembered across sessions: sections you close stay closed and sections you leave open stay open permanently (stored per-section in localStorage).
+- Open by default: **Scores**, **Day-by-Day Habit Log**, **Habit Consistency**. Closed by default: Wellness, Habit Breakdown, Exercise, Activity Types, Recovery & Strain, Deep Dives, Habit Heatmap, Weekly Totals, Insights.
+
+### Under the hood
+
+- `src/components/CollapsibleSection.jsx` — minimal section accordion. `readSectionOpen` / `writeSectionOpen` persist to `localStorage` under `wlc-progress-open-{id}`. 8 unit tests. Progress.jsx wraps each chart group in `<CollapsibleSection>` with a `defaultOpen` matching its daily relevance.
+
+---
+
 ## [0.20.0] — 23 Apr 2026 — Yesterday's gaps card + day-by-day habit grid + consistency analysis
 
 ### What's new
 
 - A dismissible card now appears at the top of Check-In whenever you have habits you didn't log yesterday. Each missed habit has two options: **"Yes, log it"** (takes you to yesterday so you can fill it in) or **"Nope"** (removes just that gap from the card). The card remembers your dismissals so it won't re-appear after a page refresh.
-- The **Progress page** has two new sections below the Habit Heatmap:
+- Two new sections in Progress:
   - **Day-by-Day Habit Log** — a full grid showing every day × every habit with colour-coded cells. Nutrition cells show your 0–5 score with a green gradient; habit cells show ✓ in their habit colour when done; partial hydration shows the fill percentage in amber. Filter to 1D / 7D / 14D / All with the pill buttons at the top. Horizontally scrollable on mobile with the date column pinned.
   - **Habit Consistency** — per-habit completion rates and points lost across all logged days. Any habit below 60% completion gets an orange callout naming exactly how many points you've lost there (e.g. "Mobilise: only 2 of 12 days — 50 pts lost"). Hydrate also calls out your average ml vs your target if you're consistently falling short.
 
@@ -42,7 +55,6 @@ Each entry is split into:
 - `src/components/YesterdayGapsCard.jsx` — dismissal persisted to `localStorage` under `wlc-gaps-dismissed-{date}`; `onAllDismissed` fires once the active-gaps array empties.
 - `src/components/progress/HabitGrid.jsx` — range filter slices `allDates` client-side; sticky date column via `position: sticky, left: 0`; partial-hydrate amber cell uses `current_ml / target_ml` ratio from the day's hydrate object.
 - `src/components/progress/HabitConsistencyPanel.jsx` — 60% threshold drives both bar colour and callout inclusion; hydrate gets a secondary callout when `avgFillRate < 60`.
-
 ---
 
 ## [0.19.1 → 0.19.2] — 23 Apr 2026 — Trackpad swipe fixed on macOS + scoring breakdown in leaderboard
