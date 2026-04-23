@@ -182,6 +182,35 @@ describe('Changelog page', () => {
     })
   })
 
+  describe('inline markdown', () => {
+    it('renders **bold** segments inside list items as <strong>', () => {
+      renderPage()
+      // The seeded changelog mock has no bold items, so assert at the DOM
+      // level — the Block renderer must route through InlineMarkdown and
+      // at minimum leave non-formatted bullets as plain text. For the
+      // bold assertion we rely on a seeded bullet:
+      // (Conventions section has "- **patch** (0.0.x) — bug fixes"
+      //  — open the conventions modal to see it.)
+      fireEvent.click(screen.getByRole('button', { name: /^conventions$/i }))
+      const modal = screen.getByTestId('conventions-modal')
+      const strongs = modal.querySelectorAll('strong')
+      expect(strongs.length).toBeGreaterThan(0)
+      // At least one of them matches the bolded prefix from the fixture.
+      const texts = Array.from(strongs).map((s) => s.textContent)
+      expect(texts).toContain('patch')
+      expect(texts).toContain('What\'s new')
+    })
+
+    it('does NOT render raw ** markers in the rendered text', () => {
+      renderPage()
+      fireEvent.click(screen.getByRole('button', { name: /^conventions$/i }))
+      const modal = screen.getByTestId('conventions-modal')
+      // The modal should show "patch" bolded — NOT "**patch**" as literal.
+      expect(modal.textContent).not.toMatch(/\*\*patch\*\*/)
+      expect(modal.textContent).toMatch(/patch/)
+    })
+  })
+
   describe('version anchors', () => {
     it('renders each version h2 with an id matching the version slug', () => {
       renderPage()

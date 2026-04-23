@@ -5,6 +5,7 @@ import { parseChangelog } from '../lib/parseChangelog'
 import { annotateChangelogBlocks } from '../lib/annotateChangelogBlocks'
 import { splitConventionsBlocks } from '../lib/splitConventionsBlocks'
 import { extractVersionSlug } from '../lib/changelogVersionSlug'
+import InlineMarkdown from '../components/InlineMarkdown'
 import { colors, fonts } from '../styles/theme'
 
 export default function Changelog() {
@@ -194,7 +195,7 @@ function Block({ block }) {
           letterSpacing: -0.5,
         }}
       >
-        {block.text}
+        <InlineMarkdown text={block.text} />
       </h1>
     )
   }
@@ -227,7 +228,7 @@ function Block({ block }) {
           flexWrap: 'wrap',
         }}
       >
-        <span>{block.text}</span>
+        <span><InlineMarkdown text={block.text} /></span>
         {slug && (
           <button
             type="button"
@@ -267,7 +268,7 @@ function Block({ block }) {
           margin: '16px 0 6px 0',
         }}
       >
-        {block.text}
+        <InlineMarkdown text={block.text} />
       </h3>
     )
   }
@@ -284,7 +285,9 @@ function Block({ block }) {
         }}
       >
         {block.items.map((item, i) => (
-          <li key={i} style={{ marginBottom: 4 }}>{item}</li>
+          <li key={i} style={{ marginBottom: 4 }}>
+            <InlineMarkdown text={item} />
+          </li>
         ))}
       </ul>
     )
@@ -300,7 +303,7 @@ function Block({ block }) {
           margin: '0 0 12px 0',
         }}
       >
-        {block.text}
+        <InlineMarkdown text={block.text} />
       </p>
     )
   }
