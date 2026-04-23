@@ -26,6 +26,16 @@ Each entry is split into:
 
 ---
 
+## [0.19.1] — 23 Apr 2026 — Trackpad swipe fixed on macOS
+
+### What's new
+- Two-finger horizontal swipe to navigate days now works again on macOS trackpads.
+
+### Under the hood
+- Replaced the React `onWheel` synthetic event with a native non-passive `wheel` listener (`addEventListener('wheel', fn, { passive: false })`). Without `passive: false`, macOS intercepts horizontal swipes as browser back/forward navigation gestures before wheel events reach the page. Calling `e.preventDefault()` on horizontal-dominant events blocks that interception. Touch/iPhone swipe is unaffected (separate touch path). `CheckIn.jsx:132–149`.
+
+---
+
 ## [0.19.0] — 23 Apr 2026 — Preserved display names + Google account picker
 
 ### What's new

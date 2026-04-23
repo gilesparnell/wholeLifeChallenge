@@ -129,11 +129,21 @@ export default function CheckIn() {
       },
     })
   }, [])
-  const handleWheel = (e) => {
-    // Skip pure vertical scrolls — let the browser handle page scroll.
-    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return
-    wheelDetectorRef.current?.(e.deltaX, e.deltaY)
-  }
+  // Attach as a native non-passive wheel listener so we can call preventDefault()
+  // on horizontal swipes. Without this, macOS intercepts the gesture for
+  // browser back/forward navigation before wheel events reach React handlers.
+  const checkInRef = useRef(null)
+  useEffect(() => {
+    const el = checkInRef.current
+    if (!el) return
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return
+      e.preventDefault()
+      wheelDetectorRef.current?.(e.deltaX, e.deltaY)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
 
   const totalScore = calculateTotalScore(data, allDates, dayIndex)
   const maxPossible = calculateMaxPossible(dayIndex, CHALLENGE_DAYS)
@@ -285,10 +295,10 @@ export default function CheckIn() {
 
   return (
     <div
+      ref={checkInRef}
       style={{ animation: 'fadeUp 0.4s ease' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      onWheel={handleWheel}
     >
       {/* Stats Row */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
