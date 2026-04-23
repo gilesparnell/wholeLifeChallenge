@@ -112,6 +112,70 @@ export const calculateConsistency = (data, allDates, dayIndex) => {
   return Math.round((logged / elapsed) * 100)
 }
 
+const HABIT_IDS_FOR_CONSISTENCY = ['exercise', 'mobilize', 'sleep', 'hydrate', 'wellbeing', 'reflect']
+
+/**
+ * Per-habit completion rate and points lost across all elapsed days.
+ * Nutrition is included as a separate entry with avgScore instead of completionRate.
+ * Bonuses are intentionally NOT counted as completions — this tracks actual habit logging.
+ */
+export const calculateHabitConsistency = (data, allDates, dayIndex) => {
+  if (dayIndex < 0 || allDates.length === 0) return []
+  const elapsed = Math.min(dayIndex + 1, allDates.length)
+  if (elapsed <= 0) return []
+
+  const habitStats = HABIT_IDS_FOR_CONSISTENCY.map((id) => {
+    let completed = 0
+    let totalMl = 0
+    let totalTarget = 0
+    let hydrateDays = 0
+
+    for (let i = 0; i < elapsed; i++) {
+      const day = data[allDates[i]] || {}
+      if (isHabitCompleted(day[id])) completed++
+      if (id === 'hydrate' && day.hydrate && typeof day.hydrate === 'object') {
+        totalMl += day.hydrate.current_ml || 0
+        totalTarget += day.hydrate.target_ml || 2000
+        hydrateDays++
+      }
+    }
+
+    const completionRate = Math.round((completed / elapsed) * 100)
+    const pointsLost = (elapsed - completed) * 5
+    const entry = { id, completed, elapsed, completionRate, pointsLost }
+
+    if (id === 'hydrate') {
+      entry.avgMl = hydrateDays > 0 ? Math.round(totalMl / hydrateDays) : 0
+      entry.avgTarget = hydrateDays > 0 ? Math.round(totalTarget / hydrateDays) : 2000
+      entry.avgFillRate = entry.avgTarget > 0
+        ? Math.round((entry.avgMl / entry.avgTarget) * 100)
+        : 0
+    }
+
+    return entry
+  })
+
+  let totalNutrition = 0
+  let nutritionPointsLost = 0
+  for (let i = 0; i < elapsed; i++) {
+    const day = data[allDates[i]] || {}
+    const score = Math.max(0, day.nutrition ?? 5)
+    totalNutrition += score
+    nutritionPointsLost += 5 - score
+  }
+
+  habitStats.push({
+    id: 'nutrition',
+    completed: null,
+    elapsed,
+    completionRate: null,
+    avgScore: Math.round((totalNutrition / elapsed) * 10) / 10,
+    pointsLost: nutritionPointsLost,
+  })
+
+  return habitStats
+}
+
 /**
  * Extends the user's cumulative line to the challenge end date using
  * their average score per day so far. Never projects past challengeDays.

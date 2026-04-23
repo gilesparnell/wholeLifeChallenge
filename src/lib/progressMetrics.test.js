@@ -11,6 +11,7 @@ import {
   calculateHeatmapData,
   calculateStatCards,
   calculateWellnessTrends,
+  calculateHabitConsistency,
   pearson,
 } from './progressMetrics'
 
@@ -468,5 +469,78 @@ describe('calculateWellnessTrends', () => {
     expect(result.energyLevel).toHaveLength(2)
     expect(result.stressLevel).toHaveLength(2)
     expect(result.soreness).toHaveLength(2)
+  })
+})
+
+describe('calculateHabitConsistency', () => {
+  it('returns empty array when dayIndex < 0', () => {
+    const { dates } = makeData([])
+    expect(calculateHabitConsistency({}, dates, -1)).toEqual([])
+  })
+
+  it('returns 100% rate and 0 pts lost when all habits complete', () => {
+    const { data, dates } = makeData([makeDay(), makeDay()])
+    const result = calculateHabitConsistency(data, dates, 1)
+    const exercise = result.find(r => r.id === 'exercise')
+    expect(exercise.completionRate).toBe(100)
+    expect(exercise.pointsLost).toBe(0)
+    expect(exercise.completed).toBe(2)
+    expect(exercise.elapsed).toBe(2)
+  })
+
+  it('returns 0% rate and elapsed*5 pts lost when all habits missed', () => {
+    const missedDay = makeDay({
+      exercise: { completed: false },
+      mobilize: { completed: false },
+      sleep: { completed: false },
+      hydrate: { completed: false, current_ml: 0, target_ml: 2000 },
+      wellbeing: { completed: false },
+      reflect: { completed: false },
+    })
+    const { data, dates } = makeData([missedDay, missedDay])
+    const result = calculateHabitConsistency(data, dates, 1)
+    const mobilize = result.find(r => r.id === 'mobilize')
+    expect(mobilize.completionRate).toBe(0)
+    expect(mobilize.pointsLost).toBe(10)
+  })
+
+  it('bonusApplied.restDay does NOT count as exercise completion', () => {
+    const dayWithBonus = makeDay({
+      exercise: { completed: false },
+      bonusApplied: { restDay: true },
+    })
+    const { data, dates } = makeData([dayWithBonus])
+    const result = calculateHabitConsistency(data, dates, 0)
+    const exercise = result.find(r => r.id === 'exercise')
+    expect(exercise.completed).toBe(0)
+    expect(exercise.completionRate).toBe(0)
+  })
+
+  it('calculates nutrition pointsLost as sum of (5 - score) across elapsed days', () => {
+    const { data, dates } = makeData([
+      makeDay({ nutrition: 5 }),
+      makeDay({ nutrition: 3 }),
+      makeDay({ nutrition: 0 }),
+    ])
+    const result = calculateHabitConsistency(data, dates, 2)
+    const nutrition = result.find(r => r.id === 'nutrition')
+    expect(nutrition.pointsLost).toBe(0 + 2 + 5) // 7
+    expect(nutrition.avgScore).toBeCloseTo((5 + 3 + 0) / 3, 1)
+    expect(nutrition.completed).toBeNull()
+    expect(nutrition.completionRate).toBeNull()
+  })
+
+  it('calculates hydrate avgMl, avgTarget, avgFillRate correctly', () => {
+    const { data, dates } = makeData([
+      makeDay({ hydrate: { completed: false, current_ml: 1000, target_ml: 2000 } }),
+      makeDay({ hydrate: { completed: true, current_ml: 2000, target_ml: 2000 } }),
+    ])
+    const result = calculateHabitConsistency(data, dates, 1)
+    const hydrate = result.find(r => r.id === 'hydrate')
+    expect(hydrate.avgMl).toBe(1500)
+    expect(hydrate.avgTarget).toBe(2000)
+    expect(hydrate.avgFillRate).toBe(75)
+    expect(hydrate.completed).toBe(1)
+    expect(hydrate.pointsLost).toBe(5)
   })
 })
