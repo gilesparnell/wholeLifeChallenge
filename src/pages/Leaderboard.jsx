@@ -67,6 +67,38 @@ export default function Leaderboard() {
             score. Useful for light accountability and a bit of competitive nudge
             &mdash; not for public shaming.
           </p>
+          <p><strong>How scoring works — 35 pts per day:</strong></p>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginBottom: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: colors.textMuted, fontWeight: 600 }}>Category</th>
+                <th style={{ textAlign: 'center', padding: '4px 6px', color: colors.textMuted, fontWeight: 600 }}>Pts</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: colors.textMuted, fontWeight: 600 }}>How to earn</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['🥗 Nutrition', '0–5', 'Slider defaults to 5. Deduct for off-plan eating.'],
+                ['🏃 Exercise', '5', 'Log 10+ min of any activity.'],
+                ['🧘 Mobilize', '5', 'Log 10 min of stretching or mobility work.'],
+                ['😴 Sleep', '5', 'Log your sleep hours for the night.'],
+                ['💧 Hydrate', '5', 'Reach 100% of your daily water target (default 2 L). No partial credit.'],
+                ['🌿 Well-Being', '5', 'Log a mindfulness or well-being practice.'],
+                ['📝 Reflect', '5', 'Write a daily journal entry.'],
+              ].map(([cat, pts, how], i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${colors.border}22` }}>
+                  <td style={{ padding: '5px 6px', color: colors.text }}>{cat}</td>
+                  <td style={{ padding: '5px 6px', textAlign: 'center', fontWeight: 700, color: colors.accent }}>{pts}</td>
+                  <td style={{ padding: '5px 6px', color: colors.textDim }}>{how}</td>
+                </tr>
+              ))}
+              <tr style={{ borderTop: `1px solid ${colors.border}` }}>
+                <td style={{ padding: '5px 6px', fontWeight: 700, color: colors.text }}>Total</td>
+                <td style={{ padding: '5px 6px', textAlign: 'center', fontWeight: 700, color: colors.accent }}>35</td>
+                <td style={{ padding: '5px 6px', color: colors.textDim }}>per day</td>
+              </tr>
+            </tbody>
+          </table>
           <p><strong>Who can see what:</strong></p>
           <ul>
             <li>
