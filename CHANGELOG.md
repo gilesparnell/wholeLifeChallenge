@@ -26,13 +26,13 @@ Each entry is split into:
 
 ---
 
-## [0.18.0 → 0.18.3] — 23 Apr 2026 — Update toast summary + shareable changelog links
+## [0.18.0 → 0.18.4] — 23 Apr 2026 — Update toast summary + shareable changelog links
 
 ### What's new
 
 - **Know what changed before refreshing.** The little “New version available” toast at the bottom of the screen now shows the version number and a one-line release title. If you want the detail, tap “See what’s new →” to jump straight to that version’s entry on the Changelog page; otherwise just tap Refresh. No long bullet lists in the toast itself — previously the toast got uncomfortably tall when a release had a lot of changes (0.18.1).
 - **Each version on the changelog page is now its own shareable link.** Every version heading on `/changelog` has a small “🔗 link” button beside it — tap it to copy a deep link like `/changelog#0.16.0` to your clipboard. Paste that link in a chat or email and the recipient lands directly on that version’s entry, scrolled into view. URL fragments work end-to-end on first load too, so an inbound link to `/changelog#0.15.1` jumps straight to it.
-- **Changelog reads cleanly again (0.18.3).** The page had been showing raw HTML entities — `&ldquo;`, `&rdquo;`, `&rsquo;`, `&rarr;` — instead of the actual punctuation they stand for. All 100-odd of those in existing entries have been replaced with the real Unicode characters (curly quotes, arrows, em-dashes, ellipses), and the in-app markdown parser now decodes them automatically so a future accident can’t regress this.
+- **Changelog reads cleanly again (0.18.3).** The page had been showing raw HTML entity codes (the `&...;` sequences that stand in for curly quotes, em-dashes, ellipses, and arrows) as literal text instead of the punctuation they represent. All 100-odd of those in existing entries have been replaced with the real Unicode characters, and the in-app markdown parser now decodes them automatically so a future accident can’t regress this.
 - **Changelog deep links now work for people who aren’t signed in (0.18.2).** Previously a recipient clicking a shared `/changelog#X.Y.Z` link would hit the sign-in screen first, and after signing in with Google the URL fragment was gone — they’d land on the check-in page with no way to find the version you were trying to show them. Changelog is now a public route so it opens directly, no account required. The “Close” button falls back to home when there’s no previous page to return to. `/health` is now public for the same reason.
 
 ### Under the hood
