@@ -16,6 +16,7 @@ import {
   calculateHeatmapData,
   calculatePeerDelta,
   calculateCorrelations,
+  calculateHabitConsistency,
 } from '../lib/progressMetrics'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -27,6 +28,8 @@ import Help from '../components/Help'
 import OwnerSelector from '../components/OwnerSelector'
 import StatCards from '../components/progress/StatCards'
 import StreaksStrip from '../components/progress/StreaksStrip'
+import HabitGrid from '../components/progress/HabitGrid'
+import HabitConsistencyPanel from '../components/progress/HabitConsistencyPanel'
 import BonusProgress from '../components/progress/BonusProgress'
 import SleepHoursChart from '../components/progress/SleepHoursChart'
 import WellnessSparklines from '../components/progress/WellnessSparklines'
@@ -173,6 +176,7 @@ export default function Progress() {
     .filter(Boolean)
   const heatmapData = calculateHeatmapData(data, allDates, dayIndex, CHALLENGE_DAYS)
   const currentWeekIndex = Math.max(0, Math.floor(dayIndex / 7))
+  const habitConsistency = calculateHabitConsistency(data, allDates, dayIndex)
 
   // User cumulative derived from the same visibleDates the cumulative chart uses
   const userCumulative = []
@@ -770,6 +774,22 @@ export default function Progress() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Day-by-Day Habit Grid */}
+      <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
+        <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
+          📅 Day-by-Day Habit Log
+        </p>
+        <HabitGrid data={data} allDates={allDates} dayIndex={dayIndex} habits={HABITS} />
+      </div>
+
+      {/* Habit Consistency Analysis */}
+      <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
+        <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
+          📊 Habit Consistency
+        </p>
+        <HabitConsistencyPanel consistency={habitConsistency} />
       </div>
 
       {/* Weekly Totals */}

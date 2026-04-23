@@ -9,6 +9,7 @@ import { calculateRecoveryScore, calculateStrainScore } from '../lib/recovery'
 import { getContextAwarePrompt } from '../lib/promptBank'
 import { updateProfileStats } from '../lib/profiles'
 import { detectSwipe, createWheelSwipeDetector } from '../lib/swipe'
+import { getYesterdayGaps } from '../lib/yesterdayGaps'
 import { useData } from '../contexts/DataContext'
 import { useAuth } from '../contexts/AuthContext'
 import { colors, fonts } from '../styles/theme'
@@ -17,6 +18,7 @@ import SleepCard from '../components/habits/SleepCard'
 import HydrateCard from '../components/habits/HydrateCard'
 import ActivityModal from '../components/modals/ActivityModal'
 import Help from '../components/Help'
+import YesterdayGapsCard from '../components/YesterdayGapsCard'
 
 export default function CheckIn() {
   const { data, loading, saveDay: save } = useData()
@@ -33,6 +35,14 @@ export default function CheckIn() {
   const allDates = getAllDates()
   const selDayIndex = getDayIndex(selectedDate)
   const canEdit = selDayIndex >= 0 && selDayIndex <= dayIndex && selDayIndex < CHALLENGE_DAYS
+
+  // Yesterday's gaps card — show on first load of a new day if yesterday has missed habits
+  const [showGapsCard, setShowGapsCard] = useState(true)
+  const yesterday = allDates[dayIndex - 1] ?? null
+  const yesterdayDayIndex = dayIndex - 1
+  const yesterdayGaps = (!showGapsCard || loading || !yesterday)
+    ? []
+    : getYesterdayGaps(data, yesterday, yesterdayDayIndex)
 
   // Wraps save with bonus auto-application. Computes bonuses BEFORE the new
   // day is written (so we don't double-count the save we're about to make)
@@ -363,6 +373,15 @@ export default function CheckIn() {
           style={{ background: 'none', border: 'none', color: colors.textDim, fontSize: 20, cursor: 'pointer', padding: '4px 12px' }}
         >{'\u2192'}</button>
       </div>
+
+      {yesterdayGaps.length > 0 && (
+        <YesterdayGapsCard
+          yesterday={yesterday}
+          gaps={yesterdayGaps}
+          onNavigate={(date) => setSelectedDate(date)}
+          onAllDismissed={() => setShowGapsCard(false)}
+        />
+      )}
 
       {/* Nutrition */}
       <div style={{
