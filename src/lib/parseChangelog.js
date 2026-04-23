@@ -11,6 +11,59 @@
 //   { type: 'ul', items: string[] }
 //   { type: 'p', text: string }
 //   { type: 'hr' }
+//
+// HTML entities (&rsquo; &ldquo; &rdquo; &rarr; etc.) are decoded so they
+// render as their intended Unicode character instead of literal text.
+// Unknown entities are left intact.
+
+const NAMED_ENTITIES = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  rsquo: '’',
+  lsquo: '‘',
+  ldquo: '“',
+  rdquo: '”',
+  rarr: '→',
+  larr: '←',
+  mdash: '—',
+  ndash: '–',
+  hellip: '…',
+  trade: '™',
+  copy: '©',
+  reg: '®',
+  middot: '·',
+  bull: '•',
+  deg: '°',
+  times: '×',
+  check: '✓',
+}
+
+const ENTITY_RE = /&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z][a-zA-Z0-9]+);/g
+
+function decodeEntities(text) {
+  if (!text || text.indexOf('&') === -1) return text
+  return text.replace(ENTITY_RE, (match, body) => {
+    if (body[0] === '#') {
+      const code = body[1] === 'x' || body[1] === 'X'
+        ? parseInt(body.slice(2), 16)
+        : parseInt(body.slice(1), 10)
+      if (Number.isFinite(code) && code > 0 && code <= 0x10ffff) {
+        try {
+          return String.fromCodePoint(code)
+        } catch {
+          return match
+        }
+      }
+      return match
+    }
+    const replacement = NAMED_ENTITIES[body]
+    return replacement !== undefined ? replacement : match
+  })
+}
 
 export function parseChangelog(markdown) {
   if (!markdown || typeof markdown !== 'string') return []
@@ -28,18 +81,18 @@ export function parseChangelog(markdown) {
 
     if (line.startsWith('# ')) {
       closeList()
-      blocks.push({ type: 'h1', text: line.slice(2).trim() })
+      blocks.push({ type: 'h1', text: decodeEntities(line.slice(2).trim()) })
     } else if (line.startsWith('## ')) {
       closeList()
-      blocks.push({ type: 'h2', text: line.slice(3).trim() })
+      blocks.push({ type: 'h2', text: decodeEntities(line.slice(3).trim()) })
     } else if (line.startsWith('### ')) {
       closeList()
-      blocks.push({ type: 'h3', text: line.slice(4).trim() })
+      blocks.push({ type: 'h3', text: decodeEntities(line.slice(4).trim()) })
     } else if (line.trim() === '---') {
       closeList()
       blocks.push({ type: 'hr' })
     } else if (line.startsWith('- ')) {
-      const item = line.slice(2).trim()
+      const item = decodeEntities(line.slice(2).trim())
       if (!currentList) {
         currentList = { type: 'ul', items: [] }
         blocks.push(currentList)
@@ -50,7 +103,7 @@ export function parseChangelog(markdown) {
       closeList()
     } else {
       closeList()
-      blocks.push({ type: 'p', text: line.trim() })
+      blocks.push({ type: 'p', text: decodeEntities(line.trim()) })
     }
   }
 

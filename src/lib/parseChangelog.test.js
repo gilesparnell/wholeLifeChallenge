@@ -93,4 +93,66 @@ First tracked release.
       { type: 'h2', text: 'two' },
     ])
   })
+
+  describe('HTML entity decoding', () => {
+    it('decodes named entities in h2 text', () => {
+      const [block] = parseChangelog('## Tap &ldquo;See what&rsquo;s new&rdquo;')
+      expect(block.text).toBe('Tap “See what’s new”')
+    })
+
+    it('decodes named entities in h3 text', () => {
+      const [block] = parseChangelog('### What&rsquo;s new')
+      expect(block.text).toBe('What’s new')
+    })
+
+    it('decodes named entities in paragraph text', () => {
+      const [block] = parseChangelog('An em-dash &mdash; and a right arrow &rarr;')
+      expect(block.text).toBe('An em-dash — and a right arrow →')
+    })
+
+    it('decodes named entities in list items', () => {
+      const [block] = parseChangelog('- Tap &ldquo;Save&rdquo; to keep it.')
+      expect(block.items[0]).toBe('Tap “Save” to keep it.')
+    })
+
+    it('decodes a representative set of common named entities', () => {
+      const md =
+        '- amp &amp; | rsquo &rsquo; | lsquo &lsquo; | ldquo &ldquo; | rdquo &rdquo; | ' +
+        'rarr &rarr; | mdash &mdash; | ndash &ndash; | hellip &hellip; | lt &lt; | gt &gt; | quot &quot;'
+      const [block] = parseChangelog(md)
+      const item = block.items[0]
+      expect(item).toContain('amp &')
+      expect(item).toContain('rsquo ’')
+      expect(item).toContain('lsquo ‘')
+      expect(item).toContain('ldquo “')
+      expect(item).toContain('rdquo ”')
+      expect(item).toContain('rarr →')
+      expect(item).toContain('mdash —')
+      expect(item).toContain('ndash –')
+      expect(item).toContain('hellip …')
+      expect(item).toContain('lt <')
+      expect(item).toContain('gt >')
+      expect(item).toContain('quot "')
+    })
+
+    it('decodes numeric entities (decimal and hex)', () => {
+      const [block] = parseChangelog('- dec &#8217; and hex &#x2019;')
+      expect(block.items[0]).toBe('dec ’ and hex ’')
+    })
+
+    it('leaves unknown entities untouched rather than silently dropping them', () => {
+      const [block] = parseChangelog('- keep me &bogusentity; please')
+      expect(block.items[0]).toBe('keep me &bogusentity; please')
+    })
+
+    it('leaves a bare ampersand (not an entity) alone', () => {
+      const [block] = parseChangelog('- A & B are friends')
+      expect(block.items[0]).toBe('A & B are friends')
+    })
+
+    it('handles entity at the start and end of a line', () => {
+      const [block] = parseChangelog('## &ldquo;Hi&rdquo;')
+      expect(block.text).toBe('“Hi”')
+    })
+  })
 })
