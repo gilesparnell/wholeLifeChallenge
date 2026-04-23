@@ -399,7 +399,7 @@ export default function Progress() {
       <StreaksStrip streaks={habitStreaks} />
       <BonusProgress bonuses={bonuses} />
 
-      <CollapsibleSection id="scores" title="Scores" defaultOpen={true}>
+      <CollapsibleSection id="scores-progress" title="Scores &amp; Progress" defaultOpen={true}>
       <div className="wlc-charts-grid">
       {/* Daily Score Chart */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
@@ -551,15 +551,54 @@ export default function Progress() {
       </div>
 
       </div>
+
+      {/* Weekly Totals */}
+      <div style={{ background: colors.surface, borderRadius: 14, padding: 16, border: `1px solid ${colors.border}` }}>
+        <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
+          Weekly Totals
+          <Help title="Weekly Totals">
+            <p>
+              Your score rolled up by challenge week. Useful when the daily chart gets
+              noisy &mdash; weekly totals smooth out a bad Tuesday and show you the real
+              trajectory.
+            </p>
+          </Help>
+        </p>
+        {Array.from({ length: totalWeeks }, (_, i) => i).map((week) => {
+          const weekDates = allDates.slice(week * 7, (week + 1) * 7)
+          const weekScore = weekDates.reduce((s, d) => s + scoreDay(data[d]), 0)
+          const weekMax = weekDates.length * 35
+          const weekPct = weekMax > 0 ? Math.round((weekScore / weekMax) * 100) : 0
+          const isFuture = getDayIndex(weekDates[0]) > dayIndex
+          if (isFuture) return null
+          return (
+            <div key={week} style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                <span style={{ color: colors.textDim }}>Week {week + 1}</span>
+                <span style={{ color: colors.text, fontWeight: 600 }}>{weekScore}/{weekMax} <span style={{ color: colors.textFaint }}>({weekPct}%)</span></span>
+              </div>
+              <div style={{ height: 6, background: colors.surfaceHover, borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${weekPct}%`, background: `linear-gradient(90deg, ${colors.accent}, ${colors.orange})`, borderRadius: 3, transition: 'width 0.5s ease' }} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="wellness" title="Wellness" defaultOpen={false}>
-      <SleepHoursChart trend={wellnessTrends.sleepHours} targetHours={effectiveConfig.sleepTargetHours} />
-      <WellnessSparklines trends={wellnessTrends} />
-      <HydrationProgressChart data={hydrationSeries} effectiveTargetMl={effectiveConfig.hydrationTargetMl} />
-      </CollapsibleSection>
+      {/* ── 2. Habit Trends ── */}
+      <CollapsibleSection id="habit-trends" title="Habit Trends" defaultOpen={true}>
+      {/* Habit Consistency */}
+      <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
+        <HabitConsistencyPanel consistency={habitConsistency} />
+      </div>
 
-      <CollapsibleSection id="habit-breakdown" title="Habit Breakdown" defaultOpen={false}>
+      {/* Day-by-Day Habit Log */}
+      <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
+        <p style={{ ...chartHeadingStyle, paddingLeft: 0, marginBottom: 8 }}>Day-by-Day Habit Log</p>
+        <HabitGrid data={data} allDates={allDates} dayIndex={dayIndex} habits={HABITS} />
+      </div>
+
       {/* Per-Habit Bar Chart */}
       <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
         <p style={chartHeadingStyle}>
@@ -589,105 +628,151 @@ export default function Progress() {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      </CollapsibleSection>
 
-      {/* Exercise Duration Charts — only shown when duration data exists */}
-      {hasExerciseDuration && (
-        <CollapsibleSection id="exercise" title="Exercise" defaultOpen={false}>
-        <div className="wlc-charts-grid">
-          {/* Weekly Exercise Minutes */}
-          <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
-            <p style={chartHeadingStyle}>
-              Weekly Active Minutes
-              <Help title="Weekly Active Minutes">
-                <p>
-                  Total minutes of exercise + mobility logged per week. Includes everything
-                  you recorded on the Exercise and Mobilize habit cards. Good sanity-check
-                  that you&rsquo;re not just ticking the box with 5-minute walks.
-                </p>
-              </Help>
+      {/* Habit Heatmap */}
+      <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
+        <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
+          Habit Heatmap
+          <Help title="Habit Heatmap">
+            <p>
+              A day-by-day grid for each habit across the full challenge. Filled squares
+              mean the habit was completed that day; empty squares mean a miss.
             </p>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={weeklyExercise}>
-                <XAxis dataKey="week" tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
-                <Tooltip
-                  contentStyle={{ background: colors.surfaceHover, border: `1px solid ${colors.borderSubtle}`, borderRadius: 8, color: colors.text, fontSize: 12 }}
-                  formatter={(v, name) => [`${v} min`, name === 'exercise' ? 'Exercise' : 'Mobilize']}
-                />
-                <Bar dataKey="exercise" stackId="a" fill={colors.accent} name="exercise" />
-                <Bar dataKey="mobilize" stackId="a" fill={colors.orange} name="mobilize" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Daily Duration Trend */}
-          <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
-            <p style={chartHeadingStyle}>
-              Duration Trend
-              <Help title="Duration Trend">
-                <p>
-                  Daily session length across the challenge. Use it to check whether
-                  you&rsquo;re building capacity (sessions getting longer) or just holding
-                  steady. A flat line at your minimum is still a win &mdash; consistency
-                  beats heroic one-offs.
-                </p>
-              </Help>
+            <p>
+              Patterns jump out fast here &mdash; long streaks look solid, broken streaks
+              look patchy, and missed days cluster around specific weekdays if that&rsquo;s
+              a pattern for you.
             </p>
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={durationTrend}>
-                <XAxis dataKey="day" tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
-                <Tooltip
-                  contentStyle={{ background: colors.surfaceHover, border: `1px solid ${colors.borderSubtle}`, borderRadius: 8, color: colors.text, fontSize: 12 }}
-                  formatter={(v, name) => [`${v} min`, name === 'exercise' ? 'Exercise' : 'Mobilize']}
-                  labelFormatter={(l) => `Day ${l}`}
-                />
-                <Line type="monotone" dataKey="exercise" stroke={colors.accent} strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="mobilize" stroke={colors.orange} strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Activity Type Breakdown */}
-      {activityBreakdown.length > 0 && (
-        <CollapsibleSection id="activity" title="Activity Types" defaultOpen={false}>
-        <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
-          <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
-            Activity Breakdown
-            <Help title="Activity Breakdown">
-              <p>
-                Which types of exercise you&rsquo;re doing, as a share of total active minutes.
-                Helpful for balancing training &mdash; if it&rsquo;s 95% running, your hips
-                and shoulders are probably screaming for a yoga or mobility session.
-              </p>
-            </Help>
-          </p>
-          {activityBreakdown.map(({ type, minutes }) => {
-            const maxMin = activityBreakdown[0].minutes
-            const pct = Math.round((minutes / maxMin) * 100)
-            return (
-              <div key={type} style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                  <span style={{ color: colors.textMuted }}>{type}</span>
-                  <span style={{ color: colors.text, fontWeight: 600 }}>{minutes} min</span>
-                </div>
-                <div style={{ height: 6, background: colors.surfaceHover, borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: colors.accent, borderRadius: 3, transition: 'width 0.5s ease' }} />
+          </Help>
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 500 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 12, color: colors.textDim, width: 60, flexShrink: 0 }}>Nutrition</span>
+              <div style={{ display: 'flex', gap: 2, flexWrap: 'nowrap' }}>
+                {visibleDates.map((d, i) => {
+                  const v = data[d]?.nutrition ?? -1
+                  const opacity = v < 0 ? 0.1 : v / 5
+                  return <div key={i} title={`Day ${i + 1}: ${v < 0 ? '—' : v}`} style={{ width: 10, height: 10, borderRadius: 2, background: `rgba(232, 99, 74, ${Math.max(0.1, opacity)})` }} />
+                })}
+              </div>
+            </div>
+            {HABITS.map((h) => (
+              <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 12, color: colors.textDim, width: 60, flexShrink: 0 }}>{h.label}</span>
+                <div style={{ display: 'flex', gap: 2, flexWrap: 'nowrap' }}>
+                  {visibleDates.map((d, i) => {
+                    const val = data[d]?.[h.id]
+                    const done = val === true || (val && typeof val === 'object' && val.completed)
+                    return <div key={i} title={`Day ${i + 1}`} style={{ width: 10, height: 10, borderRadius: 2, background: done ? h.color : colors.surfaceHover }} />
+                  })}
                 </div>
               </div>
-            )
-          })}
+            ))}
+          </div>
         </div>
+      </div>
+      </CollapsibleSection>
+
+      {/* ── 3. Exercise & Movement (conditional) ── */}
+      {(hasExerciseDuration || activityBreakdown.length > 0) && (
+        <CollapsibleSection id="exercise-movement" title="Exercise &amp; Movement" defaultOpen={false}>
+        {hasExerciseDuration && (
+          <div className="wlc-charts-grid">
+            <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
+              <p style={chartHeadingStyle}>
+                Weekly Active Minutes
+                <Help title="Weekly Active Minutes">
+                  <p>
+                    Total minutes of exercise + mobility logged per week. Includes everything
+                    you recorded on the Exercise and Mobilize habit cards. Good sanity-check
+                    that you&rsquo;re not just ticking the box with 5-minute walks.
+                  </p>
+                </Help>
+              </p>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={weeklyExercise}>
+                  <XAxis dataKey="week" tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
+                  <Tooltip
+                    contentStyle={{ background: colors.surfaceHover, border: `1px solid ${colors.borderSubtle}`, borderRadius: 8, color: colors.text, fontSize: 12 }}
+                    formatter={(v, name) => [`${v} min`, name === 'exercise' ? 'Exercise' : 'Mobilize']}
+                  />
+                  <Bar dataKey="exercise" stackId="a" fill={colors.accent} name="exercise" />
+                  <Bar dataKey="mobilize" stackId="a" fill={colors.orange} name="mobilize" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
+              <p style={chartHeadingStyle}>
+                Duration Trend
+                <Help title="Duration Trend">
+                  <p>
+                    Daily session length across the challenge. Use it to check whether
+                    you&rsquo;re building capacity (sessions getting longer) or just holding
+                    steady. A flat line at your minimum is still a win &mdash; consistency
+                    beats heroic one-offs.
+                  </p>
+                </Help>
+              </p>
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={durationTrend}>
+                  <XAxis dataKey="day" tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: colors.textGhost, fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
+                  <Tooltip
+                    contentStyle={{ background: colors.surfaceHover, border: `1px solid ${colors.borderSubtle}`, borderRadius: 8, color: colors.text, fontSize: 12 }}
+                    formatter={(v, name) => [`${v} min`, name === 'exercise' ? 'Exercise' : 'Mobilize']}
+                    labelFormatter={(l) => `Day ${l}`}
+                  />
+                  <Line type="monotone" dataKey="exercise" stroke={colors.accent} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="mobilize" stroke={colors.orange} strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+        {activityBreakdown.length > 0 && (
+          <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
+            <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
+              Activity Breakdown
+              <Help title="Activity Breakdown">
+                <p>
+                  Which types of exercise you&rsquo;re doing, as a share of total active minutes.
+                  Helpful for balancing training &mdash; if it&rsquo;s 95% running, your hips
+                  and shoulders are probably screaming for a yoga or mobility session.
+                </p>
+              </Help>
+            </p>
+            {activityBreakdown.map(({ type, minutes }) => {
+              const maxMin = activityBreakdown[0].minutes
+              const pct = Math.round((minutes / maxMin) * 100)
+              return (
+                <div key={type} style={{ marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: colors.textMuted }}>{type}</span>
+                    <span style={{ color: colors.text, fontWeight: 600 }}>{minutes} min</span>
+                  </div>
+                  <div style={{ height: 6, background: colors.surfaceHover, borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: colors.accent, borderRadius: 3, transition: 'width 0.5s ease' }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
         </CollapsibleSection>
       )}
 
-      {/* Recovery & Strain Chart — only shown when self-report data exists */}
+      {/* ── 4. Wellness ── */}
+      <CollapsibleSection id="wellness" title="Wellness" defaultOpen={false}>
+      <SleepHoursChart trend={wellnessTrends.sleepHours} targetHours={effectiveConfig.sleepTargetHours} />
+      <WellnessSparklines trends={wellnessTrends} />
+      <HydrationProgressChart data={hydrationSeries} effectiveTargetMl={effectiveConfig.hydrationTargetMl} />
+      </CollapsibleSection>
+
+      {/* ── 5. Recovery (conditional) ── */}
       {hasRecoveryData && (
-        <CollapsibleSection id="recovery" title="Recovery & Strain" defaultOpen={false}>
+        <CollapsibleSection id="recovery" title="Recovery" defaultOpen={false}>
         <div style={{ background: colors.surface, borderRadius: 14, padding: '16px 8px 8px', marginBottom: 16, border: `1px solid ${colors.border}` }}>
           <p style={chartHeadingStyle}>
           Recovery &amp; Strain
@@ -730,10 +815,12 @@ export default function Progress() {
             <span style={{ fontSize: 11, color: colors.accent }}>{'\u25CF'} Strain (0-21)</span>
           </div>
         </div>
+        <RecoveryStrainScatter trend={recoveryTrend} />
         </CollapsibleSection>
       )}
 
-      <CollapsibleSection id="deep-dives" title="Deep Dives" defaultOpen={false}>
+      {/* \u2500\u2500 6. Insights \u2500\u2500 */}
+      <CollapsibleSection id="insights" title="Insights" defaultOpen={false}>
       <CalendarHeatmap data={heatmapData} />
       <RadarWeek
         data={data}
@@ -741,104 +828,6 @@ export default function Progress() {
         totalWeeks={totalWeeks}
         currentWeekIndex={currentWeekIndex}
       />
-      {hasRecoveryData && <RecoveryStrainScatter trend={recoveryTrend} />}
-      </CollapsibleSection>
-
-      <CollapsibleSection id="habit-heatmap" title="Habit Heatmap" defaultOpen={false}>
-      {/* Habit Heatmap */}
-      <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
-        <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
-          Habit Heatmap
-          <Help title="Habit Heatmap">
-            <p>
-              A day-by-day grid for each habit across the full challenge. Filled squares
-              mean the habit was completed that day; empty squares mean a miss.
-            </p>
-            <p>
-              Patterns jump out fast here &mdash; long streaks look solid, broken streaks
-              look patchy, and missed days cluster around specific weekdays if that&rsquo;s
-              a pattern for you.
-            </p>
-          </Help>
-        </p>
-        <div style={{ overflowX: 'auto' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 500 }}>
-            {/* Nutrition row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ fontSize: 12, color: colors.textDim, width: 60, flexShrink: 0 }}>Nutrition</span>
-              <div style={{ display: 'flex', gap: 2, flexWrap: 'nowrap' }}>
-                {visibleDates.map((d, i) => {
-                  const v = data[d]?.nutrition ?? -1
-                  const opacity = v < 0 ? 0.1 : v / 5
-                  return <div key={i} title={`Day ${i + 1}: ${v < 0 ? '\u2014' : v}`} style={{ width: 10, height: 10, borderRadius: 2, background: `rgba(232, 99, 74, ${Math.max(0.1, opacity)})` }} />
-                })}
-              </div>
-            </div>
-            {HABITS.map((h) => (
-              <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontSize: 12, color: colors.textDim, width: 60, flexShrink: 0 }}>{h.label}</span>
-                <div style={{ display: 'flex', gap: 2, flexWrap: 'nowrap' }}>
-                  {visibleDates.map((d, i) => {
-                    const val = data[d]?.[h.id]
-                    const done = val === true || (val && typeof val === 'object' && val.completed)
-                    return <div key={i} title={`Day ${i + 1}`} style={{ width: 10, height: 10, borderRadius: 2, background: done ? h.color : colors.surfaceHover }} />
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection id="habit-log" title="Day-by-Day Habit Log" defaultOpen={true}>
-      <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
-        <HabitGrid data={data} allDates={allDates} dayIndex={dayIndex} habits={HABITS} />
-      </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection id="habit-consistency" title="Habit Consistency" defaultOpen={true}>
-      <div style={{ background: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16, border: `1px solid ${colors.border}` }}>
-        <HabitConsistencyPanel consistency={habitConsistency} />
-      </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection id="weekly-totals" title="Weekly Totals" defaultOpen={false}>
-      {/* Weekly Totals */}
-      <div style={{ background: colors.surface, borderRadius: 14, padding: 16, border: `1px solid ${colors.border}` }}>
-        <p style={{ ...chartHeadingStyle, paddingLeft: 0 }}>
-          Weekly Totals
-          <Help title="Weekly Totals">
-            <p>
-              Your score rolled up by challenge week. Useful when the daily chart gets
-              noisy &mdash; weekly totals smooth out a bad Tuesday and show you the real
-              trajectory.
-            </p>
-          </Help>
-        </p>
-        {Array.from({ length: totalWeeks }, (_, i) => i).map((week) => {
-          const weekDates = allDates.slice(week * 7, (week + 1) * 7)
-          const weekScore = weekDates.reduce((s, d) => s + scoreDay(data[d]), 0)
-          const weekMax = weekDates.length * 35
-          const weekPct = weekMax > 0 ? Math.round((weekScore / weekMax) * 100) : 0
-          const isFuture = getDayIndex(weekDates[0]) > dayIndex
-          if (isFuture) return null
-          return (
-            <div key={week} style={{ marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                <span style={{ color: colors.textDim }}>Week {week + 1}</span>
-                <span style={{ color: colors.text, fontWeight: 600 }}>{weekScore}/{weekMax} <span style={{ color: colors.textFaint }}>({weekPct}%)</span></span>
-              </div>
-              <div style={{ height: 6, background: colors.surfaceHover, borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${weekPct}%`, background: `linear-gradient(90deg, ${colors.accent}, ${colors.orange})`, borderRadius: 3, transition: 'width 0.5s ease' }} />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection id="insights" title="Insights" defaultOpen={false}>
       <PeerDeltaChart delta={peerDelta} peerCount={otherUsers.length} />
       <CorrelationInsights
         correlations={correlations}

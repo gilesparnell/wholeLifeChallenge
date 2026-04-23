@@ -40,16 +40,16 @@ export default function HabitGrid({ data, allDates, dayIndex, habits }) {
   }, [allDates, dayIndex, range])
 
   const cellStyle = {
-    width: 34, minWidth: 34, height: 34,
+    width: 26, minWidth: 26, height: 26,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    borderRadius: 6, fontSize: 11, fontWeight: 600,
+    borderRadius: 5, fontSize: 10, fontWeight: 600,
     fontFamily: fonts.body,
   }
 
   const thStyle = {
-    fontSize: 10, color: colors.textDim, textAlign: 'center',
-    padding: '4px 2px', fontWeight: 600, textTransform: 'uppercase',
-    letterSpacing: 0.5, minWidth: 34,
+    fontSize: 14, color: colors.textDim, textAlign: 'center',
+    padding: '4px 2px', fontWeight: 600,
+    minWidth: 26,
   }
 
   return (
@@ -74,27 +74,27 @@ export default function HabitGrid({ data, allDates, dayIndex, habits }) {
       </div>
 
       {/* Grid table */}
-      <div style={{ overflowX: 'auto' }}>
+      <div>
         <table style={{
-          borderCollapse: 'collapse', minWidth: 520,
+          borderCollapse: 'collapse',
           fontSize: 12, width: '100%',
         }}>
           <thead>
             <tr>
               <th style={{
-                ...thStyle, textAlign: 'left', minWidth: 64,
+                ...thStyle, textAlign: 'left', minWidth: 52,
                 position: 'sticky', left: 0, background: colors.surface,
-                zIndex: 1,
+                zIndex: 1, fontSize: 10, textTransform: 'uppercase',
+                letterSpacing: 0.5,
               }}>
-                Date
               </th>
-              <th style={thStyle}>Nutr</th>
+              <th style={thStyle} title="Nutrition">🥗</th>
               {habits.map((h) => (
                 <th key={h.id} style={thStyle} title={h.label}>
                   {h.icon}
                 </th>
               ))}
-              <th style={{ ...thStyle, color: colors.accent }}>Pts</th>
+              <th style={{ ...thStyle, color: colors.accent }} title="Score">⭐</th>
             </tr>
           </thead>
           <tbody>
@@ -106,8 +106,8 @@ export default function HabitGrid({ data, allDates, dayIndex, habits }) {
                   {/* Date cell — sticky */}
                   <td style={{
                     position: 'sticky', left: 0, background: colors.surface,
-                    zIndex: 1, padding: '3px 6px 3px 0',
-                    fontSize: 11, color: colors.textDim, whiteSpace: 'nowrap',
+                    zIndex: 1, padding: '3px 4px 3px 0',
+                    fontSize: 10, color: colors.textDim, whiteSpace: 'nowrap',
                   }}>
                     {formatDate(d)}
                   </td>
