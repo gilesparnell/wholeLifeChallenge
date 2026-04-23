@@ -45,9 +45,43 @@ export default function Changelog() {
   return (
     <div
       style={{
-        position: 'relative',
+        minHeight: '100vh',
+        background: colors.bg,
         color: colors.text,
         fontFamily: fonts.body,
+      }}
+    >
+      {/* Match the same column width + safe-area padding the
+          authenticated Layout uses, so the public /changelog renders
+          with identical page chrome (font, dark background, max-width
+          container). Uses the same classname as Layout so the
+          responsive breakpoints apply. */}
+      <style>{`
+        .wlc-public-page {
+          max-width: 480px;
+          margin: 0 auto;
+          padding-top: calc(20px + env(safe-area-inset-top));
+          padding-right: calc(16px + env(safe-area-inset-right));
+          padding-bottom: calc(40px + env(safe-area-inset-bottom));
+          padding-left: calc(16px + env(safe-area-inset-left));
+        }
+        @media (min-width: 768px) {
+          .wlc-public-page {
+            max-width: 720px;
+            padding-top: calc(32px + env(safe-area-inset-top));
+            padding-right: calc(24px + env(safe-area-inset-right));
+            padding-bottom: calc(48px + env(safe-area-inset-bottom));
+            padding-left: calc(24px + env(safe-area-inset-left));
+          }
+        }
+        @media (min-width: 1024px) {
+          .wlc-public-page { max-width: 960px; }
+        }
+      `}</style>
+    <div
+      className="wlc-public-page"
+      style={{
+        position: 'relative',
         paddingBottom: 24,
       }}
     >
@@ -106,6 +140,7 @@ export default function Changelog() {
           onClose={() => setConventionsOpen(false)}
         />
       )}
+    </div>
     </div>
   )
 }
