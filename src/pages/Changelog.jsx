@@ -30,7 +30,16 @@ export default function Changelog() {
     return () => window.cancelAnimationFrame(id)
   }, [location.hash])
 
-  const handleClose = () => navigate(-1)
+  const handleClose = () => {
+    // If the user landed here via a direct deep link (e.g. shared URL
+    // pointing at /changelog#0.16.0), there's nothing to go back to.
+    // Fall back to home so Close is never a no-op.
+    if (typeof window !== 'undefined' && window.history.length <= 1) {
+      navigate('/')
+      return
+    }
+    navigate(-1)
+  }
 
   return (
     <div

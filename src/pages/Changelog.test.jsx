@@ -102,10 +102,36 @@ describe('Changelog page', () => {
     expect(screen.getByRole('button', { name: /close|back/i })).toBeDefined()
   })
 
-  it('navigates back when the close button is clicked', () => {
+  it('navigates back when the close button is clicked and history is non-empty', () => {
+    // Simulate normal in-app navigation — history has >1 entry.
+    window.history.pushState({}, '', '/somewhere')
+    window.history.pushState({}, '', '/changelog')
     renderPage()
     fireEvent.click(screen.getByRole('button', { name: /close changelog/i }))
     expect(mockNavigate).toHaveBeenCalledWith(-1)
+  })
+
+  it('navigates to "/" when close is clicked and there is no prior history (direct deep link)', () => {
+    // Simulate landing directly on /changelog via a shared deep link — no
+    // prior in-app history to go back to. We approximate "no history" by
+    // clobbering history.length via a defineProperty shim for the duration
+    // of this test.
+    const origLength = window.history.length
+    Object.defineProperty(window.history, 'length', {
+      configurable: true,
+      get: () => 1,
+    })
+    try {
+      renderPage()
+      fireEvent.click(screen.getByRole('button', { name: /close changelog/i }))
+      expect(mockNavigate).toHaveBeenCalledWith('/')
+    } finally {
+      Object.defineProperty(window.history, 'length', {
+        configurable: true,
+        value: origLength,
+        writable: true,
+      })
+    }
   })
 
   describe('Conventions section', () => {
