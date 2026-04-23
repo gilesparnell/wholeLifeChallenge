@@ -26,6 +26,25 @@ Each entry is split into:
 
 ---
 
+## [0.20.0] — 23 Apr 2026 — Yesterday's gaps card + day-by-day habit grid + consistency analysis
+
+### What's new
+
+- A dismissible card now appears at the top of Check-In whenever you have habits you didn't log yesterday. Each missed habit has two options: **"Yes, log it"** (takes you to yesterday so you can fill it in) or **"Nope"** (removes just that gap from the card). The card remembers your dismissals so it won't re-appear after a page refresh.
+- The **Progress page** has two new sections below the Habit Heatmap:
+  - **Day-by-Day Habit Log** — a full grid showing every day × every habit with colour-coded cells. Nutrition cells show your 0–5 score with a green gradient; habit cells show ✓ in their habit colour when done; partial hydration shows the fill percentage in amber. Filter to 1D / 7D / 14D / All with the pill buttons at the top. Horizontally scrollable on mobile with the date column pinned.
+  - **Habit Consistency** — per-habit completion rates and points lost across all logged days. Any habit below 60% completion gets an orange callout naming exactly how many points you've lost there (e.g. "Mobilise: only 2 of 12 days — 50 pts lost"). Hydrate also calls out your average ml vs your target if you're consistently falling short.
+
+### Under the hood
+
+- `src/lib/yesterdayGaps.js` — `getYesterdayGaps(data, yesterday, dayIndex)` checks `bonusApplied` (restDay/nightOwl/freeDay/indulgence) before adding a habit to the gaps list. 10 unit tests.
+- `src/lib/progressMetrics.js` — new `calculateHabitConsistency(data, allDates, dayIndex)` returns per-habit completionRate, pointsLost, and hydrate-specific avgMl/avgTarget/avgFillRate. 6 unit tests appended.
+- `src/components/YesterdayGapsCard.jsx` — dismissal persisted to `localStorage` under `wlc-gaps-dismissed-{date}`; `onAllDismissed` fires once the active-gaps array empties.
+- `src/components/progress/HabitGrid.jsx` — range filter slices `allDates` client-side; sticky date column via `position: sticky, left: 0`; partial-hydrate amber cell uses `current_ml / target_ml` ratio from the day's hydrate object.
+- `src/components/progress/HabitConsistencyPanel.jsx` — 60% threshold drives both bar colour and callout inclusion; hydrate gets a secondary callout when `avgFillRate < 60`.
+
+---
+
 ## [0.19.1] — 23 Apr 2026 — Trackpad swipe fixed on macOS
 
 ### What's new
