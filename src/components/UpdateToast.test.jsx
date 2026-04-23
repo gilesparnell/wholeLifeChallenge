@@ -31,7 +31,7 @@ describe('UpdateToast', () => {
   })
 
   describe('summary', () => {
-    it('renders the version header when summary is provided', () => {
+    it('renders the version number when summary is provided', () => {
       render(
         <UpdateToast
           visible={true}
@@ -40,50 +40,39 @@ describe('UpdateToast', () => {
         />,
       )
       expect(screen.getByText(/v0\.18\.0/i)).toBeDefined()
-      expect(screen.getByText(/Cool thing/i)).toBeDefined()
     })
 
-    it('renders each bullet from the summary', () => {
+    it('renders the release title as the one-line summary', () => {
       render(
         <UpdateToast
           visible={true}
           onRefresh={vi.fn()}
-          summary={{ version: '0.18.0', title: 'X', items: ['Bullet A', 'Bullet B'] }}
+          summary={{ version: '0.18.0', title: 'Shareable changelog links', items: [] }}
         />,
       )
-      expect(screen.getByText('Bullet A')).toBeDefined()
-      expect(screen.getByText('Bullet B')).toBeDefined()
+      expect(screen.getByText(/Shareable changelog links/i)).toBeDefined()
     })
 
-    it('renders an ellipsis when hasMore is true', () => {
+    it('NEVER renders the bullet list — details live on the changelog page only', () => {
       render(
         <UpdateToast
           visible={true}
           onRefresh={vi.fn()}
-          summary={{ version: '0.18.0', title: 'X', items: ['A', 'B', 'C'], hasMore: true }}
+          summary={{
+            version: '0.18.0',
+            title: 'X',
+            items: ['Bullet A', 'Bullet B', 'Bullet C'],
+            hasMore: true,
+          }}
         />,
       )
-      expect(screen.getByTestId('update-toast-has-more')).toBeDefined()
-    })
-
-    it('does NOT render the ellipsis when hasMore is false', () => {
-      render(
-        <UpdateToast
-          visible={true}
-          onRefresh={vi.fn()}
-          summary={{ version: '0.18.0', title: 'X', items: ['A'], hasMore: false }}
-        />,
-      )
+      expect(screen.queryByText('Bullet A')).toBeNull()
+      expect(screen.queryByText('Bullet B')).toBeNull()
+      expect(screen.queryByRole('list')).toBeNull()
       expect(screen.queryByTestId('update-toast-has-more')).toBeNull()
     })
 
-    it('falls back to just "New version available" when summary is null', () => {
-      render(<UpdateToast visible={true} onRefresh={vi.fn()} summary={null} />)
-      expect(screen.getByText(/new version/i)).toBeDefined()
-      expect(screen.queryByRole('list')).toBeNull()
-    })
-
-    it('does not render the list when items is empty', () => {
+    it('renders a "See what\'s new" link pointing at /changelog#<version>', () => {
       render(
         <UpdateToast
           visible={true}
@@ -91,9 +80,27 @@ describe('UpdateToast', () => {
           summary={{ version: '0.18.0', title: 'X', items: [] }}
         />,
       )
-      // Should still show version header
+      const link = screen.getByTestId('update-toast-see-whats-new')
+      expect(link.getAttribute('href')).toBe('/changelog#0.18.0')
+      expect(link.textContent).toMatch(/see what['’]?s new/i)
+    })
+
+    it('falls back to just "New version available" when summary is null', () => {
+      render(<UpdateToast visible={true} onRefresh={vi.fn()} summary={null} />)
+      expect(screen.getByText(/new version/i)).toBeDefined()
+      expect(screen.queryByTestId('update-toast-see-whats-new')).toBeNull()
+    })
+
+    it('still renders version header and link when items is empty', () => {
+      render(
+        <UpdateToast
+          visible={true}
+          onRefresh={vi.fn()}
+          summary={{ version: '0.18.0', title: 'X', items: [] }}
+        />,
+      )
       expect(screen.getByText(/v0\.18\.0/i)).toBeDefined()
-      expect(screen.queryByRole('list')).toBeNull()
+      expect(screen.getByTestId('update-toast-see-whats-new')).toBeDefined()
     })
   })
 })

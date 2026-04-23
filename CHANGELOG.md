@@ -26,11 +26,11 @@ Each entry is split into:
 
 ---
 
-## [0.18.0] — 22 Apr 2026 — Update toast summary + shareable changelog links
+## [0.18.0 → 0.18.1] — 22 Apr 2026 — Update toast summary + shareable changelog links
 
 ### What's new
 
-- **Know what changed before refreshing.** The little &ldquo;New version available&rdquo; toast at the bottom of the screen now shows the version number, the release title, and a short list of what&rsquo;s new in this release. No more deciding whether to hit Refresh on faith — you can see the highlights at a glance, then refresh.
+- **Know what changed before refreshing.** The little &ldquo;New version available&rdquo; toast at the bottom of the screen now shows the version number and a one-line release title. If you want the detail, tap &ldquo;See what&rsquo;s new &rarr;&rdquo; to jump straight to that version&rsquo;s entry on the Changelog page; otherwise just tap Refresh. No long bullet lists in the toast itself &mdash; previously the toast got uncomfortably tall when a release had a lot of changes (0.18.1).
 - **Each version on the changelog page is now its own shareable link.** Every version heading on `/changelog` has a small &ldquo;🔗 link&rdquo; button beside it — tap it to copy a deep link like `/changelog#0.16.0` to your clipboard. Paste that link in a chat or email and the recipient lands directly on that version&rsquo;s entry, scrolled into view. URL fragments work end-to-end on first load too, so an inbound link to `/changelog#0.15.1` jumps straight to it.
 
 ### Under the hood
@@ -41,6 +41,7 @@ Each entry is split into:
 - **`src/App.jsx`** — computes `LATEST_WHATS_NEW = getLatestWhatsNew(CHANGELOG_TEXT)` once at module load (changelog text rebuilds with every deploy, so it always matches the version about to be served) and passes it as `summary` to `<UpdateToast>`.
 - **`src/pages/Changelog.jsx`** — every version `<h2>` now renders with `id={versionSlug}` so URL fragments resolve to the right element, plus a 🔗 link button beside the heading that writes `${origin}/changelog#${slug}` to the clipboard via `navigator.clipboard.writeText`. A new `useEffect` reads `location.hash` on mount and calls `scrollIntoView({behavior:'smooth'})` after a `requestAnimationFrame`, so deep links scrolled-into-view work on first load (browsers don&rsquo;t auto-scroll for SPA route renders with a fragment). 4 new Changelog tests pin the `id` attribute, the copy-link affordance, the clipboard call, and the no-anchor behaviour for the Conventions h2.
 - Test suite: 922 &rarr; **951 tests, all passing** (+29 across both features). No new dependencies.
+- **0.18.1 — slimmed-down toast.** `UpdateToast` no longer renders the `<ul>` of &ldquo;What&rsquo;s new&rdquo; bullets. It now shows: bold version header (`New version available — vX.Y.Z`), dim title line, and a `See what&rsquo;s new &rarr;` `<a href="/changelog#<version>">` link pointing at the exact version&rsquo;s anchor on the changelog page. Clicking the link is a real navigation (no `preventDefault`), so the browser hits the new bundle and the service-worker activation completes &mdash; the user lands on the changelog with the latest entry already scrolled into view. 3 existing &ldquo;bullet&rdquo; tests in `UpdateToast.test.jsx` replaced with: one asserting bullets are never rendered, one pinning the `/changelog#<version>` href, one covering the fallback when `summary` is null. Full suite 951 → **951 (unchanged count)**.
 
 ---
 
