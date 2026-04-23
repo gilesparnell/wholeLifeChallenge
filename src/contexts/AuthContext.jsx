@@ -191,6 +191,14 @@ export function AuthProvider({ children }) {
       provider: 'google',
       options: {
         redirectTo: window.location.origin,
+        // Force Google to always show its account-chooser, even when the
+        // user already has an active Google session in this browser.
+        // Without this, sign-out → sign-in silently re-uses the previous
+        // Google account, making it impossible to switch between accounts
+        // on the same device.
+        queryParams: {
+          prompt: 'select_account',
+        },
       },
     })
   }, [])

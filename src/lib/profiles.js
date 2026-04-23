@@ -26,26 +26,50 @@ export const isEmailAllowed = async (email) => {
 
 /**
  * Insert or update a profile row on sign-in.
- * Always updates last_login_at.
+ *
+ * On FIRST sign-in (no existing row), inserts the full profile including
+ * a display_name derived from the Google OAuth payload (or email local-part).
+ *
+ * On returning sign-ins, ONLY refreshes last_login_at / avatar_url / email —
+ * we never touch display_name because the admin or the user themselves may
+ * have edited it via My Preferences or the Admin page, and the Google OAuth
+ * "full_name" field would silently overwrite those edits on every login.
  */
 export const upsertProfile = async ({ id, email, displayName, avatarUrl }) => {
   if (!supabase || !id || !email) return null
 
-  const { data, error } = await supabase
+  const { data: existing } = await supabase
     .from('profiles')
-    .upsert(
-      {
-        id,
+    .select('id')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
         email: normaliseEmail(email),
-        display_name: displayName || email.split('@')[0],
         avatar_url: avatarUrl ?? null,
         last_login_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' }
-    )
+      })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) return null
+    return data
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert({
+      id,
+      email: normaliseEmail(email),
+      display_name: displayName || email.split('@')[0],
+      avatar_url: avatarUrl ?? null,
+      last_login_at: new Date().toISOString(),
+    })
     .select()
     .single()
-
   if (error) return null
   return data
 }
