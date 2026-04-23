@@ -26,6 +26,21 @@ Each entry is split into:
 
 ---
 
+## [0.22.0] — 23 Apr 2026 — Progress page layout + mobile habit grid
+
+### What's new
+
+- **Progress page reorganised** from 12 sections down to 6: Scores & Progress, Habit Trends, Exercise & Movement, Wellness, Recovery, Insights. Related charts now live together — no more hunting across separate sections.
+- **Habit Trends** groups Habit Consistency, Day-by-Day Log, Habit Breakdown chart, and Habit Heatmap in one place.
+- **Day-by-Day Habit Log** now fits on iPhone without horizontal scrolling — cells are smaller and column headers use emoji icons (🥗 for nutrition, ⭐ for score).
+
+### Under the hood
+
+- `HabitGrid.jsx`: cell size reduced from 34×34px to 26×26px; header `thStyle` uses emoji at 14px instead of text abbreviations; table `minWidth` removed so layout is fluid.
+- `Progress.jsx`: 12 `CollapsibleSection` blocks collapsed to 6. Exercise & Movement section wraps both `hasExerciseDuration` and `activityBreakdown` in a single conditional. Recovery section now includes `RecoveryStrainScatter`. Insights section absorbs CalendarHeatmap and RadarWeek from the former Deep Dives section. Weekly Totals moved inside Scores & Progress.
+
+---
+
 ## [0.21.0] — 23 Apr 2026 — Collapsible Progress page sections
 
 ### What's new
