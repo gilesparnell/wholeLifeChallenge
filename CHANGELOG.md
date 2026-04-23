@@ -45,13 +45,15 @@ Each entry is split into:
 
 ---
 
-## [0.19.1] — 23 Apr 2026 — Trackpad swipe fixed on macOS
+## [0.19.1 → 0.19.2] — 23 Apr 2026 — Trackpad swipe fixed on macOS + scoring breakdown in leaderboard
 
 ### What's new
 - Two-finger horizontal swipe to navigate days now works again on macOS trackpads.
+- The leaderboard ⓘ info modal now includes a full scoring breakdown table — 35 pts/day, what each category earns, and how to earn it (including the note that Hydrate requires hitting 100% of your water target, no partial credit).
 
 ### Under the hood
 - Replaced the React `onWheel` synthetic event with a native non-passive `wheel` listener (`addEventListener('wheel', fn, { passive: false })`). Without `passive: false`, macOS intercepts horizontal swipes as browser back/forward navigation gestures before wheel events reach the page. Calling `e.preventDefault()` on horizontal-dominant events blocks that interception. Touch/iPhone swipe is unaffected (separate touch path). `CheckIn.jsx:132–149`.
+- Added inline-styled `<table>` to the `<Help>` children in `Leaderboard.jsx` — no changes to the Help component itself.
 
 ---
 
