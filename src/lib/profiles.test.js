@@ -72,33 +72,123 @@ describe('upsertProfile', () => {
     mockFrom.mockReset()
   })
 
-  it('inserts a new profile with user_id and email', async () => {
-    const chain = chainable({ data: { id: 'abc', email: 'user@example.com' }, error: null })
-    mockFrom.mockReturnValue(chain)
-    const result = await upsertProfile({ id: 'abc', email: 'user@example.com', displayName: 'User' })
+  // Helper to simulate the "profile row already exists" vs "brand new user" paths.
+  // The real `upsertProfile` first SELECTs to see if the row exists, then either
+  // INSERTs or UPDATEs (NEVER overwriting display_name on a returning sign-in).
+  const buildProfilesMock = ({ existingProfile, returnRow }) => {
+    const updateChain = {
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: returnRow, error: null }),
+    }
+    const insertChain = {
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: returnRow, error: null }),
+    }
+    const selectChain = {
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: existingProfile, error: null }),
+    }
+    const tableChain = {
+      select: vi.fn().mockReturnValue(selectChain),
+      insert: vi.fn().mockReturnValue(insertChain),
+      update: vi.fn().mockReturnValue(updateChain),
+    }
+    mockFrom.mockReturnValue(tableChain)
+    return { tableChain, insertChain, updateChain, selectChain }
+  }
+
+  it('inserts a new profile with display_name when no profile row exists', async () => {
+    const { tableChain } = buildProfilesMock({
+      existingProfile: null,
+      returnRow: { id: 'abc', display_name: 'Alice' },
+    })
+    const result = await upsertProfile({
+      id: 'abc',
+      email: 'alice@example.com',
+      displayName: 'Alice',
+    })
     expect(mockFrom).toHaveBeenCalledWith('profiles')
-    expect(chain.upsert).toHaveBeenCalledWith(
+    expect(tableChain.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'abc',
-        email: 'user@example.com',
-        display_name: 'User',
+        email: 'alice@example.com',
+        display_name: 'Alice',
       }),
-      expect.any(Object)
     )
-    expect(result).toBeDefined()
+    expect(tableChain.update).not.toHaveBeenCalled()
+    expect(result).toEqual({ id: 'abc', display_name: 'Alice' })
   })
 
-  it('updates last_login_at on upsert', async () => {
-    const chain = chainable({ data: { id: 'abc' }, error: null })
-    mockFrom.mockReturnValue(chain)
-    await upsertProfile({ id: 'abc', email: 'user@example.com' })
-    const upsertCall = chain.upsert.mock.calls[0][0]
-    expect(upsertCall.last_login_at).toBeDefined()
+  it('UPDATES an existing profile without overwriting display_name (preserves admin edits)', async () => {
+    const { tableChain, updateChain } = buildProfilesMock({
+      existingProfile: { id: 'abc', display_name: 'Giles Parnell (PR)' },
+      returnRow: { id: 'abc', display_name: 'Giles Parnell (PR)' },
+    })
+    await upsertProfile({
+      id: 'abc',
+      email: 'pr@example.com',
+      displayName: 'Giles Parnell', // Google OAuth name — must NOT overwrite
+    })
+    expect(tableChain.update).toHaveBeenCalledTimes(1)
+    expect(tableChain.insert).not.toHaveBeenCalled()
+    const updatePayload = tableChain.update.mock.calls[0][0]
+    expect(updatePayload).not.toHaveProperty('display_name')
+    // last_login_at, avatar_url, email may all refresh
+    expect(updatePayload.last_login_at).toBeDefined()
+    expect(updateChain.eq).toHaveBeenCalledWith('id', 'abc')
   })
 
-  it('returns null on database error', async () => {
-    mockFrom.mockReturnValue(chainable({ data: null, error: { message: 'boom' } }))
-    const result = await upsertProfile({ id: 'abc', email: 'user@example.com' })
+  it('returning user update refreshes last_login_at and avatar_url', async () => {
+    const { tableChain } = buildProfilesMock({
+      existingProfile: { id: 'abc' },
+      returnRow: { id: 'abc' },
+    })
+    await upsertProfile({
+      id: 'abc',
+      email: 'x@example.com',
+      displayName: 'Changed Google Name',
+      avatarUrl: 'https://new.avatar/x.png',
+    })
+    const patch = tableChain.update.mock.calls[0][0]
+    expect(patch.last_login_at).toBeDefined()
+    expect(patch.avatar_url).toBe('https://new.avatar/x.png')
+  })
+
+  it('falls back to email-local-part as display_name only on FIRST insert (no displayName provided)', async () => {
+    const { tableChain } = buildProfilesMock({
+      existingProfile: null,
+      returnRow: { id: 'abc', display_name: 'bob' },
+    })
+    await upsertProfile({ id: 'abc', email: 'bob@example.com' })
+    const payload = tableChain.insert.mock.calls[0][0]
+    expect(payload.display_name).toBe('bob')
+  })
+
+  it('returns null on database error (insert)', async () => {
+    const { tableChain } = buildProfilesMock({
+      existingProfile: null,
+      returnRow: null,
+    })
+    tableChain.insert.mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: { message: 'boom' } }),
+    })
+    const result = await upsertProfile({ id: 'abc', email: 'x@example.com' })
+    expect(result).toBeNull()
+  })
+
+  it('returns null on database error (update)', async () => {
+    const { tableChain } = buildProfilesMock({
+      existingProfile: { id: 'abc' },
+      returnRow: null,
+    })
+    tableChain.update.mockReturnValue({
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: { message: 'boom' } }),
+    })
+    const result = await upsertProfile({ id: 'abc', email: 'x@example.com' })
     expect(result).toBeNull()
   })
 })

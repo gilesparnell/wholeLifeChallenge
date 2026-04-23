@@ -26,6 +26,21 @@ Each entry is split into:
 
 ---
 
+## [0.19.0] — 23 Apr 2026 — Preserved display names + Google account picker
+
+### What's new
+
+- **Renamed accounts stay renamed.** When the admin edits someone's display name (e.g. "Giles Parnell" → "Giles Parnell (PR)"), the change now sticks. Previously the next time that user signed in with Google, the display name was silently overwritten with whatever Google had on file, so admin edits quietly disappeared.
+- **Switching Google accounts now works.** Signing out and signing back in was silently re-using whichever Google account was last active in the browser, with no way to pick a different one. Google's account chooser now appears on every sign-in, so you can switch between multiple accounts on the same device.
+
+### Under the hood
+
+- **`src/lib/profiles.js` — `upsertProfile` no longer overwrites `display_name` on returning sign-ins.** Split into explicit insert / update paths: SELECTs first to check if the row exists, then either INSERTs (first-time user, sets display_name from Google OAuth full_name or email local-part) or UPDATEs only `last_login_at` + `avatar_url` + `email` (never display_name). Admin and user-initiated display-name edits now survive the next sign-in. Tests rewritten to cover both branches + display-name-preservation assertion + error paths for both insert and update.
+- **`src/contexts/AuthContext.jsx` — `signIn` passes `prompt: 'select_account'`** as a Google OAuth `queryParams` option. Forces Google's consent screen to render its account chooser on every sign-in, even when the browser has an active Google session. One new AuthContext test pins the expectation.
+- Test suite: 985 → **989 tests, all passing** (+4 across display-name preservation + account-picker).
+
+---
+
 ## [0.18.0 → 0.18.7] — 23 Apr 2026 — Update toast summary + shareable changelog links
 
 ### What's new

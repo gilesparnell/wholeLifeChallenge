@@ -151,6 +151,28 @@ describe('AuthContext', () => {
     })
   })
 
+  it('forces the Google account picker so users can switch accounts', async () => {
+    const { supabase } = await import('../lib/supabase')
+    await act(async () => {
+      render(
+        <AuthProvider>
+          <TestConsumer />
+        </AuthProvider>
+      )
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByText('Sign In'))
+    })
+    const call = supabase.auth.signInWithOAuth.mock.calls[0][0]
+    // Must pass `prompt: 'select_account'` as a Google OAuth queryParam so
+    // Google always shows the account chooser — without it, a user who's
+    // already signed into Google in the browser is auto-signed-in with no
+    // option to switch accounts.
+    expect(call.options.queryParams).toEqual(
+      expect.objectContaining({ prompt: 'select_account' }),
+    )
+  })
+
   it('calls identifyUser with the dev user when signInAsDev is invoked', async () => {
     await act(async () => {
       render(
