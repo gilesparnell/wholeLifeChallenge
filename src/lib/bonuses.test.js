@@ -179,6 +179,34 @@ describe('computeBonuses', () => {
       expect(result.restDay.streak).toBe(7)
       expect(result.restDay.threshold).toBe(10)
     })
+
+    it('counts exercise in new entries format { completed, entries } as completed', () => {
+      const dates = makeDates(10)
+      const data = fillData(dates, () => ({
+        ...perfectDay(),
+        exercise: { completed: true, entries: [{ type: 'Running', duration_minutes: 30 }] },
+      }))
+      const result = computeBonuses(data, dates, 9)
+      expect(result.restDay.earned).toBe(1)
+    })
+
+    it('streak rebuilds to 5 after earning a rest day bonus (15 consecutive days)', () => {
+      const dates = makeDates(15)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 14)
+      expect(result.restDay.earned).toBe(1)
+      expect(result.restDay.streak).toBe(5)
+    })
+
+    it('streak is 0 when today exercise is not completed (unlogged day breaks streak)', () => {
+      const dates = makeDates(11)
+      const data = fillData(dates, (i) =>
+        i < 10 ? perfectDay() : { ...perfectDay(), exercise: { completed: false, entries: [] } }
+      )
+      const result = computeBonuses(data, dates, 10)
+      expect(result.restDay.earned).toBe(1)
+      expect(result.restDay.streak).toBe(0)
+    })
   })
 
   describe('night owl bonus', () => {
@@ -211,6 +239,14 @@ describe('computeBonuses', () => {
     it('tracks threshold of 6', () => {
       const result = computeBonuses({}, [], 0)
       expect(result.nightOwl.threshold).toBe(6)
+    })
+
+    it('streak rebuilds to 3 after earning a night owl bonus (9 consecutive days)', () => {
+      const dates = makeDates(9)
+      const data = fillData(dates, () => perfectDay())
+      const result = computeBonuses(data, dates, 8)
+      expect(result.nightOwl.earned).toBe(1)
+      expect(result.nightOwl.streak).toBe(3)
     })
   })
 
@@ -248,6 +284,15 @@ describe('computeBonuses', () => {
       // Days 0-9 (10), day 10 breaks, days 11-21 (11)
       expect(result.freeDay.earned).toBe(0)
       expect(result.freeDay.streak).toBe(11)
+    })
+
+    it('a day with applied freeDay bonus counts toward the next free day streak', () => {
+      const dates = makeDates(22)
+      const data = fillData(dates, () => perfectDay())
+      // Day 10: bad nutrition but freeDay bonus applied → scoreDay returns 35
+      data[dates[10]] = { ...perfectDay({ nutrition: 0 }), bonusApplied: { freeDay: true } }
+      const result = computeBonuses(data, dates, 21)
+      expect(result.freeDay.earned).toBe(1)
     })
   })
 
@@ -307,6 +352,72 @@ describe('computeBonuses', () => {
       expect(result.indulgence.used).toBe(0)
       expect(result.indulgence.available).toBe(1)
     })
+  })
+})
+
+describe('habit format compatibility', () => {
+  it('new entries format { completed: true, entries: [...] } counts as exercise completed', () => {
+    const dates = makeDates(10)
+    const data = fillData(dates, () => ({
+      ...perfectDay(),
+      exercise: { completed: true, entries: [{ type: 'Cycling', duration_minutes: 45 }] },
+    }))
+    expect(computeBonuses(data, dates, 9).restDay.earned).toBe(1)
+  })
+
+  it('entries format with completed: false does NOT count as exercise completed', () => {
+    const dates = makeDates(10)
+    const data = fillData(dates, () => ({
+      ...perfectDay(),
+      exercise: { completed: false, entries: [] },
+    }))
+    const result = computeBonuses(data, dates, 9)
+    expect(result.restDay.earned).toBe(0)
+    expect(result.restDay.streak).toBe(0)
+  })
+
+  it('legacy boolean true counts as exercise completed', () => {
+    const dates = makeDates(10)
+    const data = fillData(dates, () => ({ ...perfectDay(), exercise: true }))
+    expect(computeBonuses(data, dates, 9).restDay.earned).toBe(1)
+  })
+
+  it('null exercise value does NOT count as completed, breaks streak', () => {
+    const dates = makeDates(5)
+    const data = fillData(dates, () => ({ ...perfectDay(), exercise: null }))
+    const result = computeBonuses(data, dates, 4)
+    expect(result.restDay.streak).toBe(0)
+    expect(result.restDay.earned).toBe(0)
+  })
+
+  it('missing day data (unlogged date) does NOT count as exercise completed', () => {
+    const dates = makeDates(5)
+    const data = {}
+    dates.slice(0, 3).forEach((d) => { data[d] = perfectDay() })
+    const result = computeBonuses(data, dates, 4)
+    // Days 0-2 logged, days 3-4 unlogged → streak breaks at day 3
+    expect(result.restDay.streak).toBe(0)
+    expect(result.restDay.earned).toBe(0)
+  })
+
+  it('sleep format { completed: true, hours } counts toward night owl streak', () => {
+    const dates = makeDates(6)
+    const data = fillData(dates, () => ({
+      ...perfectDay(),
+      sleep: { completed: true, hours: 7.5 },
+    }))
+    expect(computeBonuses(data, dates, 5).nightOwl.earned).toBe(1)
+  })
+
+  it('sleep with completed: false breaks night owl streak', () => {
+    const dates = makeDates(6)
+    const data = fillData(dates, (i) => ({
+      ...perfectDay(),
+      sleep: i === 3 ? { completed: false, hours: null } : { completed: true, hours: 8 },
+    }))
+    const result = computeBonuses(data, dates, 5)
+    expect(result.nightOwl.earned).toBe(0)
+    expect(result.nightOwl.streak).toBe(2) // days 4-5
   })
 })
 

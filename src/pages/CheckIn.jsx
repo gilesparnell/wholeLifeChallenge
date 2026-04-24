@@ -147,7 +147,11 @@ export default function CheckIn() {
     const el = checkInRef.current
     if (!el) return
     const onWheel = (e) => {
-      if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return
+      // Skip pure vertical scroll events. For anything with a horizontal component,
+      // always call preventDefault so the browser doesn't steal the gesture for
+      // back/forward navigation — even events where deltaY > deltaX contribute to
+      // the accumulator, and direction is checked on the accumulated total at flush time.
+      if (Math.abs(e.deltaX) < 2) return
       e.preventDefault()
       wheelDetectorRef.current?.(e.deltaX, e.deltaY)
     }
@@ -361,7 +365,7 @@ export default function CheckIn() {
           title="Jump to today"
           style={{
             background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer',
-            fontSize: 14, fontWeight: 600, fontFamily: fonts.body,
+            fontSize: 18, fontWeight: 700, fontFamily: fonts.body,
             color: selectedDate === today ? colors.accent : colors.textMuted,
           }}
         >
