@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { HABITS, emptyDay } from '../lib/habits'
 import { scoreDay, calculateStreak, calculateHabitStreak } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
@@ -19,6 +19,8 @@ import HydrateCard from '../components/habits/HydrateCard'
 import ActivityModal from '../components/modals/ActivityModal'
 import Help from '../components/Help'
 import YesterdayGapsCard from '../components/YesterdayGapsCard'
+import BonusCelebration from '../components/BonusCelebration'
+import { detectNewBonuses } from '../lib/bonusCelebration'
 
 export default function CheckIn() {
   const { data, loading, saveDay: save } = useData()
@@ -163,7 +165,7 @@ export default function CheckIn() {
   const maxPossible = calculateMaxPossible(dayIndex, CHALLENGE_DAYS)
   const pct = calculateRate(totalScore, maxPossible)
   const streak = calculateStreak(data, allDates, dayIndex)
-  const bonuses = computeBonuses(data, allDates, dayIndex)
+  const bonuses = useMemo(() => computeBonuses(data, allDates, dayIndex), [data, allDates, dayIndex])
 
   // Sync stats to the user's profile (debounced) so the leaderboard view sees fresh data.
   // Only runs for real (non-dev) profiles since dev users have a fake id.
@@ -192,6 +194,32 @@ export default function CheckIn() {
     }, 600)
     return () => clearTimeout(timer)
   }, [profile?.id, totalScore, streak, data, loading, dayIndex, allDates])
+
+  // Bonus celebration queue — detects when bonuses.earned increases and queues animations
+  const prevBonusesRef = useRef(null)
+  const [celebrationQueue, setCelebrationQueue] = useState([])
+  const [currentCelebration, setCurrentCelebration] = useState(null)
+
+  const dismissCelebration = useCallback(() => setCurrentCelebration(null), [])
+
+  useEffect(() => {
+    const prev = prevBonusesRef.current
+    if (prev !== null) {
+      const newlyEarned = detectNewBonuses(prev, bonuses)
+      if (newlyEarned.length > 0) {
+        setCelebrationQueue(q => [...q, ...newlyEarned])
+      }
+    }
+    prevBonusesRef.current = bonuses
+  }, [bonuses])
+
+  useEffect(() => {
+    if (currentCelebration === null && celebrationQueue.length > 0) {
+      const [next, ...rest] = celebrationQueue
+      setCurrentCelebration(next)
+      setCelebrationQueue(rest)
+    }
+  }, [currentCelebration, celebrationQueue])
 
   // Map BONUS_INFO colorKey → theme colour so each card has its own accent
   const colorForKey = {
@@ -740,5 +768,9 @@ export default function CheckIn() {
       </div>
 
     </div>
+
+    {currentCelebration && (
+      <BonusCelebration bonusKey={currentCelebration} onDismiss={dismissCelebration} />
+    )}
   )
 }
