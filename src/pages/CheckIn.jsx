@@ -195,7 +195,7 @@ export default function CheckIn() {
     return () => clearTimeout(timer)
   }, [profile?.id, totalScore, streak, data, loading, dayIndex, allDates])
 
-  const { currentCelebration, dismissCelebration } = useBonusCelebration(bonuses, loading)
+  const { currentCelebration, dismissCelebration, queueCelebrations } = useBonusCelebration(bonuses, loading)
 
   // Map BONUS_INFO colorKey → theme colour so each card has its own accent
   const colorForKey = {
@@ -752,7 +752,7 @@ export default function CheckIn() {
 
     {import.meta.env.DEV && (
       <button
-        onClick={() => setCelebrationQueue(['indulgence', 'restDay', 'nightOwl', 'freeDay'])}
+        onClick={() => queueCelebrations(['indulgence', 'restDay', 'nightOwl', 'freeDay'])}
         style={{
           position: 'fixed', bottom: 16, right: 16, zIndex: 3000,
           background: '#ff006644', border: '1px solid #ff006688',

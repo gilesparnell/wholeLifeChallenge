@@ -14,6 +14,7 @@ export function useBonusCelebration(bonuses, loading) {
   const [celebrationQueue, setCelebrationQueue] = useState([])
   const currentCelebration = celebrationQueue[0] ?? null
   const dismissCelebration = useCallback(() => setCelebrationQueue((q) => q.slice(1)), [])
+  const queueCelebrations = useCallback((keys) => setCelebrationQueue((q) => [...q, ...keys]), [])
 
   const bonusEarnedKey = `${bonuses?.indulgence?.earned ?? 0},${bonuses?.restDay?.earned ?? 0},${bonuses?.nightOwl?.earned ?? 0},${bonuses?.freeDay?.earned ?? 0}`
 
@@ -30,5 +31,5 @@ export function useBonusCelebration(bonuses, loading) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bonusEarnedKey, loading])
 
-  return { currentCelebration, dismissCelebration }
+  return { currentCelebration, dismissCelebration, queueCelebrations }
 }
