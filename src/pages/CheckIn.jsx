@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { HABITS, emptyDay } from '../lib/habits'
 import { scoreDay, calculateStreak, calculateHabitStreak } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
@@ -165,7 +165,7 @@ export default function CheckIn() {
   const maxPossible = calculateMaxPossible(dayIndex, CHALLENGE_DAYS)
   const pct = calculateRate(totalScore, maxPossible)
   const streak = calculateStreak(data, allDates, dayIndex)
-  const bonuses = useMemo(() => computeBonuses(data, allDates, dayIndex), [data, allDates, dayIndex])
+  const bonuses = computeBonuses(data, allDates, dayIndex)
 
   // Sync stats to the user's profile (debounced) so the leaderboard view sees fresh data.
   // Only runs for real (non-dev) profiles since dev users have a fake id.
@@ -195,12 +195,13 @@ export default function CheckIn() {
     return () => clearTimeout(timer)
   }, [profile?.id, totalScore, streak, data, loading, dayIndex, allDates])
 
-  // Bonus celebration queue — detects when bonuses.earned increases and queues animations
+  // Bonus celebration queue — detects when bonuses.earned increases and queues animations.
+  // Use a stable string key so the effect only fires when earned counts actually change.
+  const bonusEarnedKey = `${bonuses.indulgence?.earned ?? 0},${bonuses.restDay?.earned ?? 0},${bonuses.nightOwl?.earned ?? 0},${bonuses.freeDay?.earned ?? 0}`
   const prevBonusesRef = useRef(null)
   const [celebrationQueue, setCelebrationQueue] = useState([])
-  const [currentCelebration, setCurrentCelebration] = useState(null)
-
-  const dismissCelebration = useCallback(() => setCurrentCelebration(null), [])
+  const currentCelebration = celebrationQueue[0] ?? null
+  const dismissCelebration = useCallback(() => setCelebrationQueue(q => q.slice(1)), [])
 
   useEffect(() => {
     const prev = prevBonusesRef.current
@@ -211,15 +212,8 @@ export default function CheckIn() {
       }
     }
     prevBonusesRef.current = bonuses
-  }, [bonuses])
-
-  useEffect(() => {
-    if (currentCelebration === null && celebrationQueue.length > 0) {
-      const [next, ...rest] = celebrationQueue
-      setCurrentCelebration(next)
-      setCelebrationQueue(rest)
-    }
-  }, [currentCelebration, celebrationQueue])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bonusEarnedKey])
 
   // Map BONUS_INFO colorKey → theme colour so each card has its own accent
   const colorForKey = {
@@ -336,6 +330,7 @@ export default function CheckIn() {
   const modalHabit = modalOpen ? HABITS.find((h) => h.id === modalOpen) : null
 
   return (
+    <>
     <div
       ref={checkInRef}
       style={{ animation: 'fadeUp 0.4s ease' }}
@@ -772,5 +767,6 @@ export default function CheckIn() {
     {currentCelebration && (
       <BonusCelebration bonusKey={currentCelebration} onDismiss={dismissCelebration} />
     )}
+    </>
   )
 }
