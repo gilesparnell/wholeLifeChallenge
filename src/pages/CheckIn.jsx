@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { HABITS, emptyDay } from '../lib/habits'
 import { scoreDay, calculateStreak, calculateHabitStreak } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
@@ -20,7 +20,7 @@ import ActivityModal from '../components/modals/ActivityModal'
 import Help from '../components/Help'
 import YesterdayGapsCard from '../components/YesterdayGapsCard'
 import BonusCelebration from '../components/BonusCelebration'
-import { detectNewBonuses } from '../lib/bonusCelebration'
+import { useBonusCelebration } from '../hooks/useBonusCelebration'
 
 export default function CheckIn() {
   const { data, loading, saveDay: save } = useData()
@@ -195,25 +195,7 @@ export default function CheckIn() {
     return () => clearTimeout(timer)
   }, [profile?.id, totalScore, streak, data, loading, dayIndex, allDates])
 
-  // Bonus celebration queue — detects when bonuses.earned increases and queues animations.
-  // Use a stable string key so the effect only fires when earned counts actually change.
-  const bonusEarnedKey = `${bonuses.indulgence?.earned ?? 0},${bonuses.restDay?.earned ?? 0},${bonuses.nightOwl?.earned ?? 0},${bonuses.freeDay?.earned ?? 0}`
-  const prevBonusesRef = useRef(null)
-  const [celebrationQueue, setCelebrationQueue] = useState([])
-  const currentCelebration = celebrationQueue[0] ?? null
-  const dismissCelebration = useCallback(() => setCelebrationQueue(q => q.slice(1)), [])
-
-  useEffect(() => {
-    const prev = prevBonusesRef.current
-    if (prev !== null) {
-      const newlyEarned = detectNewBonuses(prev, bonuses)
-      if (newlyEarned.length > 0) {
-        setCelebrationQueue(q => [...q, ...newlyEarned])
-      }
-    }
-    prevBonusesRef.current = bonuses
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bonusEarnedKey])
+  const { currentCelebration, dismissCelebration, queueCelebrations } = useBonusCelebration(bonuses, loading)
 
   // Map BONUS_INFO colorKey → theme colour so each card has its own accent
   const colorForKey = {
@@ -770,7 +752,7 @@ export default function CheckIn() {
 
     {import.meta.env.DEV && (
       <button
-        onClick={() => setCelebrationQueue(['indulgence', 'restDay', 'nightOwl', 'freeDay'])}
+        onClick={() => queueCelebrations(['indulgence', 'restDay', 'nightOwl', 'freeDay'])}
         style={{
           position: 'fixed', bottom: 16, right: 16, zIndex: 3000,
           background: '#ff006644', border: '1px solid #ff006688',

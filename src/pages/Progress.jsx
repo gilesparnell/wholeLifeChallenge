@@ -672,6 +672,11 @@ export default function Progress() {
           </div>
         </div>
       </div>
+
+      <CorrelationInsights
+        correlations={correlations}
+        enoughData={enoughDataForCorrelations}
+      />
       </CollapsibleSection>
 
       {/* ── 3. Exercise & Movement (conditional) ── */}
@@ -829,10 +834,6 @@ export default function Progress() {
         currentWeekIndex={currentWeekIndex}
       />
       <PeerDeltaChart delta={peerDelta} peerCount={otherUsers.length} />
-      <CorrelationInsights
-        correlations={correlations}
-        enoughData={enoughDataForCorrelations}
-      />
       </CollapsibleSection>
     </div>
   )
