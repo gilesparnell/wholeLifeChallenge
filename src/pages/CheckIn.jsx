@@ -767,6 +767,21 @@ export default function CheckIn() {
     {currentCelebration && (
       <BonusCelebration bonusKey={currentCelebration} onDismiss={dismissCelebration} />
     )}
+
+    {import.meta.env.DEV && (
+      <button
+        onClick={() => setCelebrationQueue(['indulgence', 'restDay', 'nightOwl', 'freeDay'])}
+        style={{
+          position: 'fixed', bottom: 16, right: 16, zIndex: 3000,
+          background: '#ff006644', border: '1px solid #ff006688',
+          color: '#ff6688', borderRadius: 8, padding: '6px 10px',
+          fontSize: 11, fontFamily: 'monospace', cursor: 'pointer',
+          opacity: 0.6,
+        }}
+      >
+        🎉 test bonuses
+      </button>
+    )}
     </>
   )
 }
