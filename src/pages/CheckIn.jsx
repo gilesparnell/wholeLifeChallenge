@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { HABITS, emptyDay } from '../lib/habits'
 import { scoreDay, calculateStreak, calculateHabitStreak } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
@@ -19,6 +19,8 @@ import HydrateCard from '../components/habits/HydrateCard'
 import ActivityModal from '../components/modals/ActivityModal'
 import Help from '../components/Help'
 import YesterdayGapsCard from '../components/YesterdayGapsCard'
+import BonusCelebration from '../components/BonusCelebration'
+import { detectNewBonuses } from '../lib/bonusCelebration'
 
 export default function CheckIn() {
   const { data, loading, saveDay: save } = useData()
@@ -193,6 +195,26 @@ export default function CheckIn() {
     return () => clearTimeout(timer)
   }, [profile?.id, totalScore, streak, data, loading, dayIndex, allDates])
 
+  // Bonus celebration queue — detects when bonuses.earned increases and queues animations.
+  // Use a stable string key so the effect only fires when earned counts actually change.
+  const bonusEarnedKey = `${bonuses.indulgence?.earned ?? 0},${bonuses.restDay?.earned ?? 0},${bonuses.nightOwl?.earned ?? 0},${bonuses.freeDay?.earned ?? 0}`
+  const prevBonusesRef = useRef(null)
+  const [celebrationQueue, setCelebrationQueue] = useState([])
+  const currentCelebration = celebrationQueue[0] ?? null
+  const dismissCelebration = useCallback(() => setCelebrationQueue(q => q.slice(1)), [])
+
+  useEffect(() => {
+    const prev = prevBonusesRef.current
+    if (prev !== null) {
+      const newlyEarned = detectNewBonuses(prev, bonuses)
+      if (newlyEarned.length > 0) {
+        setCelebrationQueue(q => [...q, ...newlyEarned])
+      }
+    }
+    prevBonusesRef.current = bonuses
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bonusEarnedKey])
+
   // Map BONUS_INFO colorKey → theme colour so each card has its own accent
   const colorForKey = {
     green: colors.green, blue: colors.blue, purple: colors.purple, orange: colors.orange,
@@ -308,6 +330,7 @@ export default function CheckIn() {
   const modalHabit = modalOpen ? HABITS.find((h) => h.id === modalOpen) : null
 
   return (
+    <>
     <div
       ref={checkInRef}
       style={{ animation: 'fadeUp 0.4s ease' }}
@@ -740,5 +763,10 @@ export default function CheckIn() {
       </div>
 
     </div>
+
+    {currentCelebration && (
+      <BonusCelebration bonusKey={currentCelebration} onDismiss={dismissCelebration} />
+    )}
+    </>
   )
 }
