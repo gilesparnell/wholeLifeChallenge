@@ -26,7 +26,7 @@ Each entry is split into:
 
 ---
 
-## [0.22.1 → 0.22.3] — 24 Apr 2026 — Check-in UX + swipe + bonus tracker + celebration
+## [0.22.1 → 0.22.4] — 24 Apr 2026 — Check-in UX + swipe + bonus tracker + celebration
 
 ### What's new
 - The date / "Today" label on the check-in screen is larger and bolder — easier to read at a glance.
@@ -41,6 +41,7 @@ Each entry is split into:
 - `BonusCelebration.jsx` — React portal (z-index 4000). 32-piece confetti burst using a 3-stop linear keyframe for parabolic arc physics; mixed rectangle/circle shapes with alternating spin and flip. Shimmer sweep, breathing spotlight, ambient icon glow, spring card entrance. Card `overflow` removed so confetti escapes into backdrop. `detectNewBonuses()` + `bonusEarnedKey` stable string diff drives the queue; 12 unit tests.
 - Dev-only test button (`import.meta.env.DEV`) in CheckIn for triggering all 4 celebrations. Strip automatically in production builds.
 - Bug fix: celebration no longer fires on every login for previously-earned bonuses. `useBonusCelebration` hook skips detection while `loading=true`; baseline is established only once real data arrives. 9 regression tests.
+- "Patterns we're seeing" (correlation insights) moved from the Insights section to the bottom of Habit Trends — it belongs with the habit data it summarises.
 
 ---
 
