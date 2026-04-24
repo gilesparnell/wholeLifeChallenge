@@ -26,17 +26,20 @@ Each entry is split into:
 
 ---
 
-## [0.22.1] — 24 Apr 2026 — Check-in UX + swipe + bonus tracker
+## [0.22.1 → 0.22.2] — 24 Apr 2026 — Check-in UX + swipe + bonus tracker + celebration
 
 ### What's new
 - The date / "Today" label on the check-in screen is larger and bolder — easier to read at a glance.
 - Mac trackpad horizontal swipe to change day is fixed: the gesture is now captured more reliably, even when the initial motion is slightly diagonal.
 - Bonus Tracker is confirmed correct: "0/X to next" means you've already earned a bonus and are building your next streak — it resets to zero when a bonus is earned, then counts back up as you log each day. This is expected.
+- **Bonus celebration overlay** — when you earn a bonus (Indulgence, Rest Day, Night Owl, Free Day) a full-screen animation fires with the bonus icon, a confetti burst, and a custom headline. Multiple bonuses queue so none are skipped. Auto-dismisses after 6 s; tap anywhere or press Esc to dismiss early.
 
 ### Under the hood
 - `CheckIn.jsx` date button: `fontSize 14 → 18`, `fontWeight 600 → 700`.
 - Swipe fix: replaced the per-event `|deltaX| < |deltaY|` filter with a `|deltaX| < 2` guard. The accumulator now receives all events with any horizontal component; `preventDefault()` is called on all of them, blocking browser back/forward from stealing the gesture. Direction validation (`HORIZONTAL_DOMINANCE_RATIO`) runs at flush time on the accumulated total, which is more robust than per-event filtering.
 - 13 new bonus tracker unit tests: new entries format (`{ completed, entries }` v0.14.0+), streak rebuild after earning, unlogged-day breaks streak, `freeDay` bonus counts toward next free day streak, sleep/exercise `null` and format edge cases. All 67 bonus tests pass.
+- `BonusCelebration.jsx` — React portal (z-index 4000). 32-piece confetti burst using a 3-stop linear keyframe for parabolic arc physics; mixed rectangle/circle shapes with alternating spin and flip. Shimmer sweep, breathing spotlight, ambient icon glow, spring card entrance. Card `overflow` removed so confetti escapes into backdrop. `detectNewBonuses()` + `bonusEarnedKey` stable string diff drives the queue; 12 unit tests.
+- Dev-only test button (`import.meta.env.DEV`) in CheckIn for triggering all 4 celebrations. Strip automatically in production builds.
 
 ---
 
