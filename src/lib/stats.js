@@ -1,4 +1,5 @@
 import { scoreDay } from './scoring'
+import { getDayIndex } from './dates'
 
 /**
  * Sum of scores for days from start of challenge up to and including
@@ -49,6 +50,18 @@ export const computeCumulativeByDay = (data, allDates, dayIndex) => {
     result.push(running)
   }
   return result
+}
+
+/**
+ * Count distinct challenge days on which data has been logged, up to
+ * and including dayIndex. Excludes pre-challenge dates and future dates.
+ */
+export const countDaysLogged = (data, dayIndex) => {
+  if (dayIndex < 0) return 0
+  return Object.keys(data).filter((d) => {
+    const i = getDayIndex(d)
+    return i >= 0 && i <= dayIndex
+  }).length
 }
 
 /**

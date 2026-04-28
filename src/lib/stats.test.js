@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePreview, computeCumulativeByDay } from './stats'
+import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePreview, computeCumulativeByDay, countDaysLogged } from './stats'
 
 const perfectDay = {
   nutrition: 5,
@@ -199,5 +199,36 @@ describe('truncatePreview', () => {
 
   it('trims whitespace from the result', () => {
     expect(truncatePreview('   Hello world   ')).toBe('Hello world')
+  })
+})
+
+// FALLBACK_START = '2026-04-13' in node env (no localStorage).
+// Dates: '2026-04-13' = dayIndex 0, '2026-04-14' = 1, '2026-04-12' = -1 (before start).
+describe('countDaysLogged', () => {
+  it('returns 0 for empty data', () => {
+    expect(countDaysLogged({}, 5)).toBe(0)
+  })
+
+  it('counts all entries within the challenge range up to dayIndex', () => {
+    const data = { '2026-04-13': {}, '2026-04-14': {}, '2026-04-15': {} } // dayIndex 0,1,2
+    expect(countDaysLogged(data, 2)).toBe(3)
+  })
+
+  it('excludes entries before the challenge start (dayIndex < 0)', () => {
+    const data = { '2026-04-12': {}, '2026-04-13': {} } // -1, 0
+    expect(countDaysLogged(data, 5)).toBe(1) // only '2026-04-13' qualifies
+  })
+
+  it('excludes entries after dayIndex (future days)', () => {
+    const data = { '2026-04-13': {}, '2026-04-14': {}, '2026-04-15': {} } // 0,1,2
+    expect(countDaysLogged(data, 1)).toBe(2) // only dayIndex 0 and 1 count
+  })
+
+  it('returns 1 when exactly one entry logged on day 0', () => {
+    expect(countDaysLogged({ '2026-04-13': {} }, 0)).toBe(1)
+  })
+
+  it('returns 0 when dayIndex is negative (challenge not started)', () => {
+    expect(countDaysLogged({ '2026-04-13': {} }, -1)).toBe(0)
   })
 })

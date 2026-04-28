@@ -15,7 +15,7 @@ vi.mock('../contexts/ThemeContext', () => ({
 }))
 
 vi.mock('../contexts/DataContext', () => ({
-  useData: () => ({ saveStatus: { status: 'idle', pendingCount: 0, lastError: null } }),
+  useData: () => ({ data: {}, saveStatus: { status: 'idle', pendingCount: 0, lastError: null } }),
 }))
 
 describe('Layout', () => {

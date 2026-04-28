@@ -4,7 +4,7 @@ import { scoreDay, calculateStreak, calculateHabitStreak } from '../lib/scoring'
 import { getDayIndex, getToday, getAllDates, formatDate, CHALLENGE_DAYS } from '../lib/dates'
 import { getEffectiveConfig } from '../lib/adminConfig'
 import { computeBonuses, applyAutoBonuses, BONUS_INFO } from '../lib/bonuses'
-import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePreview, computeCumulativeByDay } from '../lib/stats'
+import { calculateTotalScore, calculateMaxPossible, calculateRate, truncatePreview, computeCumulativeByDay, countDaysLogged } from '../lib/stats'
 import { calculateRecoveryScore, calculateStrainScore } from '../lib/recovery'
 import { getContextAwarePrompt } from '../lib/promptBank'
 import { updateProfileStats } from '../lib/profiles'
@@ -174,10 +174,7 @@ export default function CheckIn() {
     const isRealProfile = profile?.id && !String(profile.id).startsWith('dev-')
     if (!isRealProfile || loading) return
 
-    const daysActive = Object.keys(data).filter((d) => {
-      const i = getDayIndex(d)
-      return i >= 0 && i <= dayIndex
-    }).length
+    const daysActive = countDaysLogged(data, dayIndex)
 
     const last = lastSyncRef.current
     if (last.totalScore === totalScore && last.streak === streak && last.daysActive === daysActive) return
