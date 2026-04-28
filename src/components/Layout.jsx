@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { colors, fonts } from '../styles/theme'
 import { getDayIndex, getToday, getChallengeDays, getChallengeStartFormatted, getChallengeEndDate } from '../lib/dates'
+import { countDaysLogged } from '../lib/stats'
+import { useData } from '../contexts/DataContext'
 import SaveStatusIndicator from './SaveStatusIndicator'
 import HeaderMenu from './HeaderMenu'
 import { getDisplayVersion } from '../lib/version'
@@ -18,9 +20,12 @@ const NAV_ITEMS = [
 export default function Layout({ children }) {
   const { user, profile, signOut, isAdmin } = useAuth()
   const { resolvedTheme, toggleTheme } = useTheme()
+  const { data = {} } = useData()
   const location = useLocation()
   const today = getToday()
   const dayIndex = getDayIndex(today)
+  const daysLogged = countDaysLogged(data, dayIndex)
+  const daysElapsed = Math.min(Math.max(dayIndex + 1, 1), getChallengeDays())
 
   return (
     <>
@@ -106,8 +111,11 @@ export default function Layout({ children }) {
             fontFamily: fonts.display, fontSize: 32, fontWeight: 300,
             letterSpacing: -0.5, lineHeight: 1.1,
           }}>
-            Day {Math.min(Math.max(dayIndex + 1, 1), getChallengeDays())} <span style={{ color: colors.textFaint }}>/ {getChallengeDays()}</span>
+            Day {daysElapsed} <span style={{ color: colors.textFaint }}>/ {getChallengeDays()}</span>
           </h1>
+          <p style={{ fontSize: 11, color: colors.textFaint, marginTop: 2 }}>
+            ({daysLogged} of {daysElapsed} days logged)
+          </p>
           <p style={{ fontSize: 12, color: colors.textDim, marginTop: 4 }}>{getChallengeStartFormatted()} — {getChallengeEndDate()}</p>
           <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
             <SaveStatusIndicator />

@@ -26,6 +26,18 @@ Each entry is split into:
 
 ---
 
+## [0.22.5] — 29 Apr 2026 — Days logged count in header
+
+### What's new
+- Under the "Day X / 75" header you'll now see **(X of Y days logged)** — so you can tell at a glance how many challenge days you've actually checked in, vs. how many days have elapsed.
+
+### Under the hood
+- `countDaysLogged(data, dayIndex)` extracted as a tested pure function in `stats.js` (6 unit tests). Replaces the inline duplicate in `CheckIn.jsx`'s profile-sync effect.
+- `Layout.jsx` now imports `useData` to compute and display the days-logged count below the day header.
+- `Layout.test.jsx` mock updated to include `data: {}`.
+
+---
+
 ## [0.22.1 → 0.22.4] — 24 Apr 2026 — Check-in UX + swipe + bonus tracker + celebration
 
 ### What's new
