@@ -38,6 +38,7 @@ Each entry is split into:
 
 ---
 
+
 ## [0.22.1 → 0.22.4] — 24 Apr 2026 — Check-in UX + swipe + bonus tracker + celebration
 
 ### What's new
