@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useData } from '../contexts/DataContext'
 import { colors, fonts } from '../styles/theme'
 import { getDayIndex, getToday, getAllDates, getChallengeDays } from '../lib/dates'
@@ -11,18 +11,26 @@ const EXAMPLES = [
   'How does the scoring work?',
 ]
 
+const HISTORY_KEY = 'wlc-ask-history'
+const loadHistory = () => {
+  try { return JSON.parse(sessionStorage.getItem(HISTORY_KEY) || '[]') } catch { return [] }
+}
+
 export default function Ask() {
   const { data } = useData()
   const [question, setQuestion] = useState('')
-  const [answer, setAnswer] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [history, setHistory] = useState([])
+  const [history, setHistory] = useState(loadHistory)
 
   const today = getToday()
   const allDates = getAllDates()
   const dayIndex = getDayIndex(today)
   const challengeDays = getChallengeDays()
+
+  useEffect(() => {
+    try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history)) } catch { /* ignore */ }
+  }, [history])
 
   const submit = async (q) => {
     const text = (q ?? question).trim()
@@ -30,7 +38,6 @@ export default function Ask() {
 
     setLoading(true)
     setError(null)
-    setAnswer(null)
 
     const context = buildQueryContext(data, allDates, dayIndex, challengeDays)
 
@@ -42,8 +49,7 @@ export default function Ask() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Something went wrong')
-      setAnswer(json.answer)
-      setHistory((h) => [{ question: text, answer: json.answer }, ...h].slice(0, 5))
+      setHistory((h) => [{ question: text, answer: json.answer }, ...h].slice(0, 10))
       setQuestion('')
     } catch (e) {
       setError(e.message)
@@ -58,6 +64,8 @@ export default function Ask() {
       submit()
     }
   }
+
+  const latestAnswer = history[0] ?? null
 
   return (
     <div style={{ animation: 'fadeUp 0.4s ease' }}>
@@ -102,28 +110,27 @@ export default function Ask() {
         </div>
       </div>
 
-      {/* Example prompts */}
-      {!answer && !loading && (
-        <div style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: 11, color: colors.textGhost, marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>Try asking</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {EXAMPLES.map((ex) => (
-              <button
-                key={ex}
-                onClick={() => submit(ex)}
-                style={{
-                  background: colors.surface, border: `1px solid ${colors.border}`,
-                  borderRadius: 20, padding: '6px 14px',
-                  color: colors.textDim, fontSize: 12, fontFamily: fonts.body,
-                  cursor: 'pointer',
-                }}
-              >
-                {ex}
-              </button>
-            ))}
-          </div>
+      {/* Example prompts — always visible */}
+      <div style={{ marginBottom: 20 }}>
+        <p style={{ fontSize: 11, color: colors.textGhost, marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>Try asking</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {EXAMPLES.map((ex) => (
+            <button
+              key={ex}
+              onClick={() => submit(ex)}
+              disabled={loading}
+              style={{
+                background: colors.surface, border: `1px solid ${colors.border}`,
+                borderRadius: 20, padding: '6px 14px',
+                color: loading ? colors.textGhost : colors.textDim,
+                fontSize: 12, fontFamily: fonts.body, cursor: loading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {ex}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Loading */}
       {loading && (
@@ -140,13 +147,18 @@ export default function Ask() {
       )}
 
       {/* Latest answer */}
-      {answer && (
-        <div style={{ background: colors.surface, borderRadius: 14, padding: 20, border: `1px solid ${colors.border}`, marginBottom: 24 }}>
-          <p style={{ fontSize: 14, lineHeight: 1.7, color: colors.text, whiteSpace: 'pre-wrap' }}>{answer}</p>
+      {!loading && latestAnswer && (
+        <div style={{ marginBottom: 24 }}>
+          <p style={{ fontSize: 11, color: colors.textGhost, marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>
+            {latestAnswer.question}
+          </p>
+          <div style={{ background: colors.surface, borderRadius: 14, padding: 20, border: `1px solid ${colors.border}` }}>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: colors.text, whiteSpace: 'pre-wrap' }}>{latestAnswer.answer}</p>
+          </div>
         </div>
       )}
 
-      {/* History */}
+      {/* Earlier this session */}
       {history.length > 1 && (
         <div>
           <p style={{ fontSize: 11, color: colors.textGhost, marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>Earlier this session</p>
