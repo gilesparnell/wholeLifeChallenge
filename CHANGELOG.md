@@ -26,6 +26,22 @@ Each entry is split into:
 
 ---
 
+## [0.23.0] — 29 Apr 2026 — Ask: AI coach powered by Gemini
+
+### What's new
+- New **Ask** tab in the nav — type any question about your challenge data and get a plain-English answer from an AI coach (powered by Google Gemini, free tier).
+- Example questions appear when you first open the page to help you get started.
+- Your last 5 questions and answers are kept in session history below the main response.
+- The AI sees your actual data: current day, total score, days logged, streak, per-habit completion rates, and today's score — so answers are specific to you, not generic.
+
+### Under the hood
+- `api/query.js` — new Vercel serverless function. Accepts `{ question, context }`, calls `gemini-2.0-flash-lite` REST API, returns `{ answer }`. API key stored in Vercel env var `GEMINI_API_KEY` (never in the frontend bundle).
+- `src/lib/queryContext.js` — pure function serialising user data into a concise text context for the AI prompt. 9 unit tests.
+- `src/pages/Ask.jsx` — new page with textarea input, example prompts, loading state, error handling, and session history.
+- Nav updated: "Leader Board" shortened to "Board" to fit 6 items.
+
+---
+
 ## [0.22.5] — 29 Apr 2026 — Days logged count in header
 
 ### What's new
