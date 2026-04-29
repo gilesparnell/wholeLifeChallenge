@@ -13,7 +13,8 @@ const NAV_ITEMS = [
   { to: '/', label: 'Check In' },
   { to: '/progress', label: 'Progress' },
   { to: '/journal', label: 'Journal' },
-  { to: '/leaderboard', label: 'Leader Board' },
+  { to: '/leaderboard', label: 'Board' },
+  { to: '/ask', label: 'Ask' },
   { to: '/info', label: 'Info' },
 ]
 

@@ -18,6 +18,7 @@ import Journal from './pages/Journal'
 import Info from './pages/Info'
 import Leaderboard from './pages/Leaderboard'
 import NotFound from './pages/NotFound'
+import Ask from './pages/Ask'
 
 // Lazy-load Progress (Recharts is ~600KB) and Admin (admin-only, rarely loaded)
 const Progress = lazy(() => import('./pages/Progress'))
@@ -106,6 +107,7 @@ function AuthenticatedApp() {
                   <Route path="/progress" element={<Progress />} />
                   <Route path="/journal" element={<Journal />} />
                   <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route path="/ask" element={<Ask />} />
                   <Route path="/info" element={<Info />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/preferences" element={<MyPreferences />} />

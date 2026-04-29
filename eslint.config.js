@@ -51,9 +51,9 @@ export default defineConfig([
       'react-refresh/only-export-components': 'warn',
     },
   },
-  // Node-context files: vite.config.js and any *.test.js using node globals.
+  // Node-context files: vite.config.js, Vercel API routes, and *.test.js.
   {
-    files: ['vite.config.js', '**/*.test.js'],
+    files: ['vite.config.js', 'api/**/*.js', '**/*.test.js'],
     languageOptions: {
       globals: {
         ...globals.browser,
