@@ -42,6 +42,7 @@ Each entry is split into:
 
 ---
 
+
 ## [0.22.5] — 29 Apr 2026 — Days logged count in header
 
 ### What's new
