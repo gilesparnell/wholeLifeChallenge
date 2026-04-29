@@ -53,11 +53,18 @@ export default async function handler(req, res) {
   }
 
   if (!geminiRes.ok) {
-    return res.status(502).json({ error: 'AI service returned an error' })
+    let errBody = ''
+    try { errBody = await geminiRes.text() } catch { /* ignore */ }
+    console.error(`Gemini ${geminiRes.status}: ${errBody.slice(0, 500)}`)
+    return res.status(502).json({ error: `AI service error (HTTP ${geminiRes.status})` })
   }
 
   const result = await geminiRes.json()
-  const answer = result.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No response received.'
+  const answer = result.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!answer) {
+    console.error('Gemini empty response:', JSON.stringify(result).slice(0, 500))
+    return res.status(502).json({ error: 'AI service returned an empty response' })
+  }
 
   return res.status(200).json({ answer: answer.trim() })
 }
